@@ -1,54 +1,40 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
-/** Mock 模式演示账号凭据，与 Mock 处理器保持一致。 */
-const DEMO_USER = 'admin'
-const DEMO_PASS = 'urban_safe_admin_password'
-
-/** 在登录表单中填入凭据并点击登录。 */
-async function login(page: import('@playwright/test').Page) {
-  await page.getByPlaceholder('用户名').fill(DEMO_USER)
-  await page.getByPlaceholder('密码').fill(DEMO_PASS)
-  await page.getByRole('button', { name: '登录' }).click()
+async function login(page: Page, username: string, password: string) {
+  await page.goto('/console/login')
+  await page.getByPlaceholder('请输入用户名').fill(username)
+  await page.getByPlaceholder('请输入密码').fill(password)
+  await page.getByRole('button', { name: '登录', exact: true }).click()
 }
 
-test.describe('巡检工作台 (Mock 模式)', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/workspace')
+test.describe('巡检组织管理访问基线 (Mock 模式)', () => {
+  test('社区管理员登录后进入巡检组织管理', async ({ page }) => {
+    await login(page, 'manager', 'demo123')
+    await expect(page).toHaveURL(/\/console\/inspections/)
+    await expect(page.getByRole('heading', { name: '巡检组织管理' })).toBeVisible()
   })
 
-  test('Mock 模式加载地图运行配置', async ({ page }) => {
-    await login(page)
-    // 地图模式显示 MOCK
-    await expect(page.getByText('地图模式：MOCK')).toBeVisible()
+  test('管理员可以直接进入巡检组织管理', async ({ page }) => {
+    await login(page, 'admin', 'urban_safe_admin_password')
+    await page.goto('/console/inspections')
+    await expect(page).toHaveURL(/\/console\/inspections/)
+    await expect(page.getByRole('heading', { name: '巡检组织管理' })).toBeVisible()
   })
 
-  test('Mock 模式加载小区列表', async ({ page }) => {
-    await login(page)
-    // 小区卡片出现
-    await expect(page.getByText('示范小区')).toBeVisible()
-    await expect(page.getByText('安居小区')).toBeVisible()
-  })
-
-  test('接口错误时页面不白屏', async ({ page }) => {
-    // 未登录直接点击按钮不存在（登录表单），改用错误凭据登录触发 401
-    await page.getByPlaceholder('用户名').fill('wrong')
-    await page.getByPlaceholder('密码').fill('wrong')
-    await page.getByRole('button', { name: '登录' }).click()
-    // 页面不白屏，标题仍在
-    await expect(page.locator('h1')).toBeVisible()
-    // 错误提示显示
+  test('错误凭据不会进入受保护页面', async ({ page }) => {
+    await login(page, 'wrong', 'wrong')
+    await expect(page).toHaveURL(/\/console\/login/)
     await expect(page.getByText(/用户名或密码错误/)).toBeVisible()
   })
 
-  test('工作台基础结构显示正常', async ({ page }) => {
-    await login(page)
-    // 等待数据加载
-    await expect(page.getByText('数据加载完成')).toBeVisible()
-    // 四块面板标题都存在
-    const h2 = page.locator('.panel h2')
-    await expect(h2.filter({ hasText: '小区地图' }).first()).toBeVisible()
-    await expect(h2.filter({ hasText: '创建巡检任务' }).first()).toBeVisible()
-    await expect(h2.filter({ hasText: '巡检任务' }).first()).toBeVisible()
-    await expect(h2.filter({ hasText: '现场记录与图片' }).first()).toBeVisible()
+  test('移动巡检人员不能通过电脑端巡检管理路由', async ({ page }) => {
+    await page.goto('/mobile/login')
+    await page.getByPlaceholder('请输入用户名').fill('inspector')
+    await page.getByPlaceholder('请输入密码').fill('demo123')
+    await page.getByRole('button', { name: '登录', exact: true }).click()
+    await expect(page).toHaveURL(/\/mobile\/tasks/)
+
+    await page.goto('/console/inspections')
+    await expect(page).toHaveURL(/\/client-mismatch\?expected=CONSOLE/)
   })
 })

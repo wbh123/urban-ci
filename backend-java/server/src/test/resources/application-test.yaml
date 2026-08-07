@@ -1,0 +1,104 @@
+spring:
+  ai:
+    model:
+      chat: none
+      embedding: none
+      image: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+  datasource:
+    hikari:
+      # 测试套件会缓存多个 Spring 上下文；限制每个上下文的连接数，避免共享 Testcontainers PostgreSQL 耗尽连接。
+      maximum-pool-size: 2
+      minimum-idle: 0
+      idle-timeout: 10000
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    default-schema: public
+    table: flyway_schema_history
+    validate-on-migrate: true
+    baseline-on-migrate: false
+    clean-disabled: true
+    out-of-order: false
+  sql:
+    init:
+      mode: never
+
+mybatis-plus:
+  # 测试与生产使用相同的持久层 XML 路径，确保集成测试能够发现扩展 Mapper。
+  mapper-locations: classpath*:mappers/**/*.xml
+  type-aliases-package: org.urbansafe.priority
+  # 集成测试必须注册与生产一致的 UUID、JSONB 类型处理器，否则 MyBatis 无法创建自动结果映射。
+  type-handlers-package: org.urbansafe.priority.persistence.typehandler
+  configuration:
+    map-underscore-to-camel-case: true
+    call-setters-on-nulls: true
+  global-config:
+    banner: false
+    db-config:
+      id-type: input
+      logic-delete-field: deletedAt
+      logic-not-delete-value: "null"
+      logic-delete-value: "now()"
+
+urban-safe:
+  auth:
+    jwt:
+      issuer: test-urban-safe
+      audience: test-urban-safe-web
+      secret: test-secret-key-for-unit-tests-which-is-long-enough-for-hmac-sha256!!
+      access-token-ttl-seconds: 7200
+    bootstrap-admin:
+      enabled: false
+      username: admin
+      password: ""
+      real-name: 测试管理员
+  web:
+    cors:
+      allowed-origins: http://localhost:5173
+      allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+      allowed-headers: Authorization,Content-Type,X-UrbanSafe-Request-Id
+      allow-credentials: true
+  map:
+    enabled: false
+    provider: AMAP
+    default-center-longitude: 113.13396
+    default-center-latitude: 27.82767
+    default-zoom: 12
+    amap:
+      js-api-key: ""
+      security-js-code: ""
+      service-host: /_AMapService
+      web-service-key: ""
+      web-service-base-url: https://restapi.amap.com
+      connect-timeout-ms: 3000
+      read-timeout-ms: 5000
+      cache-ttl-seconds: 86400
+      live-test-enabled: false
+  storage:
+    provider: LOCAL
+    endpoint: http://localhost:9000
+    access-key: ""
+    secret-key: ""
+    bucket: urban-safe-test-assets
+    local-directory: target/test-assets
+    max-image-size-bytes: 10485760
+    preview-expiry-seconds: 900
+  ai:
+    base-url: http://localhost:8001
+    connect-timeout-ms: 3000
+    read-timeout-ms: 15000
+    default-mock-model-id: AI-DEFECT-MOCK-001
+    default-mode: MOCK
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized

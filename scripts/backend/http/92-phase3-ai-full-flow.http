@@ -1,0 +1,319 @@
+### ====================================================================
+### 92-phase3-ai-full-flow: 第三阶段人工智能端到端流程验证
+### 完整链路：登录→小区→楼栋→巡检任务→记录→上传图片→MOCK推理→
+###           查询结果→验证检测框→提交复核→模拟故障→验证失败→重试
+### 按顺序执行所有请求，Token 自动传递。
+### ====================================================================
+
+### 0. 初始化
+< {%
+  const ts = Date.now().toString();
+  client.global.set("runId", ts);
+  client.global.set("communityCode", "AI-" + ts.slice(-8));
+%}
+
+### 1. 登录
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+> {%
+  client.test("登录成功", function () {
+    client.assert(response.status === 200);
+    client.assert(response.body.data.accessToken !== null);
+  });
+  client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+### 2. 创建小区
+POST {{baseUrl}}/api/v1/communities
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityCode": "{{communityCode}}",
+  "communityName": "AI流程测试小区",
+  "administrativeRegion": "流程测试市AI区",
+  "status": "ACTIVE"
+}
+
+> {%
+  client.test("创建小区成功", function () {
+    client.assert(response.status === 201 || response.status === 200);
+    client.assert(response.body.success === true);
+  });
+  if (response.body.success && response.body.data.id) {
+    client.global.set("communityId", response.body.data.id);
+  }
+%}
+
+### 3. 创建楼栋
+POST {{baseUrl}}/api/v1/buildings
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityId": "{{communityId}}",
+  "buildingCode": "AI-{{runId}}",
+  "buildingName": "AI流程测试楼栋",
+  "householdCount": 24,
+  "residentCount": 72
+}
+
+> {%
+  client.test("创建楼栋成功", function () {
+    client.assert(response.status === 201 || response.status === 200);
+  });
+  if (response.body.success && response.body.data.id) {
+    client.global.set("buildingId", response.body.data.id);
+  }
+%}
+
+### 4. 创建巡检任务
+POST {{baseUrl}}/api/v1/inspection-tasks
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "buildingId": "{{buildingId}}",
+  "taskCode": "AI-TASK-{{runId}}",
+  "inspectionType": "ROUTINE",
+  "title": "AI流程测试巡检任务"
+}
+
+> {%
+  client.test("创建巡检任务成功", function () {
+    client.assert(response.status === 201 || response.status === 200);
+  });
+  if (response.body.success && response.body.data.id) {
+    client.global.set("inspectionTaskId", response.body.data.id);
+  }
+%}
+
+### 5. 开始巡检任务
+POST {{baseUrl}}/api/v1/inspection-tasks/{{inspectionTaskId}}/start
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("开始任务成功", function () {
+    client.assert(response.status === 200);
+  });
+%}
+
+### 6. 创建巡检记录
+POST {{baseUrl}}/api/v1/inspection-records
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "inspectionTaskId": "{{inspectionTaskId}}",
+  "buildingId": "{{buildingId}}",
+  "recordCode": "AI-REC-{{runId}}",
+  "issueType": "CRACK",
+  "severity": "MEDIUM"
+}
+
+> {%
+  client.test("创建记录成功", function () {
+    client.assert(response.status === 201 || response.status === 200);
+  });
+  if (response.body.success && response.body.data.id) {
+    client.global.set("inspectionRecordId", response.body.data.id);
+  }
+%}
+
+### 7. 上传图片（使用本地 HTTP 客户端支持的 Multipart）
+###    注意：本请求依赖 VSCode REST Client 支持 multipart
+POST {{baseUrl}}/api/v1/images/upload
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=----boundary
+
+------boundary
+Content-Disposition: form-data; name="file"; filename="ai-test.jpg"
+Content-Type: image/jpeg
+
+// JPEG minimal 1x1 image bytes – replace with actual binary in VSCode
+------boundary
+Content-Disposition: form-data; name="businessType"
+
+INSPECTION_RECORD
+------boundary
+Content-Disposition: form-data; name="businessId"
+
+{{inspectionRecordId}}
+------boundary--
+
+> {%
+  // 图片上传为二进制请求，VSCode 环境中需使用真实图片文件。
+  // 以下断言在图片上传成功时执行。
+  if (response.status === 200 || response.status === 201) {
+    client.test("上传图片成功", function () {
+      client.assert(response.body.success === true);
+    });
+    if (response.body.data && response.body.data.id) {
+      client.global.set("aiAssetId", response.body.data.id);
+    }
+  }
+%}
+
+### 8. 创建 MOCK 推理任务
+POST {{baseUrl}}/api/v1/ai-inferences
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "assetId": "{{aiAssetId}}",
+  "mode": "MOCK",
+  "modelId": "AI-DEFECT-MOCK-001",
+  "idempotencyKey": "phase3-flow-{{runId}}"
+}
+
+> {%
+  client.test("创建推理任务", function () {
+    client.assert(response.status === 201);
+    client.assert(response.body.success === true);
+    client.assert(response.body.data.mode === "MOCK");
+  });
+  if (response.body.success) {
+    client.global.set("inferenceId", response.body.data.inferenceId);
+    client.global.set("inferenceStatus", response.body.data.status);
+  }
+%}
+
+### 9. 查询推理详情
+GET {{baseUrl}}/api/v1/ai-inferences/{{inferenceId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("查询推理详情成功", function () {
+    client.assert(response.status === 200);
+    client.assert(response.body.data.inferenceId !== null);
+    client.assert(response.body.data.mode === "MOCK");
+  });
+  const detail = response.body.data;
+  if (detail.detections && detail.detections.length > 0) {
+    client.test("检测框坐标合法", function () {
+      detail.detections.forEach(function (d) {
+        const box = d.boundingBox || d.boundingbox;
+        if (box) {
+          client.assert(box.x >= 0 && box.x <= 1);
+          client.assert(box.y >= 0 && box.y <= 1);
+          client.assert(box.width > 0 && box.width <= 1);
+          client.assert(box.height > 0 && box.height <= 1);
+          client.assert(d.confidence >= 0 && d.confidence <= 1);
+        }
+      });
+    });
+  }
+  if (detail.disclaimer) {
+    client.test("免责声明已包含", function () {
+      client.assert(detail.disclaimer.includes("风险筛查"));
+    });
+  }
+%}
+
+### 10. 提交人工复核（若任务已成功）
+POST {{baseUrl}}/api/v1/ai-inferences/{{inferenceId}}/review
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "reviewStatus": "CONFIRMED",
+  "comment": "流程测试确认无误"
+}
+
+> {%
+  if (response.status === 200) {
+    client.test("人工复核成功", function () {
+      client.assert(response.body.data.reviewStatus === "CONFIRMED");
+    });
+  }
+%}
+
+### 11. 幂等验证：使用相同 key 再次创建
+POST {{baseUrl}}/api/v1/ai-inferences
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "assetId": "{{aiAssetId}}",
+  "mode": "MOCK",
+  "modelId": "AI-DEFECT-MOCK-001",
+  "idempotencyKey": "phase3-flow-{{runId}}"
+}
+
+> {%
+  client.test("幂等请求返回已有任务", function () {
+    // 应返回 201 并复用已有任务，或 409。
+    client.assert(response.status === 201 || response.status === 409);
+  });
+%}
+
+### 12. 重试不存在的任务（预期 404）
+POST {{baseUrl}}/api/v1/ai-inferences/00000000-0000-0000-0000-000000000000/retry
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "modelId": "AI-DEFECT-MOCK-001"
+}
+
+> {%
+  client.test("不存在的任务返回 404", function () {
+    client.assert(response.status === 404);
+  });
+%}
+
+### 13. 对非失败任务重试（预期 409）
+POST {{baseUrl}}/api/v1/ai-inferences/{{inferenceId}}/retry
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "modelId": "AI-DEFECT-MOCK-001"
+}
+
+> {%
+  client.test("非失败任务重试返回 409", function () {
+    client.assert(response.status === 409);
+  });
+%}
+
+### 14. 查看推理列表
+GET {{baseUrl}}/api/v1/ai-inferences?page=0&size=10&buildingId={{buildingId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("推理列表查询成功", function () {
+    client.assert(response.status === 200);
+    client.assert(Array.isArray(response.body.data.content));
+    client.assert(response.body.data.page.totalElements > 0);
+  });
+%}
+
+### 15. 按状态筛选
+GET {{baseUrl}}/api/v1/ai-inferences?page=0&size=10&status={{inferenceStatus}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("按状态筛选成功", function () {
+    client.assert(response.status === 200);
+    const content = response.body.data.content;
+    if (content && content.length > 0) {
+      client.assert(content[0].status === client.global.get("inferenceStatus"));
+    }
+  });
+%}
+
+### 16. 认证检查：无 Token 访问被拒绝
+GET {{baseUrl}}/api/v1/ai-inferences/{{inferenceId}}
+
+> {%
+  client.test("无 Token 返回 401", function () {
+    client.assert(response.status === 401);
+  });
+%}

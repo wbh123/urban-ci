@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "capabilityId": "LOCAL-IMAGE-QUALITY-001",
+  "name": "UrbanSafe Deterministic Image Quality Precheck",
+  "version": "0.1.0",
+  "status": "APPROVED_FOR_PRECHECK",
+  "task": "IMAGE_QUALITY_ASSESSMENT",
+  "implementation": "app.quality.analyze_image_quality",
+  "requiresWeights": false,
+  "requiresCuda": false,
+  "networkAccess": false,
+  "formalEvidenceEnabled": false,
+  "outputs": [
+    "brightness",
+    "contrast",
+    "sharpness",
+    "blank",
+    "underexposed",
+    "overexposed",
+    "blurDetected",
+    "lowResolution",
+    "reshootRecommended"
+  ],
+  "limitations": [
+    "仅判断拍摄质量，不识别或测量结构病害",
+    "固定阈值需要在真实巡检图片上继续校准",
+    "不得把通过预检解释为建筑安全"
+  ]
+}

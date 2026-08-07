@@ -1,0 +1,3 @@
+push:
+  deployment:
+    mode: cluster

@@ -1,0 +1,259 @@
+### 0. 初始化本次运行唯一编码
+< {%
+  // 每次完整执行均生成新批次号，避免跨文件保留全局变量导致唯一编码冲突。
+  const randomPart = Math.floor(Math.random() * 100000)
+      .toString()
+      .padStart(5, "0");
+  client.global.set("runId", Date.now().toString() + "-" + randomPart);
+%}
+
+### 0.1 本模块独立登录
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+> {%
+  client.test("楼栋模块认证准备成功", function () {
+    client.assert(response.status === 200, "登录应返回 200");
+    client.assert(response.body.success === true, "登录响应应成功");
+  });
+  client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+### 0.2 创建源小区
+POST {{baseUrl}}/api/v1/communities
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityCode": "BLD-SRC-{{runId}}",
+  "communityName": "楼栋模块源小区"
+}
+
+> {%
+  client.test("创建源小区成功", function () {
+    client.assert(response.status === 201, "创建源小区应返回 201");
+  });
+  client.global.set("sourceCommunityId", response.body.data.id);
+%}
+
+### 0.3 创建目标小区
+POST {{baseUrl}}/api/v1/communities
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityCode": "BLD-DST-{{runId}}",
+  "communityName": "楼栋模块目标小区"
+}
+
+> {%
+  client.test("创建目标小区成功", function () {
+    client.assert(response.status === 201, "创建目标小区应返回 201");
+  });
+  client.global.set("targetCommunityId", response.body.data.id);
+%}
+
+### 1. 源小区创建共享编码楼栋
+POST {{baseUrl}}/api/v1/buildings
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityId": "{{sourceCommunityId}}",
+  "buildingCode": "BLD-SHARED-{{runId}}",
+  "buildingName": "源小区共享编码楼栋",
+  "householdCount": 24,
+  "residentCount": 72
+}
+
+> {%
+  client.test("源小区共享编码楼栋创建成功", function () {
+    client.assert(response.status === 201, "创建楼栋应返回 201");
+    client.assert(response.body.data.communityId === client.global.get("sourceCommunityId"));
+  });
+  client.global.set("sourceSharedBuildingId", response.body.data.id);
+  client.global.set("sharedBuildingCode", response.body.data.buildingCode);
+%}
+
+### 2. 目标小区创建相同编码楼栋
+POST {{baseUrl}}/api/v1/buildings
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityId": "{{targetCommunityId}}",
+  "buildingCode": "BLD-SHARED-{{runId}}",
+  "buildingName": "目标小区共享编码楼栋",
+  "householdCount": 18,
+  "residentCount": 54
+}
+
+> {%
+  client.test("不同小区相同楼栋编码均可创建", function () {
+    client.assert(response.status === 201, "目标小区创建相同编码应返回 201");
+    client.assert(response.body.success === true, "创建响应应成功");
+    client.assert(response.body.data.id !== client.global.get("sourceSharedBuildingId"), "两个楼栋 ID 必须不同");
+    client.assert(response.body.data.communityId !== client.global.get("sourceCommunityId"), "两个楼栋所属小区必须不同");
+    client.assert(response.body.data.communityId === client.global.get("targetCommunityId"), "目标楼栋必须属于目标小区");
+    client.assert(response.body.data.buildingCode === client.global.get("sharedBuildingCode"), "两个楼栋编码必须相同");
+  });
+  client.global.set("targetSharedBuildingId", response.body.data.id);
+%}
+
+### 3. 源小区创建待迁移楼栋
+POST {{baseUrl}}/api/v1/buildings
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityId": "{{sourceCommunityId}}",
+  "buildingCode": "BLD-MOVE-{{runId}}",
+  "buildingName": "源小区待迁移楼栋",
+  "address": "测试路 1 号 1 栋",
+  "constructionYear": 2005,
+  "structureType": "钢混结构",
+  "floorCount": 6,
+  "buildingArea": 3600.0,
+  "householdCount": 24,
+  "residentCount": 72,
+  "elderlyCount": 8,
+  "childCount": 5,
+  "hasElevator": false,
+  "hasIllegalModification": false,
+  "hasGroundFloorBusiness": false,
+  "status": "ACTIVE"
+}
+
+> {%
+  client.test("源小区待迁移楼栋创建成功", function () {
+    client.assert(response.status === 201, "创建待迁移楼栋应返回 201");
+  });
+  client.global.set("sourceMoveBuildingId", response.body.data.id);
+  client.global.set("sourceMoveBuildingVersion", response.body.data.version);
+  client.global.set("moveBuildingCode", response.body.data.buildingCode);
+%}
+
+### 4. 目标小区创建迁移冲突楼栋
+POST {{baseUrl}}/api/v1/buildings
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityId": "{{targetCommunityId}}",
+  "buildingCode": "BLD-MOVE-{{runId}}",
+  "buildingName": "目标小区迁移冲突楼栋",
+  "householdCount": 10,
+  "residentCount": 30
+}
+
+> {%
+  client.test("目标小区冲突楼栋创建成功", function () {
+    client.assert(response.status === 201, "创建冲突楼栋应返回 201");
+    client.assert(response.body.data.buildingCode === client.global.get("moveBuildingCode"));
+  });
+%}
+
+### 5. 同一小区重复编码（预期 409）
+POST {{baseUrl}}/api/v1/buildings
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityId": "{{sourceCommunityId}}",
+  "buildingCode": "BLD-MOVE-{{runId}}",
+  "buildingName": "源小区重复编码楼栋"
+}
+
+> {%
+  client.test("同一小区重复编码返回 409", function () {
+    client.assert(response.status === 409, "同一小区重复编码应返回 409");
+    client.assert(response.body.error.code === "BUILDING_CODE_CONFLICT");
+  });
+%}
+
+### 6. 年份越界（预期 400）
+POST {{baseUrl}}/api/v1/buildings
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityId": "{{sourceCommunityId}}",
+  "buildingCode": "BLD-YEAR-{{runId}}",
+  "constructionYear": 2300
+}
+
+> {%
+  client.test("年份越界返回 400", function () {
+    client.assert(response.status === 400, "年份越界应返回 400");
+    client.assert(response.body.success === false);
+  });
+%}
+
+### 7. 分页筛选源小区楼栋
+GET {{baseUrl}}/api/v1/buildings?communityId={{sourceCommunityId}}&page=0&size=10
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("分页筛选楼栋成功", function () {
+    client.assert(response.status === 200, "分页查询应返回 200");
+    client.assert(response.body.success === true);
+    client.assert(Array.isArray(response.body.data.content));
+  });
+%}
+
+### 8. 冲突迁移到目标小区（预期 409）
+PUT {{baseUrl}}/api/v1/buildings/{{sourceMoveBuildingId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "version": {{sourceMoveBuildingVersion}},
+  "communityId": "{{targetCommunityId}}"
+}
+
+> {%
+  client.test("迁移到存在同编码楼栋的目标小区返回 409", function () {
+    client.assert(response.status === 409, "冲突迁移应返回 409");
+    client.assert(response.body.success === false);
+    client.assert(response.body.error.code === "BUILDING_CODE_CONFLICT");
+  });
+%}
+
+### 9. 冲突迁移后查询源楼栋，归属仍为源小区
+GET {{baseUrl}}/api/v1/buildings/{{sourceMoveBuildingId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("冲突迁移不会改变源楼栋归属", function () {
+    client.assert(response.status === 200, "冲突后仍应可查询源楼栋");
+    client.assert(response.body.success === true);
+    client.assert(response.body.data.communityId === client.global.get("sourceCommunityId"), "源楼栋必须仍属于源小区");
+    client.assert(response.body.data.buildingCode === client.global.get("moveBuildingCode"));
+  });
+%}
+
+### 10. 删除源小区待迁移楼栋
+DELETE {{baseUrl}}/api/v1/buildings/{{sourceMoveBuildingId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("删除楼栋成功", function () {
+    client.assert(response.status === 200, "删除应返回 200");
+    client.assert(response.body.success === true);
+  });
+%}
+
+### 11. 删除楼栋后再查询（预期 404）
+GET {{baseUrl}}/api/v1/buildings/{{sourceMoveBuildingId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("删除楼栋后查询返回 404", function () {
+    client.assert(response.status === 404, "逻辑删除后应返回 404");
+  });
+%}

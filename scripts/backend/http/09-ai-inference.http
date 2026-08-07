@@ -1,0 +1,175 @@
+### ====================================================================
+### 09-ai-inference: 人工智能推理接口基础测试
+### 使用前请先执行此文件中的登录请求以获取 accessToken
+### ====================================================================
+
+### 1. 登录
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+> {%
+  client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+### 2. 查询已有小区与楼栋
+GET {{baseUrl}}/api/v1/communities?size=5
+Authorization: Bearer {{accessToken}}
+
+> {%
+  const communities = response.body.data.content;
+  if (communities && communities.length > 0) {
+    client.global.set("communityId", communities[0].id);
+  }
+%}
+
+### 3. 查询该小区下的楼栋
+GET {{baseUrl}}/api/v1/buildings?communityId={{communityId}}&size=5
+Authorization: Bearer {{accessToken}}
+
+> {%
+  const buildings = response.body.data.content;
+  if (buildings && buildings.length > 0) {
+    client.global.set("buildingId", buildings[0].id);
+  }
+%}
+
+### 4. 查询该楼栋下的巡检任务
+GET {{baseUrl}}/api/v1/inspection-tasks?buildingId={{buildingId}}&size=5
+Authorization: Bearer {{accessToken}}
+
+> {%
+  const tasks = response.body.data.content;
+  if (tasks && tasks.length > 0) {
+    client.global.set("inspectionTaskId", tasks[0].id);
+  }
+%}
+
+### 5. 查询该巡检任务下的记录
+GET {{baseUrl}}/api/v1/inspection-records?inspectionTaskId={{inspectionTaskId}}&size=5
+Authorization: Bearer {{accessToken}}
+
+> {%
+  const records = response.body.data.content;
+  if (records && records.length > 0) {
+    client.global.set("inspectionRecordId", records[0].id);
+  }
+%}
+
+### 6. 查询该记录下的图片
+GET {{baseUrl}}/api/v1/images?businessType=INSPECTION_RECORD&businessId={{inspectionRecordId}}&size=5
+Authorization: Bearer {{accessToken}}
+
+> {%
+  const images = response.body.data.content;
+  if (images && images.length > 0) {
+    client.global.set("aiAssetId", images[0].id);
+  }
+%}
+
+### -------------------------------------------------------------------
+### 以下为人工智能推理接口测试
+### -------------------------------------------------------------------
+
+### 7. 创建 MOCK 推理任务
+POST {{baseUrl}}/api/v1/ai-inferences
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "assetId": "{{aiAssetId}}",
+  "mode": "MOCK",
+  "modelId": "AI-DEFECT-MOCK-001",
+  "idempotencyKey": "http-test-{{$timestamp}}"
+}
+
+> {%
+  client.test("创建推理任务成功", function () {
+    client.assert(response.status === 201, "预期 201");
+    client.assert(response.body.success === true);
+    client.assert(response.body.data.inferenceId !== null);
+  });
+  if (response.body.success) {
+    client.global.set("aiInferenceId", response.body.data.inferenceId);
+  }
+%}
+
+### 8. 查询推理任务详情
+GET {{baseUrl}}/api/v1/ai-inferences/{{aiInferenceId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("查询推理任务成功", function () {
+    client.assert(response.status === 200);
+    client.assert(response.body.success === true);
+    client.assert(response.body.data.status !== null);
+  });
+%}
+
+### 9. 分页查询推理列表
+GET {{baseUrl}}/api/v1/ai-inferences?page=0&size=10&assetId={{aiAssetId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("分页查询推理列表成功", function () {
+    client.assert(response.status === 200);
+    client.assert(Array.isArray(response.body.data.content));
+    client.assert(response.body.data.page.totalElements >= 0);
+  });
+%}
+
+### 10. 提交人工复核
+POST {{baseUrl}}/api/v1/ai-inferences/{{aiInferenceId}}/review
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "reviewStatus": "CONFIRMED",
+  "comment": "HTTP 测试确认检测结果"
+}
+
+> {%
+  client.test("提交复核成功", function () {
+    // SUCCEEDED 任务可以复核，FAILED/REJECTED 不可复核。
+    client.assert(response.status === 200 || response.status === 409);
+  });
+%}
+
+### 11. 参数错误：创建时不传 assetId
+POST {{baseUrl}}/api/v1/ai-inferences
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "mode": "MOCK"
+}
+
+> {%
+  client.test("缺少 assetId 返回错误", function () {
+    client.assert(response.status === 400 || response.status === 404);
+  });
+%}
+
+### 12. 查询不存在的推理任务
+GET {{baseUrl}}/api/v1/ai-inferences/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("不存在的推理任务返回 404", function () {
+    client.assert(response.status === 404);
+    client.assert(response.body.success === false);
+  });
+%}
+
+### 13. 未认证访问
+GET {{baseUrl}}/api/v1/ai-inferences
+
+> {%
+  client.test("未认证返回 401", function () {
+    client.assert(response.status === 401);
+  });
+%}

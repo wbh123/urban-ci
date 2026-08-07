@@ -1,0 +1,21 @@
+@baseUrl = http://localhost:8888
+@token = replace-with-jwt
+@communityId = replace-with-community-uuid
+
+### 地图运行配置
+GET {{baseUrl}}/api/v1/map/runtime-config
+Authorization: Bearer {{token}}
+
+### 地理编码预览
+POST {{baseUrl}}/api/v1/map/geocoding/preview
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"address":"湖南省株洲市示例小区"}
+
+### 保存小区位置
+PUT {{baseUrl}}/api/v1/communities/{{communityId}}/location
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"longitude":113.13396,"latitude":27.82767,"formattedAddress":"示例地址","provider":"MANUAL"}

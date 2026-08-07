@@ -1,0 +1,105 @@
+@baseUrl = http://localhost:8888
+@token = {{accessToken}}
+@assetId = 44444444-4444-4444-4444-444444444444
+@inferenceId = 55555555-5555-5555-5555-555555555555
+
+### 第七阶段：FastAPI 默认视觉提供者
+POST {{baseUrl}}/api/v1/ai-inferences
+Authorization: Bearer {{token}}
+Content-Type: application/json
+X-UrbanSafe-Request-Id: phase7-fast-api-001
+
+{
+  "assetId": "{{assetId}}",
+  "mode": "MOCK",
+  "modelId": "AI-DEFECT-MOCK-001",
+  "providerCode": "FAST_API",
+  "capabilityType": "VISION_INFERENCE",
+  "idempotencyKey": "phase7-fast-api-001"
+}
+
+### 第七阶段：指定 Dify 工作流
+# 未配置密钥时预期任务稳定失败，错误码 AI_PROVIDER_NOT_CONFIGURED；应用不得退出。
+POST {{baseUrl}}/api/v1/ai-inferences
+Authorization: Bearer {{token}}
+Content-Type: application/json
+X-UrbanSafe-Request-Id: phase7-dify-001
+
+{
+  "assetId": "{{assetId}}",
+  "mode": "REAL",
+  "modelId": "AI-DIFY-WORKFLOW-001",
+  "providerCode": "DIFY",
+  "capabilityType": "WORKFLOW",
+  "prompt": "分析图片中的建筑表观病害并给出补拍建议",
+  "idempotencyKey": "phase7-dify-001"
+}
+
+### 第七阶段：指定 Spring AI 在线模型
+# 未配置密钥时预期任务稳定失败，错误码 AI_PROVIDER_NOT_CONFIGURED；应用不得退出。
+POST {{baseUrl}}/api/v1/ai-inferences
+Authorization: Bearer {{token}}
+Content-Type: application/json
+X-UrbanSafe-Request-Id: phase7-spring-ai-001
+
+{
+  "assetId": "{{assetId}}",
+  "mode": "REAL",
+  "modelId": "AI-SPRING-AI-DIRECT-001",
+  "providerCode": "SPRING_AI",
+  "capabilityType": "VISION_INFERENCE",
+  "idempotencyKey": "phase7-spring-ai-001"
+}
+
+### 第七阶段：不存在的提供者
+# 预期任务错误码 AI_PROVIDER_NOT_FOUND，不得静默切换。
+POST {{baseUrl}}/api/v1/ai-inferences
+Authorization: Bearer {{token}}
+Content-Type: application/json
+X-UrbanSafe-Request-Id: phase7-provider-not-found
+
+{
+  "assetId": "{{assetId}}",
+  "mode": "MOCK",
+  "modelId": "AI-DEFECT-MOCK-001",
+  "providerCode": "NOT_EXISTS",
+  "capabilityType": "VISION_INFERENCE",
+  "idempotencyKey": "phase7-provider-not-found"
+}
+
+### 第七阶段：不支持的能力
+# FAST_API 不支持 TEXT_GENERATION，预期 AI_UNSUPPORTED_CAPABILITY。
+POST {{baseUrl}}/api/v1/ai-inferences
+Authorization: Bearer {{token}}
+Content-Type: application/json
+X-UrbanSafe-Request-Id: phase7-unsupported-capability
+
+{
+  "assetId": "{{assetId}}",
+  "mode": "MOCK",
+  "modelId": "AI-DEFECT-MOCK-001",
+  "providerCode": "FAST_API",
+  "capabilityType": "TEXT_GENERATION",
+  "idempotencyKey": "phase7-unsupported-capability"
+}
+
+### 第七阶段：按提供者和能力查询任务
+GET {{baseUrl}}/api/v1/ai-inferences?page=0&size=20&providerCode=DIFY&capabilityType=WORKFLOW
+Authorization: Bearer {{token}}
+X-UrbanSafe-Request-Id: phase7-list-dify
+
+### 第七阶段：查询结构化结果和审计引用
+GET {{baseUrl}}/api/v1/ai-inferences/{{inferenceId}}
+Authorization: Bearer {{token}}
+X-UrbanSafe-Request-Id: phase7-detail
+
+### 第七阶段：专家人工复核
+POST {{baseUrl}}/api/v1/ai-inferences/{{inferenceId}}/review
+Authorization: Bearer {{token}}
+Content-Type: application/json
+X-UrbanSafe-Request-Id: phase7-review
+
+{
+  "reviewStatus": "CONFIRMED",
+  "comment": "已人工核验，人工智能结果仅作为筛查辅助信息。"
+}

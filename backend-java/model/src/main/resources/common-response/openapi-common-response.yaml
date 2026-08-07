@@ -1,0 +1,110 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe Priority 通用响应模型
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    ApiResponseMetadata:
+      type: object
+      required:
+        - success
+        - requestId
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          description: 请求是否成功
+        requestId:
+          type: string
+          description: 请求唯一标识
+          example: 01J2ABCDEF0123456789ABCDEFG
+        timestamp:
+          type: string
+          format: date-time
+          description: 服务端响应时间
+
+    FieldError:
+      type: object
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          description: 校验失败字段
+        rejectedValue:
+          type: string
+          nullable: true
+          description: 被拒绝的字段值，敏感值不会返回
+        message:
+          type: string
+          description: 字段错误说明
+
+    ApiError:
+      type: object
+      required:
+        - code
+        - message
+        - fieldErrors
+      properties:
+        code:
+          type: string
+          description: 稳定的业务错误码，不重复表达 HTTP 状态码
+          example: BUILDING_NOT_FOUND
+        message:
+          type: string
+          description: 面向用户的错误说明
+        fieldErrors:
+          type: array
+          description: 字段级校验错误
+          items:
+            $ref: '#/components/schemas/FieldError'
+
+    DeletionResponse:
+      type: object
+      required:
+        - resourceId
+        - resourceType
+        - deletedAt
+      properties:
+        resourceId:
+          type: string
+          format: uuid
+          description: 被逻辑删除的资源唯一标识
+        resourceType:
+          type: string
+          description: 被逻辑删除的资源类型
+        deletedAt:
+          type: string
+          format: date-time
+          description: 服务端执行逻辑删除的时间
+
+    DeletionSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/DeletionResponse'
+            error:
+              type: object
+              nullable: true
+              description: 成功响应固定为空
+
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required:
+            - error
+          properties:
+            data:
+              type: object
+              nullable: true
+              description: 错误响应固定为空
+              additionalProperties: true
+            error:
+              $ref: '#/components/schemas/ApiError'

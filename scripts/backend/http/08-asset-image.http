@@ -1,0 +1,23 @@
+@baseUrl = http://localhost:8888
+@token = replace-with-jwt
+@taskId = replace-with-task-uuid
+
+### 上传现场图片
+POST {{baseUrl}}/api/v1/assets/images
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=UrbanSafeBoundary
+
+--UrbanSafeBoundary
+Content-Disposition: form-data; name="businessType"
+
+INSPECTION_TASK
+--UrbanSafeBoundary
+Content-Disposition: form-data; name="businessId"
+
+{{taskId}}
+--UrbanSafeBoundary
+Content-Disposition: form-data; name="file"; filename="inspection.jpg"
+Content-Type: image/jpeg
+
+< ./inspection.jpg
+--UrbanSafeBoundary--

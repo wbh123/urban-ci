@@ -1,0 +1,18 @@
+### 系统健康检查
+GET {{baseUrl}}/api/v1/system/health
+X-UrbanSafe-Request-Id: http-system-health-001
+
+> {%
+client.test("HTTP 状态码为 200", function () {
+    client.assert(response.status === 200, "预期状态码为 200");
+});
+
+client.test("返回统一响应体", function () {
+    client.assert(response.body.success === true, "success 应为 true");
+    client.assert(response.body.data.service === "urban-safe-priority-server");
+    client.assert(response.body.data.status === "UP");
+    client.assert(response.body.error === null);
+    client.assert(response.body.requestId === "http-system-health-001");
+    client.assert(response.body.timestamp !== null);
+});
+%}

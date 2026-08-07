@@ -1,0 +1,358 @@
+app:
+  description: 只根据 Spring Boot 已授权知识片段回答；无证据直接拒答。
+  icon: 🏢
+  icon_background: '#E8F3FF'
+  mode: workflow
+  name: UrbanSafe Knowledge QA v1.0.0
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.1.5
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .WEBP
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 1
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 1
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: if-else
+      id: qa-start-source-qa-context
+      source: qa-start
+      sourceHandle: source
+      target: qa-context
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: qa-context-true-qa-llm
+      source: qa-context
+      sourceHandle: 'true'
+      target: qa-llm
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: qa-llm-source-qa-normalize
+      source: qa-llm
+      sourceHandle: source
+      target: qa-normalize
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: qa-normalize-source-qa-result
+      source: qa-normalize
+      sourceHandle: source
+      target: qa-result
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: qa-context-false-qa-refusal
+      source: qa-context
+      sourceHandle: 'false'
+      target: qa-refusal
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: qa-refusal-source-qa-result
+      source: qa-refusal
+      sourceHandle: source
+      target: qa-result
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: variable-aggregator
+        targetType: end
+      id: qa-result-source-qa-end
+      source: qa-result
+      sourceHandle: source
+      target: qa-end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: Spring Boot 先完成身份、数据范围和文档有效性过滤，再传入授权片段。
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - label: 问题
+          max_length: 65535
+          options: []
+          required: true
+          type: paragraph
+          variable: question
+        - label: 授权知识片段 JSON
+          max_length: 65535
+          options: []
+          required: false
+          type: paragraph
+          variable: authorizedContextJson
+        - label: 引用元数据 JSON
+          max_length: 65535
+          options: []
+          required: false
+          type: paragraph
+          variable: citationMetadataJson
+      height: 150
+      id: qa-start
+      position:
+        x: 80
+        y: 300
+      positionAbsolute:
+        x: 80
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: not empty
+            id: qa-context-present
+            value: ''
+            varType: string
+            variable_selector:
+            - qa-start
+            - authorizedContextJson
+          id: 'true'
+          logical_operator: and
+        desc: 没有授权证据时直接拒答，不调用模型。
+        selected: false
+        title: 是否有授权证据
+        type: if-else
+      height: 130
+      id: qa-context
+      position:
+        x: 390
+        y: 300
+      positionAbsolute:
+        x: 390
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: 基于授权证据回答
+        model:
+          completion_params:
+            max_tokens: 1800
+            temperature: 0
+          mode: chat
+          name: gpt-4o-mini
+          provider: langgenius/openai/openai
+        prompt_template:
+        - id: 基于授权证据回答-system
+          role: system
+          text: "只能使用 authorizedContextJson 中的内容回答，不使用模型自身记忆补充制度、标准或业务事实。引用必须来自 citationMetadataJson。证据不足时将 evidenceSufficient 设为 false 并回答“当前知识库中没有足够依据回答该问题。”。只输出 JSON：\n{\n  \"schemaVersion\":\"1.0\",\"workflowCode\":\"DIFY-KNOWLEDGE-QA-001\",\"workflowVersion\":\"knowledge-qa-v1.0.0\",\n  \"answer\":\"只根据授权片段形成的回答\",\"evidenceSufficient\":true,\n  \"citations\":[{\"sourceFileId\":\"编号\",\"sectionTitle\":\"章节\",\"pageNumber\":1}],\"warnings\":[]\n}"
+        - id: 基于授权证据回答-user
+          role: user
+          text: '问题={{#qa-start.question#}}
+
+            授权知识={{#qa-start.authorizedContextJson#}}
+
+            引用元数据={{#qa-start.citationMetadataJson#}}'
+        selected: false
+        title: 基于授权证据回答
+        type: llm
+        variables: []
+      height: 130
+      id: qa-llm
+      position:
+        x: 700
+        y: 180
+      positionAbsolute:
+        x: 700
+        y: 180
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\ndef main(raw: str) -> dict:\n    text = (raw or \"\").strip()\n    if text.startswith(\"```\"):\n        first = text.find(\"\\\\n\")\n        last = text.rfind(\"```\")\n        if first >= 0 and last > first:\n            text = text[first + 1:last].strip()\n    try:\n        payload = json.loads(text)\n        if not isinstance(payload, dict):\n            raise ValueError(\"not object\")\n    except Exception:\n        payload = {'answer': '当前知识库中没有足够依据回答该问题。', 'evidenceSufficient': False, 'citations': [], 'warnings': ['AI_OUTPUT_INVALID']}\n    payload[\"schemaVersion\"] = \"1.0\"\n    payload[\"workflowCode\"] = \"DIFY-KNOWLEDGE-QA-001\"\n    payload[\"workflowVersion\"] = \"knowledge-qa-v1.0.0\"\n    return {\"result\": json.dumps(payload, ensure_ascii=False)}\n"
+        code_language: python3
+        desc: 问答结果归一化
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: 问答结果归一化
+        type: code
+        variables:
+        - value_selector:
+          - qa-llm
+          - text
+          variable: raw
+      height: 100
+      id: qa-normalize
+      position:
+        x: 1010
+        y: 180
+      positionAbsolute:
+        x: 1010
+        y: 180
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\ndef main() -> dict:\n    payload = {\n        \"schemaVersion\":\"1.0\", \"workflowCode\":\"DIFY-KNOWLEDGE-QA-001\",\n        \"workflowVersion\":\"knowledge-qa-v1.0.0\",\n        \"answer\":\"当前知识库中没有足够依据回答该问题。\",\n        \"evidenceSufficient\":False, \"citations\":[],\n        \"warnings\":[\"KNOWLEDGE_EVIDENCE_INSUFFICIENT\"]\n    }\n    return {\"result\": json.dumps(payload, ensure_ascii=False)}\n"
+        code_language: python3
+        desc: 无证据受控拒答
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: 无证据受控拒答
+        type: code
+        variables: []
+      height: 100
+      id: qa-refusal
+      position:
+        x: 700
+        y: 500
+      positionAbsolute:
+        x: 700
+        y: 500
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        advanced_settings:
+          group_enabled: false
+          groups: []
+        desc: 聚合有证据回答或受控拒答。
+        output_type: string
+        selected: false
+        title: 最终答案
+        type: variable-aggregator
+        variables:
+        - - qa-normalize
+          - result
+        - - qa-refusal
+          - result
+      height: 120
+      id: qa-result
+      position:
+        x: 1320
+        y: 300
+      positionAbsolute:
+        x: 1320
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 返回稳定结构，由 Spring Boot 执行业务校验、持久化和审计。
+        outputs:
+        - value_selector:
+          - qa-result
+          - output
+          value_type: string
+          variable: result
+        selected: false
+        title: 结束
+        type: end
+      height: 90
+      id: qa-end
+      position:
+        x: 1630
+        y: 300
+      positionAbsolute:
+        x: 1630
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.8
+  rag_pipeline_variables: []

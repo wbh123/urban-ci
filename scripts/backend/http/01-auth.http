@@ -1,0 +1,84 @@
+### 1. 正确登录
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+> {%
+  client.test("登录成功返回 200", function () {
+    client.assert(response.status === 200, "预期状态码为 200");
+    client.assert(response.body.success === true, "success 应为 true");
+    client.assert(response.body.data.accessToken !== null, "accessToken 不应为空");
+    client.assert(response.body.data.tokenType === "Bearer", "tokenType 应为 Bearer");
+  });
+
+  client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+### 2. 错误密码登录
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "wrong_password"
+}
+
+> {%
+  client.test("错误密码返回 401", function () {
+    client.assert(response.status === 401, "预期状态码为 401");
+    client.assert(response.body.success === false, "success 应为 false");
+    client.assert(response.body.error !== null, "error 不应为空");
+  });
+%}
+
+### 3. 缺失密码登录
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}"
+}
+
+> {%
+  client.test("缺失密码返回 400", function () {
+    client.assert(response.status === 400, "预期状态码为 400");
+    client.assert(response.body.success === false, "success 应为 false");
+  });
+%}
+
+### 4. 获取当前用户信息
+GET {{baseUrl}}/api/v1/auth/me
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("获取当前用户成功", function () {
+    client.assert(response.status === 200, "预期状态码为 200");
+    client.assert(response.body.success === true, "success 应为 true");
+    client.assert(response.body.data.username === client.global.get("username")
+        || response.body.data.username === "admin", "用户名应与私密环境配置一致");
+  });
+%}
+
+### 5. 未认证访问
+GET {{baseUrl}}/api/v1/auth/me
+
+> {%
+  client.test("未认证访问返回 401", function () {
+    client.assert(response.status === 401, "预期状态码为 401");
+  });
+%}
+
+### 6. 退出登录
+POST {{baseUrl}}/api/v1/auth/logout
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("退出登录成功", function () {
+    client.assert(response.status === 200, "预期状态码为 200");
+    client.assert(response.body.success === true, "success 应为 true");
+  });
+%}

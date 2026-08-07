@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.urbansafe.priority.persistence.mapperext.OperationLogMapperExt">
+    <!--
+        审计日志写入必须显式转换 PostgreSQL 专有类型：
+        1. client_ip 通过 CAST 转为 INET，避免 PostgreSQL 拒绝 VARCHAR 参数；
+        2. 四个 JSON 字段统一交给 JsonNodeTypeHandler，以 PGobject(jsonb) 形式绑定；
+        3. 所有列均显式列出，保证追加式证据链结构变化能够在代码评审中被发现。
+    -->
+    <insert id="insert"
+            parameterType="org.urbansafe.priority.persistence.entity.OperationLogEntity">
+        INSERT INTO audit.operation_log (
+            id,
+            user_id,
+            operation_type,
+            resource_type,
+            resource_id,
+            request_id,
+            client_ip,
+            operation_detail,
+            success,
+            error_code,
+            error_message,
+            operated_at,
+            before_data,
+            after_data,
+            changed_fields
+        ) VALUES (
+            #{entity.id},
+            #{entity.userId},
+            #{entity.operationType},
+            #{entity.resourceType},
+            #{entity.resourceId},
+            #{entity.requestId},
+            CAST(#{entity.clientIp} AS inet),
+            #{entity.operationDetail,typeHandler=org.urbansafe.priority.persistence.typehandler.JsonNodeTypeHandler},
+            #{entity.success},
+            #{entity.errorCode},
+            #{entity.errorMessage},
+            #{entity.operatedAt},
+            #{entity.beforeData,typeHandler=org.urbansafe.priority.persistence.typehandler.JsonNodeTypeHandler},
+            #{entity.afterData,typeHandler=org.urbansafe.priority.persistence.typehandler.JsonNodeTypeHandler},
+            #{entity.changedFields,typeHandler=org.urbansafe.priority.persistence.typehandler.JsonNodeTypeHandler}
+        )
+    </insert>
+</mapper>

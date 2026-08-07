@@ -1,0 +1,19 @@
+# AI Service Python 基础依赖（不包含真实模型运行时）
+# FastAPI、Starlette 和 TestClient 必须作为一组升级；urban 环境中较新的
+# FastAPI/Starlette 组合会卡在 TestClient 生命周期入口，因此先锁定已验证稳定线。
+fastapi>=0.115.6,<0.116.0
+starlette>=0.41.3,<0.42.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.2
+
+# 图像处理与模型输入
+pillow>=10.0.0
+numpy>=1.26,<3
+
+# 上传、配置、测试和 HTTP 客户端
+python-multipart>=0.0.6
+python-dotenv>=1.0.0
+pyyaml>=6.0,<7.0
+pytest>=7.4.3
+httpx>=0.27.0,<0.28.0
+anyio>=3.7.1,<4.0.0

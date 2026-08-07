@@ -1,0 +1,331 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe Priority 楼栋证据接口
+  version: 1.0.0
+paths:
+  /api/v1/buildings/{buildingId}/evidence:
+    post:
+      tags:
+        - BuildingEvidence
+      operationId: createBuildingEvidence
+      summary: 创建楼栋证据
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEvidenceRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceSuccessResponse'
+        '404':
+          description: 父楼栋不存在
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+    get:
+      tags:
+        - BuildingEvidence
+      operationId: listBuildingEvidence
+      summary: 查询楼栋证据列表
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: buildingId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidencePageSuccessResponse'
+  /api/v1/building-evidence/{evidenceId}:
+    get:
+      tags:
+        - BuildingEvidence
+      operationId: getBuildingEvidence
+      summary: 查询证据详情
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: evidenceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceSuccessResponse'
+        '404':
+          description: 证据不存在或父楼栋已删除
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - BuildingEvidence
+      operationId: updateBuildingEvidence
+      summary: 修改证据
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: evidenceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEvidenceRequest'
+      responses:
+        '200':
+          description: 修改成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceSuccessResponse'
+        '404':
+          description: 证据不存在
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - BuildingEvidence
+      operationId: deleteBuildingEvidence
+      summary: 删除证据（逻辑删除）
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: evidenceId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/DeletionSuccessResponse'
+        '404':
+          description: 证据不存在
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    CreateEvidenceRequest:
+      type: object
+      required:
+        - evidenceType
+        - title
+      properties:
+        evidenceType:
+          type: string
+          description: 证据类型
+          enum:
+            - MAINTENANCE_RECORD
+            - PROFESSIONAL_INSPECTION
+            - HISTORICAL_COMPLAINT
+            - PUBLIC_VALUE
+            - GOVERNANCE_URGENCY
+            - ENVIRONMENT_RISK
+            - OTHER
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: 标题
+        description:
+          type: string
+          maxLength: 5000
+          description: 描述
+        occurredAt:
+          type: string
+          format: date-time
+          description: 发生时间
+        source:
+          type: string
+          maxLength: 255
+          description: 来源
+        reliabilityLevel:
+          type: string
+          description: 可靠性等级
+          enum:
+            - UNVERIFIED
+            - USER_PROVIDED
+            - OFFICIAL_RECORD
+            - PROFESSIONAL_CONFIRMED
+          default: UNVERIFIED
+        evidenceData:
+          type: object
+          description: 证据数据（JSONB）
+
+    UpdateEvidenceRequest:
+      type: object
+      required:
+        - version
+      properties:
+        version:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 客户端最后读取到的乐观锁版本号
+        evidenceType:
+          type: string
+          enum:
+            - MAINTENANCE_RECORD
+            - PROFESSIONAL_INSPECTION
+            - HISTORICAL_COMPLAINT
+            - PUBLIC_VALUE
+            - GOVERNANCE_URGENCY
+            - ENVIRONMENT_RISK
+            - OTHER
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 5000
+        occurredAt:
+          type: string
+          format: date-time
+        source:
+          type: string
+          maxLength: 255
+        reliabilityLevel:
+          type: string
+          enum:
+            - UNVERIFIED
+            - USER_PROVIDED
+            - OFFICIAL_RECORD
+            - PROFESSIONAL_CONFIRMED
+        evidenceData:
+          type: object
+
+    EvidenceResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        buildingId:
+          type: string
+          format: uuid
+        evidenceType:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+        source:
+          type: string
+        reliabilityLevel:
+          type: string
+        evidenceData:
+          type: object
+        createdBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          format: int64
+          description: 当前乐观锁版本号
+
+    EvidencePageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvidenceResponse'
+        page:
+          $ref: '../common-page/openapi-common-page.yaml#/components/schemas/PageMetadata'
+
+    EvidenceSuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/EvidenceResponse'
+            error:
+              type: object
+              nullable: true
+              description: 成功响应固定为空
+
+    EvidencePageSuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/EvidencePageResponse'
+            error:
+              type: object
+              nullable: true
+              description: 成功响应固定为空
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

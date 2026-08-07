@@ -1,0 +1,114 @@
+name: urban-safe-priority-dev
+
+services:
+  postgresql:
+    image: ${URBAN_SAFE_POSTGRES_IMAGE:?请在根目录.env配置URBAN_SAFE_POSTGRES_IMAGE}
+    container_name: urban-safe-postgresql
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${URBAN_SAFE_DB_NAME:?请在根目录.env配置URBAN_SAFE_DB_NAME}
+      POSTGRES_USER: ${URBAN_SAFE_DB_USER:?请在根目录.env配置URBAN_SAFE_DB_USER}
+      POSTGRES_PASSWORD: ${URBAN_SAFE_DB_PASSWORD:?请在根目录.env配置URBAN_SAFE_DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+      PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: ${URBAN_SAFE_TIMEZONE:?请在根目录.env配置URBAN_SAFE_TIMEZONE}
+      PGTZ: ${URBAN_SAFE_TIMEZONE:?请在根目录.env配置URBAN_SAFE_TIMEZONE}
+    ports:
+      - "${URBAN_SAFE_DB_PORT:?请在根目录.env配置URBAN_SAFE_DB_PORT}:5432"
+    volumes:
+      - ../data/postgresql:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    networks: [urban-safe-network]
+
+  minio:
+    build:
+      context: .
+      dockerfile: minio/Dockerfile
+      target: server
+      args:
+        MINIO_SERVER_IMAGE: ${MINIO_SERVER_IMAGE:?请在根目录.env配置MINIO_SERVER_IMAGE}
+        MINIO_CLIENT_IMAGE: ${MINIO_CLIENT_IMAGE:?请在根目录.env配置MINIO_CLIENT_IMAGE}
+    container_name: urban-safe-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${URBAN_SAFE_MINIO_ROOT_USER:?请在根目录.env配置URBAN_SAFE_MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${URBAN_SAFE_MINIO_ROOT_PASSWORD:?请在根目录.env配置URBAN_SAFE_MINIO_ROOT_PASSWORD}
+      TZ: ${URBAN_SAFE_TIMEZONE:?请在根目录.env配置URBAN_SAFE_TIMEZONE}
+    ports:
+      - "${URBAN_SAFE_MINIO_API_PORT:?请在根目录.env配置URBAN_SAFE_MINIO_API_PORT}:9000"
+      - "${URBAN_SAFE_MINIO_CONSOLE_PORT:?请在根目录.env配置URBAN_SAFE_MINIO_CONSOLE_PORT}:9001"
+    volumes: [../data/minio:/data]
+    networks: [urban-safe-network]
+
+  minio-init:
+    build:
+      context: .
+      dockerfile: minio/Dockerfile
+      target: initializer
+      args:
+        MINIO_SERVER_IMAGE: ${MINIO_SERVER_IMAGE:?请在根目录.env配置MINIO_SERVER_IMAGE}
+        MINIO_CLIENT_IMAGE: ${MINIO_CLIENT_IMAGE:?请在根目录.env配置MINIO_CLIENT_IMAGE}
+    container_name: urban-safe-minio-init
+    depends_on: [minio]
+    environment:
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ALIAS: local
+      MINIO_ROOT_USER: ${URBAN_SAFE_MINIO_ROOT_USER:?请在根目录.env配置URBAN_SAFE_MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${URBAN_SAFE_MINIO_ROOT_PASSWORD:?请在根目录.env配置URBAN_SAFE_MINIO_ROOT_PASSWORD}
+      MINIO_APP_USER: ${URBAN_SAFE_MINIO_APP_USER:?请在根目录.env配置URBAN_SAFE_MINIO_APP_USER}
+      MINIO_APP_PASSWORD: ${URBAN_SAFE_MINIO_APP_PASSWORD:?请在根目录.env配置URBAN_SAFE_MINIO_APP_PASSWORD}
+      MINIO_POLICY_NAME: ${URBAN_SAFE_MINIO_POLICY_NAME:?请在根目录.env配置URBAN_SAFE_MINIO_POLICY_NAME}
+      MINIO_ASSETS_BUCKET: ${URBAN_SAFE_MINIO_ASSETS_BUCKET:?请在根目录.env配置URBAN_SAFE_MINIO_ASSETS_BUCKET}
+      MINIO_REPORTS_BUCKET: ${URBAN_SAFE_MINIO_REPORTS_BUCKET:?请在根目录.env配置URBAN_SAFE_MINIO_REPORTS_BUCKET}
+      MINIO_MODELS_BUCKET: ${URBAN_SAFE_MINIO_MODELS_BUCKET:?请在根目录.env配置URBAN_SAFE_MINIO_MODELS_BUCKET}
+      MINIO_WAIT_INTERVAL: "2"
+      MINIO_WAIT_RETRIES: "60"
+    restart: "no"
+    networks: [urban-safe-network]
+
+  ai-service:
+    build:
+      context: ..
+      dockerfile: docker/ai-service/Dockerfile
+      args:
+        PIP_INDEX_URL: https://mirrors.aliyun.com/pypi/simple/
+    container_name: urban-safe-ai-service
+    restart: unless-stopped
+    environment:
+      TZ: ${URBAN_SAFE_TIMEZONE:?请在根目录.env配置URBAN_SAFE_TIMEZONE}
+      PYTHONUNBUFFERED: "1"
+      AI_SERVICE_HOST: 0.0.0.0
+      AI_SERVICE_PORT: "8001"
+      AI_MOCK_MODEL_ID: ${URBAN_SAFE_AI_DEFAULT_MOCK_MODEL_ID:-AI-DEFECT-MOCK-001}
+      AI_MOCK_MODEL_NAME: ${URBAN_SAFE_AI_MOCK_MODEL_NAME:-UrbanSafe Deterministic Mock Detector}
+      AI_MOCK_MODEL_VERSION: ${URBAN_SAFE_AI_MOCK_MODEL_VERSION:-0.1.0}
+      AI_MODEL_ROOT: /app/models
+      AI_MODEL_CATALOG_PATH: ${URBAN_SAFE_AI_MODEL_CATALOG_PATH:-runtime-catalog.json}
+      AI_CUDA_DEVICE_ID: ${URBAN_SAFE_AI_CUDA_DEVICE_ID:-0}
+      AI_MAX_IMAGE_SIZE_BYTES: ${URBAN_SAFE_AI_MAX_IMAGE_SIZE_BYTES:-10485760}
+      AI_LOW_QUALITY_MIN_SIDE: ${URBAN_SAFE_AI_LOW_QUALITY_MIN_SIDE:-32}
+    gpus: all
+    ports:
+      - "${URBAN_SAFE_AI_SERVICE_PORT:?请在根目录.env配置URBAN_SAFE_AI_SERVICE_PORT}:8001"
+    volumes:
+      - ../data/ai-service/cache:/root/.cache
+      - ../data/ai-service/output:/app/output
+      - ../data/ai-service/models:/app/models:ro
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/internal/api/v1/ai/ready', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks: [urban-safe-network]
+
+networks:
+  urban-safe-network:
+    name: urban-safe-network
+    driver: bridge

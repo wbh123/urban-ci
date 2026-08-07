@@ -1,0 +1,490 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe Priority 楼栋管理接口
+  version: 1.0.0
+paths:
+  /api/v1/buildings:
+    post:
+      tags:
+        - Building
+      operationId: createBuilding
+      summary: 创建楼栋
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBuildingRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildingSuccessResponse'
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '404':
+          description: 所属小区不存在
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '409':
+          description: 楼栋编码冲突
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+    get:
+      tags:
+        - Building
+      operationId: listBuildings
+      summary: 分页查询楼栋
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommunityId'
+        - $ref: '#/components/parameters/Keyword'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - $ref: '#/components/parameters/Sort'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildingPageSuccessResponse'
+  /api/v1/buildings/{buildingId}:
+    get:
+      tags:
+        - Building
+      operationId: getBuilding
+      summary: 查询楼栋详情
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BuildingId'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildingSuccessResponse'
+        '404':
+          description: 楼栋不存在
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Building
+      operationId: updateBuilding
+      summary: 修改楼栋
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BuildingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBuildingRequest'
+      responses:
+        '200':
+          description: 修改成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuildingSuccessResponse'
+        '404':
+          description: 楼栋不存在
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '409':
+          description: 楼栋编码冲突
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Building
+      operationId: deleteBuilding
+      summary: 删除楼栋（逻辑删除）
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BuildingId'
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/DeletionSuccessResponse'
+        '404':
+          description: 楼栋不存在
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+components:
+  parameters:
+    CommunityId:
+      name: communityId
+      in: query
+      description: 所属小区ID
+      schema:
+        type: string
+        format: uuid
+    Keyword:
+      name: keyword
+      in: query
+      description: 关键词搜索
+      schema:
+        type: string
+        maxLength: 128
+    Page:
+      name: page
+      in: query
+      description: 页码
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Size:
+      name: size
+      in: query
+      description: 每页数量
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Sort:
+      name: sort
+      in: query
+      description: "排序字段"
+      schema:
+        type: string
+    BuildingId:
+      name: buildingId
+      in: path
+      required: true
+      description: 楼栋唯一标识
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    CreateBuildingRequest:
+      type: object
+      required:
+        - communityId
+        - buildingCode
+      properties:
+        communityId:
+          type: string
+          format: uuid
+          description: 所属小区ID
+        buildingCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: 楼栋编码
+        buildingName:
+          type: string
+          maxLength: 255
+          description: 楼栋名称
+        address:
+          type: string
+          maxLength: 1000
+          description: 地址
+        constructionYear:
+          type: integer
+          minimum: 1800
+          maximum: 2200
+          description: 建成年份
+        structureType:
+          type: string
+          maxLength: 64
+          description: 结构类型
+        floorCount:
+          type: integer
+          minimum: 1
+          description: 层数
+        buildingArea:
+          type: number
+          minimum: 0
+          description: 建筑面积
+        householdCount:
+          type: integer
+          minimum: 0
+          description: 户数
+        residentCount:
+          type: integer
+          minimum: 0
+          description: 居民数
+        elderlyCount:
+          type: integer
+          minimum: 0
+          description: 老年人数
+        childCount:
+          type: integer
+          minimum: 0
+          description: 儿童人数
+        hasElevator:
+          type: boolean
+          default: false
+          description: 是否有电梯
+        hasIllegalModification:
+          type: boolean
+          default: false
+          description: 是否有违建
+        hasGroundFloorBusiness:
+          type: boolean
+          default: false
+          description: 底层是否有商业
+        status:
+          type: string
+          description: 状态
+          enum:
+            - ACTIVE
+            - INACTIVE
+          default: ACTIVE
+        extraAttributes:
+          type: object
+          description: 扩展属性
+        remark:
+          type: string
+          maxLength: 2000
+          description: 备注
+
+    UpdateBuildingRequest:
+      type: object
+      required:
+        - version
+      properties:
+        version:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 客户端最后读取到的乐观锁版本号
+        communityId:
+          type: string
+          format: uuid
+          description: 所属小区ID
+        buildingCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: 楼栋编码
+        buildingName:
+          type: string
+          maxLength: 255
+          description: 楼栋名称
+        address:
+          type: string
+          maxLength: 1000
+          description: 地址
+        constructionYear:
+          type: integer
+          minimum: 1800
+          maximum: 2200
+          description: 建成年份
+        structureType:
+          type: string
+          maxLength: 64
+          description: 结构类型
+        floorCount:
+          type: integer
+          minimum: 1
+          description: 层数
+        buildingArea:
+          type: number
+          minimum: 0
+          description: 建筑面积
+        householdCount:
+          type: integer
+          minimum: 0
+          description: 户数
+        residentCount:
+          type: integer
+          minimum: 0
+          description: 居民数
+        elderlyCount:
+          type: integer
+          minimum: 0
+          description: 老年人数
+        childCount:
+          type: integer
+          minimum: 0
+          description: 儿童人数
+        hasElevator:
+          type: boolean
+          description: 是否有电梯
+        hasIllegalModification:
+          type: boolean
+          description: 是否有违建
+        hasGroundFloorBusiness:
+          type: boolean
+          description: 底层是否有商业
+        status:
+          type: string
+          description: 状态
+          enum:
+            - ACTIVE
+            - INACTIVE
+        extraAttributes:
+          type: object
+          description: 扩展属性
+        remark:
+          type: string
+          maxLength: 2000
+          description: 备注
+
+    BuildingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        communityId:
+          type: string
+          format: uuid
+        buildingCode:
+          type: string
+        buildingName:
+          type: string
+        address:
+          type: string
+        constructionYear:
+          type: integer
+        structureType:
+          type: string
+        floorCount:
+          type: integer
+        buildingArea:
+          type: number
+        householdCount:
+          type: integer
+        residentCount:
+          type: integer
+        elderlyCount:
+          type: integer
+        childCount:
+          type: integer
+        hasElevator:
+          type: boolean
+        hasIllegalModification:
+          type: boolean
+        hasGroundFloorBusiness:
+          type: boolean
+        archiveCompletenessScore:
+          type: number
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+        extraAttributes:
+          type: object
+        remark:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          format: int64
+          description: 当前乐观锁版本号
+
+    BuildingListRow:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        communityId:
+          type: string
+          format: uuid
+        buildingCode:
+          type: string
+        buildingName:
+          type: string
+        constructionYear:
+          type: integer
+        floorCount:
+          type: integer
+        residentCount:
+          type: integer
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    BuildingPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildingListRow'
+        page:
+          $ref: '../common-page/openapi-common-page.yaml#/components/schemas/PageMetadata'
+
+    BuildingSuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/BuildingResponse'
+            error:
+              type: object
+              nullable: true
+              description: 成功响应固定为空
+
+    BuildingPageSuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/BuildingPageResponse'
+            error:
+              type: object
+              nullable: true
+              description: 成功响应固定为空
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

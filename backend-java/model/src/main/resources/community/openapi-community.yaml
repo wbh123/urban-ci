@@ -1,0 +1,533 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe Priority 小区管理接口
+  version: 1.0.0
+paths:
+  /api/v1/communities:
+    post:
+      tags:
+        - Community
+      operationId: createCommunity
+      summary: 创建小区
+      description: 创建一个新的小区档案
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommunityRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunitySuccessResponse'
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '409':
+          description: 小区编码已存在
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+    get:
+      tags:
+        - Community
+      operationId: listCommunities
+      summary: 分页查询小区
+      description: 分页查询小区列表
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: keyword
+          in: query
+          description: 关键词搜索（编码、名称、地址）
+          schema:
+            type: string
+            maxLength: 128
+        - name: administrativeRegion
+          in: query
+          description: 行政区域
+          schema:
+            type: string
+            maxLength: 255
+        - name: status
+          in: query
+          description: 状态
+          schema:
+            type: string
+            enum:
+              - ACTIVE
+              - INACTIVE
+        - name: page
+          in: query
+          description: 页码
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: 每页数量
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: sort
+          in: query
+          description: "排序字段，格式为 field,asc 或 field,desc"
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunityPageSuccessResponse'
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+  /api/v1/communities/{communityId}:
+    get:
+      tags:
+        - Community
+      operationId: getCommunity
+      summary: 查询小区详情
+      description: 查询指定小区的详细信息
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          description: 小区唯一标识
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunitySuccessResponse'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '404':
+          description: 小区不存在
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Community
+      operationId: updateCommunity
+      summary: 修改小区
+      description: 修改指定小区的详细信息
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          description: 小区唯一标识
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommunityRequest'
+      responses:
+        '200':
+          description: 修改成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunitySuccessResponse'
+        '400':
+          description: 参数错误
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '404':
+          description: 小区不存在
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '409':
+          description: 小区编码已存在
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Community
+      operationId: deleteCommunity
+      summary: 删除小区
+      description: 逻辑删除指定小区（存在有效楼栋时返回 409）
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          description: 小区唯一标识
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/DeletionSuccessResponse'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '404':
+          description: 小区不存在
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '409':
+          description: 小区存在有效楼栋，无法删除
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    CreateCommunityRequest:
+      type: object
+      required:
+        - communityCode
+        - communityName
+      properties:
+        communityCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: 小区编码，有效记录中全局唯一
+          example: COM-001
+        communityName:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: 小区名称
+          example: 和平小区
+        administrativeRegion:
+          type: string
+          maxLength: 255
+          description: 行政区域
+          example: "XX市XX区XX街道"
+        address:
+          type: string
+          maxLength: 1000
+          description: 详细地址
+          example: "XX市XX区XX路XX号"
+        constructionPeriod:
+          type: string
+          maxLength: 64
+          description: 建成年代
+          example: "2000年"
+        householdCount:
+          type: integer
+          minimum: 0
+          description: 户数
+        residentCount:
+          type: integer
+          minimum: 0
+          description: 居民数
+        status:
+          type: string
+          description: 状态
+          enum:
+            - ACTIVE
+            - INACTIVE
+          default: ACTIVE
+        extraAttributes:
+          type: object
+          description: 扩展属性（JSONB）
+        remark:
+          type: string
+          maxLength: 2000
+          description: 备注
+
+    UpdateCommunityRequest:
+      type: object
+      required:
+        - version
+      properties:
+        version:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 客户端最后读取到的乐观锁版本号
+        communityCode:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: 小区编码，有效记录中全局唯一
+        communityName:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: 小区名称
+        administrativeRegion:
+          type: string
+          maxLength: 255
+          description: 行政区域
+        address:
+          type: string
+          maxLength: 1000
+          description: 详细地址
+        constructionPeriod:
+          type: string
+          maxLength: 64
+          description: 建成年代
+        householdCount:
+          type: integer
+          minimum: 0
+          description: 户数
+        residentCount:
+          type: integer
+          minimum: 0
+          description: 居民数
+        status:
+          type: string
+          description: 状态
+          enum:
+            - ACTIVE
+            - INACTIVE
+        extraAttributes:
+          type: object
+          description: 扩展属性（JSONB）
+        remark:
+          type: string
+          maxLength: 2000
+          description: 备注
+
+    CommunityResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 小区唯一标识
+        communityCode:
+          type: string
+          description: 小区编码
+        communityName:
+          type: string
+          description: 小区名称
+        administrativeRegion:
+          type: string
+          description: 行政区域
+        address:
+          type: string
+          description: 详细地址
+        constructionPeriod:
+          type: string
+          description: 建成年代
+        buildingCount:
+          type: integer
+          description: 楼栋数量（系统维护）
+        householdCount:
+          type: integer
+          description: 户数
+        residentCount:
+          type: integer
+          description: 居民数
+        archiveCompletenessScore:
+          type: number
+          format: float
+          description: 档案完整度评分
+        status:
+          type: string
+          description: 状态
+          enum:
+            - ACTIVE
+            - INACTIVE
+        extraAttributes:
+          type: object
+          description: 扩展属性
+        remark:
+          type: string
+          description: 备注
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间
+        updatedAt:
+          type: string
+          format: date-time
+          description: 更新时间
+        version:
+          type: integer
+          format: int64
+          description: 当前乐观锁版本号
+
+    CommunityListRow:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 小区唯一标识
+        communityCode:
+          type: string
+          description: 小区编码
+        communityName:
+          type: string
+          description: 小区名称
+        administrativeRegion:
+          type: string
+          description: 行政区域
+        address:
+          type: string
+          description: 详细地址
+        buildingCount:
+          type: integer
+          description: 楼栋数量
+        householdCount:
+          type: integer
+          description: 户数
+        residentCount:
+          type: integer
+          description: 居民数
+        status:
+          type: string
+          description: 状态
+          enum:
+            - ACTIVE
+            - INACTIVE
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间
+        updatedAt:
+          type: string
+          format: date-time
+          description: 更新时间
+
+    CommunityPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          description: 小区列表
+          items:
+            $ref: '#/components/schemas/CommunityListRow'
+        page:
+          $ref: '../common-page/openapi-common-page.yaml#/components/schemas/PageMetadata'
+
+    CommunitySuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/CommunityResponse'
+            error:
+              type: object
+              nullable: true
+              description: 成功响应固定为空
+
+    CommunityPageSuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/CommunityPageResponse'
+            error:
+              type: object
+              nullable: true
+              description: 成功响应固定为空
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Bearer Token 认证

@@ -1,0 +1,537 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe Priority 接口
+  description: |
+    城安智序后端业务接口聚合契约。
+
+    认证约定：
+    - `POST /api/v1/auth/login` 无需鉴权；
+    - `/api/v1/public/feedback/**` 为公众反馈公开接口；
+    - ApiFox 登录成功后从响应体 `data.accessToken` 提取环境变量 `accessToken`；
+    - 除公开健康检查、登录和公众反馈接口外，其余接口统一发送
+      `Authorization: Bearer {{accessToken}}`。
+  version: 5.0.0
+servers:
+  - url: http://localhost:8888
+paths:
+  /api/v1/system/health:
+    $ref: './system-health/openapi-system-health.yaml#/paths/~1system~1health'
+  /api/v1/auth/login:
+    $ref: './auth-login/openapi-auth-login.yaml#/paths/~1api~1v1~1auth~1login'
+  /api/v1/auth/logout:
+    $ref: './auth-login/openapi-auth-login.yaml#/paths/~1api~1v1~1auth~1logout'
+  /api/v1/auth/me:
+    $ref: './auth-current-user/openapi-auth-current-user.yaml#/paths/~1api~1v1~1auth~1me'
+  /api/v1/communities:
+    $ref: './community/openapi-community.yaml#/paths/~1api~1v1~1communities'
+  /api/v1/communities/{communityId}:
+    $ref: './community/openapi-community.yaml#/paths/~1api~1v1~1communities~1{communityId}'
+  /api/v1/buildings:
+    $ref: './building/openapi-building.yaml#/paths/~1api~1v1~1buildings'
+  /api/v1/buildings/{buildingId}:
+    $ref: './building/openapi-building.yaml#/paths/~1api~1v1~1buildings~1{buildingId}'
+  /api/v1/buildings/{buildingId}/evidence:
+    $ref: './building-evidence/openapi-building-evidence.yaml#/paths/~1api~1v1~1buildings~1{buildingId}~1evidence'
+  /api/v1/building-evidence/{evidenceId}:
+    $ref: './building-evidence/openapi-building-evidence.yaml#/paths/~1api~1v1~1building-evidence~1{evidenceId}'
+  /api/v1/audit/operations:
+    $ref: './audit-operation/openapi-audit-operation.yaml#/paths/~1api~1v1~1audit~1operations'
+  /api/v1/audit/operations/{operationId}:
+    $ref: './audit-operation/openapi-audit-operation.yaml#/paths/~1api~1v1~1audit~1operations~1{operationId}'
+  /api/v1/map/runtime-config:
+    $ref: './phase2/openapi-phase2.yaml#/paths/~1api~1v1~1map~1runtime-config'
+  /api/v1/map/geocoding/preview:
+    $ref: './phase2/openapi-phase2.yaml#/paths/~1api~1v1~1map~1geocoding~1preview'
+  /api/v1/map/communities:
+    $ref: './phase2/openapi-phase2.yaml#/paths/~1api~1v1~1map~1communities'
+  /api/v1/communities/{communityId}/location:
+    $ref: './phase2/openapi-phase2.yaml#/paths/~1api~1v1~1communities~1{communityId}~1location'
+  /api/v1/inspection-tasks:
+    $ref: './phase2/openapi-phase2.yaml#/paths/~1api~1v1~1inspection-tasks'
+  /api/v1/inspection-tasks/{taskId}:
+    $ref: './phase2/openapi-phase2.yaml#/paths/~1api~1v1~1inspection-tasks~1{taskId}'
+  /api/v1/inspection-tasks/{taskId}/start:
+    $ref: './phase2/openapi-phase2.yaml#/paths/~1api~1v1~1inspection-tasks~1{taskId}~1start'
+  /api/v1/inspection-tasks/{taskId}/complete:
+    $ref: './phase2/openapi-phase2.yaml#/paths/~1api~1v1~1inspection-tasks~1{taskId}~1complete'
+  /api/v1/inspection-tasks/{taskId}/cancel:
+    $ref: './phase2/openapi-phase2.yaml#/paths/~1api~1v1~1inspection-tasks~1{taskId}~1cancel'
+  /api/v1/inspection-records:
+    $ref: './phase2/openapi-phase2.yaml#/paths/~1api~1v1~1inspection-records'
+  /api/v1/assets/images:
+    $ref: './phase2/openapi-phase2.yaml#/paths/~1api~1v1~1assets~1images'
+  /api/v1/assets:
+    $ref: './phase2/openapi-phase2.yaml#/paths/~1api~1v1~1assets'
+  /api/v1/assets/{assetId}/preview:
+    $ref: './phase2/openapi-phase2.yaml#/paths/~1api~1v1~1assets~1{assetId}~1preview'
+  /api/v1/assets/{assetId}/content:
+    $ref: './phase2/openapi-phase2.yaml#/paths/~1api~1v1~1assets~1{assetId}~1content'
+  /api/v1/ai-inferences:
+    $ref: './ai-inference/openapi-ai-inference.yaml#/paths/~1api~1v1~1ai-inferences'
+  /api/v1/ai-inferences/{inferenceId}:
+    $ref: './ai-inference/openapi-ai-inference.yaml#/paths/~1api~1v1~1ai-inferences~1{inferenceId}'
+  /api/v1/ai-inferences/{inferenceId}/retry:
+    $ref: './ai-inference/openapi-ai-inference.yaml#/paths/~1api~1v1~1ai-inferences~1{inferenceId}~1retry'
+  /api/v1/ai-inferences/{inferenceId}/review:
+    $ref: './ai-inference-review/openapi-ai-inference-review.yaml#/paths/~1api~1v1~1ai-inferences~1{inferenceId}~1review'
+  /api/v1/public/feedback/communities:
+    $ref: './public-feedback/openapi-public-feedback.yaml#/paths/~1api~1v1~1public~1feedback~1communities'
+  /api/v1/public/feedback/communities/{communityId}/buildings:
+    $ref: './public-feedback/openapi-public-feedback.yaml#/paths/~1api~1v1~1public~1feedback~1communities~1{communityId}~1buildings'
+  /api/v1/public/feedback/reports:
+    $ref: './public-feedback/openapi-public-feedback.yaml#/paths/~1api~1v1~1public~1feedback~1reports'
+  /api/v1/public/feedback/reports/{reportCode}:
+    $ref: './public-feedback/openapi-public-feedback.yaml#/paths/~1api~1v1~1public~1feedback~1reports~1{reportCode}'
+  /api/v1/public/feedback/reports/{reportCode}/images:
+    $ref: './public-feedback/openapi-public-feedback.yaml#/paths/~1api~1v1~1public~1feedback~1reports~1{reportCode}~1images'
+  /api/v1/public/feedback/reports/{reportCode}/images/{assetId}/content:
+    $ref: './public-feedback/openapi-public-feedback.yaml#/paths/~1api~1v1~1public~1feedback~1reports~1{reportCode}~1images~1{assetId}~1content'
+  /api/v1/feedback/reports:
+    $ref: './public-feedback/openapi-public-feedback.yaml#/paths/~1api~1v1~1feedback~1reports'
+  /api/v1/feedback/reports/{reportId}/images:
+    $ref: './public-feedback/openapi-public-feedback.yaml#/paths/~1api~1v1~1feedback~1reports~1{reportId}~1images'
+  /api/v1/feedback/reports/manual:
+    $ref: './public-feedback/openapi-public-feedback.yaml#/paths/~1api~1v1~1feedback~1reports~1manual'
+  /api/v1/feedback/reports/{reportId}/status:
+    $ref: './public-feedback/openapi-public-feedback.yaml#/paths/~1api~1v1~1feedback~1reports~1{reportId}~1status'
+  /api/v1/assessment-rules:
+    $ref: './assessment/openapi-assessment.yaml#/paths/~1api~1v1~1assessment-rules'
+  /api/v1/assessment-rules/{ruleId}:
+    $ref: './assessment/openapi-assessment.yaml#/paths/~1api~1v1~1assessment-rules~1{ruleId}'
+  /api/v1/assessment-rules/{ruleId}/activate:
+    $ref: './assessment/openapi-assessment.yaml#/paths/~1api~1v1~1assessment-rules~1{ruleId}~1activate'
+  /api/v1/assessments/buildings/{buildingId}/calculate:
+    $ref: './assessment/openapi-assessment.yaml#/paths/~1api~1v1~1assessments~1buildings~1{buildingId}~1calculate'
+  /api/v1/assessments/buildings/{buildingId}/current:
+    $ref: './assessment/openapi-assessment.yaml#/paths/~1api~1v1~1assessments~1buildings~1{buildingId}~1current'
+  /api/v1/assessments/buildings/{buildingId}/summary:
+    $ref: './assessment/openapi-assessment.yaml#/paths/~1api~1v1~1assessments~1buildings~1{buildingId}~1summary'
+  /api/v1/assessments/buildings/{buildingId}/history:
+    $ref: './assessment/openapi-assessment.yaml#/paths/~1api~1v1~1assessments~1buildings~1{buildingId}~1history'
+  /api/v1/assessments/recalculate:
+    $ref: './assessment/openapi-assessment.yaml#/paths/~1api~1v1~1assessments~1recalculate'
+  /api/v1/renewal-priorities:
+    $ref: './assessment/openapi-assessment.yaml#/paths/~1api~1v1~1renewal-priorities'
+  /api/v1/dashboard/risk-overview:
+    get:
+      tags: [ReportDashboard]
+      operationId: getRiskOverview
+      summary: 查询综合风险总览
+      parameters:
+        - $ref: '#/components/parameters/ScopeType'
+        - $ref: '#/components/parameters/ScopeId'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RiskOverviewSuccessResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/dashboard/risk-map:
+    get:
+      tags: [ReportDashboard]
+      operationId: getRiskMap
+      summary: 查询楼栋风险地图点位
+      parameters:
+        - $ref: '#/components/parameters/ScopeType'
+        - $ref: '#/components/parameters/ScopeId'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RiskMapSuccessResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/risk-reports/buildings/{buildingId}/preview:
+    get:
+      tags: [ReportDashboard]
+      operationId: previewBuildingRiskReport
+      summary: 预览楼栋风险报告
+      parameters:
+        - $ref: '#/components/parameters/BuildingId'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RiskReportPreviewSuccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/v1/risk-reports/buildings/{buildingId}/generate:
+    post:
+      tags: [ReportDashboard]
+      operationId: generateBuildingRiskReport
+      summary: 生成楼栋风险报告 PDF
+      parameters:
+        - $ref: '#/components/parameters/BuildingId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RiskReportGenerationRequest' }
+      responses:
+        '200':
+          description: 生成成功或复用已有报告
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RiskReportGenerationSuccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/v1/risk-reports:
+    get:
+      tags: [ReportDashboard]
+      operationId: listRiskReports
+      summary: 查询风险报告中心
+      parameters:
+        - name: buildingId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: communityId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: status
+          in: query
+          schema: { type: string, enum: [GENERATING, GENERATED, FAILED, STALE] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RiskReportPageSuccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/risk-reports/{reportId}:
+    get:
+      tags: [ReportDashboard]
+      operationId: getRiskReport
+      summary: 查询风险报告详情
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RiskReportDetailSuccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/risk-reports/{reportId}/download:
+    get:
+      tags: [ReportDashboard]
+      operationId: downloadRiskReport
+      summary: 下载风险报告 PDF
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      responses:
+        '200':
+          description: 下载成功
+          headers:
+            Content-Disposition:
+              schema: { type: string }
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/knowledge/documents:
+    $ref: './knowledge-qa/openapi-knowledge-qa.yaml#/paths/~1api~1v1~1knowledge~1documents'
+  /api/v1/knowledge/questions:
+    $ref: './knowledge-qa/openapi-knowledge-qa.yaml#/paths/~1api~1v1~1knowledge~1questions'
+components:
+  parameters:
+    ScopeType:
+      name: scopeType
+      in: query
+      required: true
+      schema: { type: string, enum: [ALL, REGION, COMMUNITY], default: ALL }
+    ScopeId:
+      name: scopeId
+      in: query
+      schema: { type: string, maxLength: 255 }
+    BuildingId:
+      name: buildingId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ReportId:
+      name: reportId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    Size:
+      name: size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+  responses:
+    BadRequest:
+      description: 请求参数无效
+      content:
+        application/json:
+          schema: { $ref: './common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse' }
+    Unauthorized:
+      description: 未登录
+      content:
+        application/json:
+          schema: { $ref: './common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse' }
+    Forbidden:
+      description: 无权访问
+      content:
+        application/json:
+          schema: { $ref: './common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema: { $ref: './common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse' }
+    Conflict:
+      description: 当前评分或报告状态不可用
+      content:
+        application/json:
+          schema: { $ref: './common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse' }
+  schemas:
+    ApiResponseMetadata:
+      $ref: './common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+    ApiError:
+      $ref: './common-response/openapi-common-response.yaml#/components/schemas/ApiError'
+    FieldError:
+      $ref: './common-response/openapi-common-response.yaml#/components/schemas/FieldError'
+    ErrorResponse:
+      $ref: './common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+    PageMetadata:
+      $ref: './common-page/openapi-common-page.yaml#/components/schemas/PageMetadata'
+    DistributionBucket:
+      type: object
+      required: [code, label, count]
+      properties:
+        code: { type: string }
+        label: { type: string }
+        count: { type: integer, format: int64 }
+    RiskOverviewSummary:
+      type: object
+      required: [communityCount, buildingCount, assessedBuildingCount, highRiskCount, lowConfidenceCount, highPriorityCount, staleCount, noResultCount]
+      properties:
+        communityCount: { type: integer, format: int64 }
+        buildingCount: { type: integer, format: int64 }
+        assessedBuildingCount: { type: integer, format: int64 }
+        highRiskCount: { type: integer, format: int64 }
+        lowConfidenceCount: { type: integer, format: int64 }
+        highPriorityCount: { type: integer, format: int64 }
+        staleCount: { type: integer, format: int64 }
+        noResultCount: { type: integer, format: int64 }
+    DashboardBuildingRow:
+      type: object
+      required: [buildingId, buildingCode, buildingName, communityId, communityName, freshness]
+      properties:
+        buildingId: { type: string, format: uuid }
+        buildingCode: { type: string }
+        buildingName: { type: string }
+        communityId: { type: string, format: uuid }
+        communityName: { type: string }
+        longitude: { type: number, format: double, nullable: true }
+        latitude: { type: number, format: double, nullable: true }
+        riskScore: { type: number, format: double, nullable: true }
+        riskLevel: { type: string, nullable: true }
+        confidenceScore: { type: number, format: double, nullable: true }
+        completenessScore: { type: number, format: double, nullable: true }
+        priorityScore: { type: number, format: double, nullable: true }
+        priorityLevel: { type: string, nullable: true }
+        ranking: { type: integer, nullable: true }
+        freshness: { type: string, enum: [CURRENT, STALE, NO_RESULT] }
+        needManualReview: { type: boolean }
+    RiskOverviewResponse:
+      type: object
+      required: [scopeKey, generatedAt, summary, riskDistribution, completenessDistribution, priorityDistribution, freshnessDistribution, topRiskBuildings, topPriorityBuildings, reviewRequiredBuildings, disclaimer]
+      properties:
+        scopeKey: { type: string }
+        generatedAt: { type: string, format: date-time }
+        summary: { $ref: '#/components/schemas/RiskOverviewSummary' }
+        riskDistribution:
+          type: array
+          items: { $ref: '#/components/schemas/DistributionBucket' }
+        completenessDistribution:
+          type: array
+          items: { $ref: '#/components/schemas/DistributionBucket' }
+        priorityDistribution:
+          type: array
+          items: { $ref: '#/components/schemas/DistributionBucket' }
+        freshnessDistribution:
+          type: array
+          items: { $ref: '#/components/schemas/DistributionBucket' }
+        topRiskBuildings:
+          type: array
+          items: { $ref: '#/components/schemas/DashboardBuildingRow' }
+        topPriorityBuildings:
+          type: array
+          items: { $ref: '#/components/schemas/DashboardBuildingRow' }
+        reviewRequiredBuildings:
+          type: array
+          items: { $ref: '#/components/schemas/DashboardBuildingRow' }
+        disclaimer: { type: string }
+    RiskMapResponse:
+      type: object
+      required: [scopeKey, generatedAt, buildings, disclaimer]
+      properties:
+        scopeKey: { type: string }
+        generatedAt: { type: string, format: date-time }
+        buildings:
+          type: array
+          items: { $ref: '#/components/schemas/DashboardBuildingRow' }
+        disclaimer: { type: string }
+    RiskReportGenerationRequest:
+      type: object
+      properties:
+        force: { type: boolean, default: false }
+        includeEvidenceImages: { type: boolean, default: true }
+    RiskReportPreviewResponse:
+      type: object
+      required: [buildingId, buildingCode, buildingName, communityName, freshness, sourceChecksum, templateVersion, sections, disclaimer]
+      properties:
+        buildingId: { type: string, format: uuid }
+        buildingCode: { type: string }
+        buildingName: { type: string }
+        communityName: { type: string }
+        freshness: { type: string, enum: [CURRENT, STALE, NO_RESULT] }
+        sourceChecksum: { type: string, minLength: 64, maxLength: 64 }
+        templateVersion: { type: string }
+        sections: { type: object, additionalProperties: true }
+        warnings:
+          type: array
+          items: { type: string }
+        disclaimer: { type: string }
+    RiskReportGenerationResponse:
+      type: object
+      required: [reportId, reportCode, reportStatus, reportFormat, templateVersion, sourceChecksum, reused]
+      properties:
+        reportId: { type: string, format: uuid }
+        reportCode: { type: string }
+        reportStatus: { type: string, enum: [GENERATING, GENERATED, FAILED, STALE] }
+        reportFormat: { type: string, enum: [PDF] }
+        templateVersion: { type: string }
+        sourceChecksum: { type: string }
+        reused: { type: boolean }
+        generatedAt: { type: string, format: date-time, nullable: true }
+        warnings:
+          type: array
+          items: { type: string }
+    RiskReportRow:
+      type: object
+      required: [reportId, reportCode, buildingId, buildingCode, buildingName, communityId, communityName, reportStatus, reportFormat, templateVersion, sourceChecksum, createdAt]
+      properties:
+        reportId: { type: string, format: uuid }
+        reportCode: { type: string }
+        buildingId: { type: string, format: uuid }
+        buildingCode: { type: string }
+        buildingName: { type: string }
+        communityId: { type: string, format: uuid }
+        communityName: { type: string }
+        reportStatus: { type: string }
+        reportFormat: { type: string }
+        templateVersion: { type: string }
+        sourceChecksum: { type: string }
+        riskLevel: { type: string, nullable: true }
+        priorityLevel: { type: string, nullable: true }
+        generatedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+    RiskReportPageResponse:
+      type: object
+      required: [content, page]
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/RiskReportRow' }
+        page: { $ref: './common-page/openapi-common-page.yaml#/components/schemas/PageMetadata' }
+    RiskReportDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/RiskReportRow'
+        - type: object
+          required: [reportSummary, reportSnapshot]
+          properties:
+            reportSummary: { type: object, additionalProperties: true }
+            reportSnapshot: { type: object, additionalProperties: true }
+            dataVersion: { type: string, nullable: true }
+            modelVersion: { type: string, nullable: true }
+            riskRuleVersion: { type: string, nullable: true }
+            renewalRuleVersion: { type: string, nullable: true }
+            errorCode: { type: string, nullable: true }
+            errorMessage: { type: string, nullable: true }
+    RiskOverviewSuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/RiskOverviewResponse' }
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    RiskMapSuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/RiskMapResponse' }
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    RiskReportPreviewSuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/RiskReportPreviewResponse' }
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    RiskReportGenerationSuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/RiskReportGenerationResponse' }
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    RiskReportPageSuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/RiskReportPageResponse' }
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    RiskReportDetailSuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/RiskReportDetailResponse' }
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT Bearer Token 认证。ApiFox 登录成功后从响应体 `data.accessToken`
+        提取环境变量 `accessToken`，受保护接口统一发送
+        `Authorization: Bearer {{accessToken}}`。
+security:
+  - bearerAuth: []

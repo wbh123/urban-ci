@@ -44,6 +44,14 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run role and navigation E2E regression tests
         run: npm run test:e2e
+      - name: Upload Playwright traces on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 7
 
   backend:
     name: Backend compile and test

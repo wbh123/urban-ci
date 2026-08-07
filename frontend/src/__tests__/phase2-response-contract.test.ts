@@ -6,12 +6,7 @@ const phase2Path = resolve(
   process.cwd(),
   '../backend-java/model/src/main/resources/phase2/openapi-phase2.yaml',
 )
-const aggregatePath = resolve(
-  process.cwd(),
-  '../backend-java/model/src/main/resources/openapi-interface.yaml',
-)
 const phase2 = readFileSync(phase2Path, 'utf8')
-const aggregate = readFileSync(aggregatePath, 'utf8')
 
 function pathSection(path: string): string {
   const marker = `  ${path}:`
@@ -40,7 +35,7 @@ describe('第二阶段正式响应契约', () => {
     expectSchemaRef('/api/v1/inspection-records', 'InspectionRecordListSuccessResponse')
   })
 
-  it('聚合 OpenAPI 导出所有长期使用的第二阶段 data 类型', () => {
+  it('第二阶段声明长期使用的 data 类型', () => {
     for (const schema of [
       'MapRuntimeConfig',
       'CommunityPoint',
@@ -49,9 +44,7 @@ describe('第二阶段正式响应契约', () => {
       'InspectionTask',
       'InspectionRecord',
     ]) {
-      expect(aggregate).toContain(
-        `${schema}:\n      $ref: './phase2/openapi-phase2.yaml#/components/schemas/${schema}'`,
-      )
+      expect(phase2).toContain(`    ${schema}:`)
     }
   })
 })

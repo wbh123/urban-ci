@@ -34,7 +34,7 @@ const cards = computed(() => {
   <section class="dashboard-page">
     <AppPageHeader
       title="审核管理总览"
-      description="根据当前账号职责展示可进入的业务模块。后续驾驶舱数据将在对应重构批次逐步接入。"
+      description="根据当前账号职责展示可进入的业务模块与工作入口。"
     />
 
     <div class="dashboard-grid">

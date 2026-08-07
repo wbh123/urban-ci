@@ -2359,11 +2359,90 @@ export interface components {
             /** @description 成功响应固定为空 */
             error?: Record<string, never> | null;
         };
+        Phase2SuccessBase: {
+            /** @enum {boolean} */
+            success: true;
+            error: {
+                [key: string]: unknown;
+            } | null;
+            requestId: string;
+            /** Format: date-time */
+            timestamp: string;
+        };
+        MapCenter: {
+            /** Format: double */
+            longitude: number;
+            /** Format: double */
+            latitude: number;
+        };
+        MapRuntimeConfig: {
+            enabled: boolean;
+            /** @enum {string} */
+            mode: "MOCK" | "LIVE";
+            provider: string;
+            jsApiKey: string;
+            serviceHost: string;
+            securityJsCodeExposed: boolean;
+            defaultCenter: components["schemas"]["MapCenter"];
+            defaultZoom: number;
+        };
+        MapRuntimeConfigSuccessResponse: components["schemas"]["Phase2SuccessBase"] & {
+            data: components["schemas"]["MapRuntimeConfig"];
+        };
         GeocodingRequest: {
             /** @description 需要地理编码的完整地址 */
             address: string;
             /** @description 可选城市名称，用于提高匹配精度 */
             city?: string;
+        };
+        GeocodingResult: {
+            formattedAddress: string;
+            /** Format: double */
+            longitude: number;
+            /** Format: double */
+            latitude: number;
+            provider: string;
+            matchLevel: string;
+            mock: boolean;
+        };
+        GeocodingResultSuccessResponse: components["schemas"]["Phase2SuccessBase"] & {
+            data: components["schemas"]["GeocodingResult"];
+        };
+        CommunityPoint: {
+            /** Format: uuid */
+            communityId: string;
+            communityName: string;
+            address?: string | null;
+            formattedAddress?: string | null;
+            /** Format: double */
+            longitude?: number | null;
+            /** Format: double */
+            latitude?: number | null;
+            provider?: string | null;
+            matchLevel?: string | null;
+        };
+        CommunityPointListSuccessResponse: components["schemas"]["Phase2SuccessBase"] & {
+            data: components["schemas"]["CommunityPoint"][];
+        };
+        CommunityLocation: {
+            /** Format: uuid */
+            communityId: string;
+            /** Format: double */
+            longitude: number;
+            /** Format: double */
+            latitude: number;
+            formattedAddress?: string | null;
+            provider: string;
+            coordinateSystem: string;
+            matchLevel: string;
+            metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
+        CommunityLocationSuccessResponse: components["schemas"]["Phase2SuccessBase"] & {
+            data: components["schemas"]["CommunityLocation"];
         };
         CommunityLocationRequest: {
             /** Format: double */
@@ -2384,16 +2463,73 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        InspectionTask: {
+            /** Format: uuid */
+            taskId: string;
+            taskCode: string;
+            /** Format: uuid */
+            buildingId: string;
+            buildingName: string;
+            /** Format: uuid */
+            communityId: string;
+            inspectionType: string;
+            title: string;
+            description?: string | null;
+            /** Format: date-time */
+            plannedAt?: string | null;
+            /** @enum {string} */
+            status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+            /** Format: date-time */
+            startedAt?: string | null;
+            /** Format: date-time */
+            completedAt?: string | null;
+            /** Format: date-time */
+            cancelledAt?: string | null;
+            version: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        InspectionTaskListSuccessResponse: components["schemas"]["Phase2SuccessBase"] & {
+            data: components["schemas"]["InspectionTask"][];
+        };
         InspectionTaskCreateRequest: {
             /** Format: uuid */
             buildingId: string;
-            /** @example ROUTINE */
-            inspectionType: string;
+            /** @enum {string} */
+            inspectionType: "ROUTINE" | "SPECIAL";
             /** @default 现场巡检 */
             title: string;
             description?: string;
             /** Format: date-time */
             plannedAt?: string;
+        };
+        InspectionTaskSuccessResponse: components["schemas"]["Phase2SuccessBase"] & {
+            data: components["schemas"]["InspectionTask"];
+        };
+        InspectionRecord: {
+            /** Format: uuid */
+            recordId: string;
+            /** Format: uuid */
+            taskId: string;
+            /** Format: uuid */
+            buildingId: string;
+            inspectionPart?: string | null;
+            issueType: string;
+            /** @enum {string} */
+            severity: "LOW" | "MEDIUM" | "HIGH";
+            summary: string;
+            rectificationSuggestion?: string | null;
+            formData: {
+                [key: string]: unknown;
+            };
+            status: string;
+            /** Format: date-time */
+            inspectedAt: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        InspectionRecordListSuccessResponse: components["schemas"]["Phase2SuccessBase"] & {
+            data: components["schemas"]["InspectionRecord"][];
         };
         InspectionRecordCreateRequest: {
             /** Format: uuid */
@@ -2412,6 +2548,9 @@ export interface components {
             formData?: {
                 [key: string]: unknown;
             };
+        };
+        InspectionRecordSuccessResponse: components["schemas"]["Phase2SuccessBase"] & {
+            data: components["schemas"]["InspectionRecord"];
         };
         /** @enum {string} */
         AiProviderCode: "FAST_API" | "DIFY" | "SPRING_AI";
@@ -4191,10 +4330,12 @@ export interface operations {
                      *         },
                      *         "defaultZoom": 12
                      *       },
-                     *       "error": null
+                     *       "error": null,
+                     *       "requestId": "01J00000000000000000000000",
+                     *       "timestamp": "2026-08-07T18:00:00+08:00"
                      *     }
                      */
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["MapRuntimeConfigSuccessResponse"];
                 };
             };
         };
@@ -4238,7 +4379,7 @@ export interface operations {
                      *       "error": null
                      *     }
                      */
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["GeocodingResultSuccessResponse"];
                 };
             };
         };
@@ -4275,7 +4416,7 @@ export interface operations {
                      *       "error": null
                      *     }
                      */
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["CommunityPointListSuccessResponse"];
                 };
             };
         };
@@ -4313,7 +4454,7 @@ export interface operations {
                      *       "error": null
                      *     }
                      */
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["CommunityLocationSuccessResponse"];
                 };
             };
         };
@@ -4352,7 +4493,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CommunityLocationSuccessResponse"];
+                };
             };
         };
     };
@@ -4375,7 +4518,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InspectionTaskListSuccessResponse"];
+                };
             };
         };
     };
@@ -4413,15 +4558,18 @@ export interface operations {
                      *         "taskId": "22222222-2222-2222-2222-222222222222",
                      *         "taskCode": "IT-20260714-12345678",
                      *         "buildingId": "11111111-1111-1111-1111-111111111111",
+                     *         "buildingName": "1号楼",
+                     *         "communityId": "11111111-1111-1111-1111-111111111111",
                      *         "inspectionType": "ROUTINE",
                      *         "title": "ApiFox 自动现场安全巡检",
                      *         "status": "PENDING",
-                     *         "version": 0
+                     *         "version": 0,
+                     *         "createdAt": "2026-08-07T18:00:00+08:00"
                      *       },
                      *       "error": null
                      *     }
                      */
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["InspectionTaskSuccessResponse"];
                 };
             };
         };
@@ -4443,7 +4591,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InspectionTaskSuccessResponse"];
+                };
             };
         };
     };
@@ -4464,7 +4614,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InspectionTaskSuccessResponse"];
+                };
             };
         };
     };
@@ -4485,7 +4637,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InspectionTaskSuccessResponse"];
+                };
             };
             /** @description 任务状态冲突或尚无巡检记录 */
             409: {
@@ -4513,7 +4667,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InspectionTaskSuccessResponse"];
+                };
             };
             /** @description 已结束任务不能取消 */
             409: {
@@ -4541,7 +4697,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["InspectionRecordListSuccessResponse"];
+                };
             };
         };
     };
@@ -4583,14 +4741,17 @@ export interface operations {
                      *       "data": {
                      *         "recordId": "33333333-3333-3333-3333-333333333333",
                      *         "taskId": "22222222-2222-2222-2222-222222222222",
+                     *         "buildingId": "11111111-1111-1111-1111-111111111111",
                      *         "severity": "LOW",
                      *         "summary": "外墙未发现明显贯穿裂缝，部分墙面存在轻微表层脱落。",
-                     *         "status": "DRAFT"
+                     *         "status": "DRAFT",
+                     *         "inspectedAt": "2026-08-07T18:00:00+08:00",
+                     *         "createdAt": "2026-08-07T18:00:00+08:00"
                      *       },
                      *       "error": null
                      *     }
                      */
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["InspectionRecordSuccessResponse"];
                 };
             };
         };

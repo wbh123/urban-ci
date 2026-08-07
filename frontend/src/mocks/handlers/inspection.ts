@@ -20,6 +20,10 @@ function nextUuid(): string {
   return `00000000-0000-0000-0000-${String(idSeq).padStart(12, '0')}`
 }
 
+function now(): string {
+  return new Date().toISOString()
+}
+
 const TRANSITIONS = ['start', 'complete', 'cancel'] as const
 type Transition = (typeof TRANSITIONS)[number]
 
@@ -54,10 +58,14 @@ export const inspectionHandlers = [
       taskCode: nextTaskCode(),
       buildingId: body.buildingId,
       buildingName: building.buildingName,
-      inspectionType: body.inspectionType ?? 'ROUTINE',
+      communityId: building.communityId,
+      inspectionType: body.inspectionType,
       title: body.title ?? '现场巡检',
+      description: body.description,
+      plannedAt: body.plannedAt,
       status: 'PENDING' as InspectionTaskStatus,
       version: 0,
+      createdAt: now(),
     }
     db.tasks.push(task)
     return okResponse(task, 201)
@@ -73,11 +81,13 @@ export const inspectionHandlers = [
     }
     const task = db.tasks.find((t) => t.taskId === taskId)
     if (!task) return errorResponse('INSPECTION_TASK_NOT_FOUND', '巡检任务不存在。', 404)
+    const transitionAt = now()
     if (action === 'start') {
       if (task.status !== 'PENDING') {
         return errorResponse('INVALID_TASK_STATUS', '任务状态不允许开始。', 409)
       }
       task.status = 'IN_PROGRESS'
+      task.startedAt = transitionAt
     } else if (action === 'complete') {
       if (task.status !== 'IN_PROGRESS') {
         return errorResponse('INVALID_TASK_STATUS', '任务状态不允许完成。', 409)
@@ -86,11 +96,13 @@ export const inspectionHandlers = [
         return errorResponse('NO_INSPECTION_RECORD', '完成任务前至少需要一条巡检记录。', 409)
       }
       task.status = 'COMPLETED'
+      task.completedAt = transitionAt
     } else {
       if (!['PENDING', 'IN_PROGRESS'].includes(task.status)) {
         return errorResponse('INVALID_TASK_STATUS', '已结束任务不能取消。', 409)
       }
       task.status = 'CANCELLED'
+      task.cancelledAt = transitionAt
     }
     task.version += 1
     return okResponse(task)
@@ -121,15 +133,20 @@ export const inspectionHandlers = [
         { field: 'rectificationSuggestion', message: '高风险时必填' },
       ])
     }
+    const createdAt = now()
     const record = {
       recordId: nextUuid(),
       taskId: body.taskId,
+      buildingId: task.buildingId,
       severity: body.severity ?? 'LOW',
       summary: body.summary,
       status: 'DRAFT',
       inspectionPart: body.inspectionPart,
-      issueType: body.issueType,
+      issueType: body.issueType ?? 'OTHER',
       rectificationSuggestion: body.rectificationSuggestion,
+      formData: body.formData ?? {},
+      inspectedAt: createdAt,
+      createdAt,
     }
     db.records.push(record)
     return okResponse(record, 201)

@@ -49,7 +49,7 @@ const GROUPS: readonly ConsoleMenuGroup[] = [
       },
       {
         path: '/console/renewal-priorities',
-        label: '风险总览',
+        label: '更新优先级',
         icon: '△',
         allowedRoles: ['GOVERNMENT_MANAGER', 'ADMIN'],
       },

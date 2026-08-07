@@ -58,6 +58,26 @@ class DifyWorkflowProviderTest {
     }
 
     @Test
+    void acceptsVersion11RealDifyOutputWithObservationsField() throws Exception {
+        JsonNode response = objectMapper.readTree("""
+                {"workflow_run_id":"run-real","data":{"status":"succeeded","elapsed_time":1.5,
+                "outputs":{"inputImage":{"type":"image","mime_type":"image/jpeg"},
+                "result":"{\\"schemaVersion\\":\\"1.1\\",\\"workflowCode\\":\\"DIFY-IMAGE-ANALYSIS-001\\",\\"workflowVersion\\":\\"image-analysis-v1.1.0\\",\\"applicable\\":true,\\"summary\\":\\"检测到裂缝\\",\\"observations\\":[\\"图像中可见一条裂缝\\"],\\"detections\\":[{\\"classCode\\":\\"CRACK\\",\\"className\\":\\"裂缝\\",\\"confidence\\":0.8,\\"boundingBox\\":null}],\\"riskSignals\\":[{\\"code\\":\\"VISIBLE_CRACK\\",\\"level\\":\\"MEDIUM\\",\\"description\\":\\"存在可见裂缝，可能影响结构安全\\",\\"confidence\\":0.8}],\\"recommendations\\":[\\"建议进行人工复核以确认裂缝的严重程度\\"],\\"warnings\\":[\\"信息限制\\"],\\"needsHumanReview\\":true,\\"confidence\\":0.8}"}}}
+                """);
+        DifyWorkflowProvider provider = provider(response, definition("image-analysis-v1.1.0"));
+
+        AiStructuredResult result = provider.execute(request());
+
+        assertEquals("SUCCEEDED", result.status());
+        assertEquals("检测到裂缝", result.summary());
+        assertEquals(1, result.detections().size());
+        assertEquals("CRACK", result.detections().get(0).classCode());
+        assertEquals(1, result.riskSignals().size());
+        assertEquals("VISIBLE_CRACK", result.riskSignals().get(0).code());
+        assertEquals(0.8d, result.confidence());
+    }
+
+    @Test
     void version11ShouldRejectMissingImageEcho() throws Exception {
         JsonNode response = objectMapper.readTree("""
                 {"workflow_run_id":"run-12","data":{"status":"succeeded","outputs":{"result":{

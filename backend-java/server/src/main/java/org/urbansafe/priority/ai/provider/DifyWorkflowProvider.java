@@ -1,5 +1,6 @@
 package org.urbansafe.priority.ai.provider;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -176,6 +177,8 @@ public class DifyWorkflowProvider implements AiCapabilityProvider {
         return first != null && !first.isBlank() ? first : second;
     }
 
+    /** Dify 工作流输出契约中未消费的附加字段（如 observations）应被容忍，避免破坏版本升级。 */
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private record StructuredPayload(
             String schemaVersion,
             String workflowCode,

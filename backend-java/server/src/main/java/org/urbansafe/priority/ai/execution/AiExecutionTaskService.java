@@ -2,14 +2,20 @@ package org.urbansafe.priority.ai.execution;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.urbansafe.priority.ai.command.CreateInferenceCommand;
+import org.urbansafe.priority.ai.orchestration.AiErrorCodes;
 import org.urbansafe.priority.ai.service.AiInferenceService;
 
 /** 入队并执行持久化人工智能任务，复用现有推理、结果和审计链路。 */
 @Service
 public class AiExecutionTaskService {
+
+    private static final Set<String> RETRYABLE_INFERENCE_ERROR_CODES = Set.of(
+            AiErrorCodes.AI_PROVIDER_TIMEOUT,
+            AiErrorCodes.AI_PROVIDER_UNAVAILABLE);
 
     private final AiExecutionTaskRepository repository;
     private final AiInferenceService inferenceService;
@@ -43,11 +49,13 @@ public class AiExecutionTaskService {
                 repository.markRejected(task.id(), inferenceId, string(result.get("errorMessage")));
                 return;
             }
+            String errorCode = firstNonBlank(string(result.get("errorCode")), "AI_INFERENCE_FAILED");
             handleFailure(task,
-                    firstNonBlank(string(result.get("errorCode")), "AI_INFERENCE_FAILED"),
-                    firstNonBlank(string(result.get("errorMessage")), "人工智能推理失败"));
+                    errorCode,
+                    firstNonBlank(string(result.get("errorMessage")), "人工智能推理失败"),
+                    RETRYABLE_INFERENCE_ERROR_CODES.contains(errorCode));
         } catch (RuntimeException ex) {
-            handleFailure(task, "AI_EXECUTION_UNEXPECTED", safeMessage(ex));
+            handleFailure(task, "AI_EXECUTION_UNEXPECTED", safeMessage(ex), true);
         }
     }
 
@@ -55,8 +63,8 @@ public class AiExecutionTaskService {
         repository.recoverExpiredLeases();
     }
 
-    private void handleFailure(AiExecutionTask task, String code, String message) {
-        if (task.attemptCount() >= task.maxAttempts()) {
+    private void handleFailure(AiExecutionTask task, String code, String message, boolean retryable) {
+        if (!retryable || task.attemptCount() >= task.maxAttempts()) {
             repository.markFailed(task.id(), code, message);
             return;
         }

@@ -2,7 +2,9 @@ package org.urbansafe.priority.ai.execution;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -12,6 +14,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.urbansafe.priority.ai.command.CreateInferenceCommand;
+import org.urbansafe.priority.ai.orchestration.AiErrorCodes;
 import org.urbansafe.priority.ai.service.AiInferenceService;
 
 class AiExecutionTaskServiceTest {
@@ -55,7 +58,7 @@ class AiExecutionTaskServiceTest {
     }
 
     @Test
-    void executeClaimedShouldScheduleRetryForRetryableFailure() {
+    void executeClaimedShouldScheduleRetryForProviderTimeout() {
         AiExecutionTaskRepository repository = mock(AiExecutionTaskRepository.class);
         AiInferenceService inferenceService = mock(AiInferenceService.class);
         AiExecutionProperties properties = new AiExecutionProperties();
@@ -64,14 +67,85 @@ class AiExecutionTaskServiceTest {
         AiExecutionTask task = task(1, 3);
         when(inferenceService.create(any())).thenReturn(Map.of(
                 "status", "FAILED",
-                "errorCode", "AI_PROVIDER_TIMEOUT",
+                "errorCode", AiErrorCodes.AI_PROVIDER_TIMEOUT,
                 "errorMessage", "timeout"));
 
         service.executeClaimed(task);
 
         verify(repository).markRetry(any(UUID.class), any(OffsetDateTime.class),
-                org.mockito.ArgumentMatchers.eq("AI_PROVIDER_TIMEOUT"),
-                org.mockito.ArgumentMatchers.eq("timeout"));
+                eq(AiErrorCodes.AI_PROVIDER_TIMEOUT), eq("timeout"));
+        verify(repository, never()).markFailed(any(), any(), any());
+    }
+
+    @Test
+    void executeClaimedShouldScheduleRetryForProviderUnavailable() {
+        AiExecutionTaskRepository repository = mock(AiExecutionTaskRepository.class);
+        AiInferenceService inferenceService = mock(AiInferenceService.class);
+        AiExecutionProperties properties = new AiExecutionProperties();
+        AiExecutionTaskService service = new AiExecutionTaskService(repository, inferenceService, properties);
+        AiExecutionTask task = task(1, 3);
+        when(inferenceService.create(any())).thenReturn(Map.of(
+                "status", "FAILED",
+                "errorCode", AiErrorCodes.AI_PROVIDER_UNAVAILABLE,
+                "errorMessage", "provider unavailable"));
+
+        service.executeClaimed(task);
+
+        verify(repository).markRetry(any(UUID.class), any(OffsetDateTime.class),
+                eq(AiErrorCodes.AI_PROVIDER_UNAVAILABLE), eq("provider unavailable"));
+        verify(repository, never()).markFailed(any(), any(), any());
+    }
+
+    @Test
+    void executeClaimedShouldFailImmediatelyForInvalidProviderResponse() {
+        AiExecutionTaskRepository repository = mock(AiExecutionTaskRepository.class);
+        AiInferenceService inferenceService = mock(AiInferenceService.class);
+        AiExecutionProperties properties = new AiExecutionProperties();
+        AiExecutionTaskService service = new AiExecutionTaskService(repository, inferenceService, properties);
+        AiExecutionTask task = task(1, 3);
+        when(inferenceService.create(any())).thenReturn(Map.of(
+                "status", "FAILED",
+                "errorCode", AiErrorCodes.AI_INVALID_RESPONSE,
+                "errorMessage", "invalid response"));
+
+        service.executeClaimed(task);
+
+        verify(repository).markFailed(task.id(), AiErrorCodes.AI_INVALID_RESPONSE, "invalid response");
+        verify(repository, never()).markRetry(any(), any(), any(), any());
+    }
+
+    @Test
+    void executeClaimedShouldFailImmediatelyWhenProviderIsNotConfigured() {
+        AiExecutionTaskRepository repository = mock(AiExecutionTaskRepository.class);
+        AiInferenceService inferenceService = mock(AiInferenceService.class);
+        AiExecutionProperties properties = new AiExecutionProperties();
+        AiExecutionTaskService service = new AiExecutionTaskService(repository, inferenceService, properties);
+        AiExecutionTask task = task(1, 3);
+        when(inferenceService.create(any())).thenReturn(Map.of(
+                "status", "FAILED",
+                "errorCode", AiErrorCodes.AI_PROVIDER_NOT_CONFIGURED,
+                "errorMessage", "provider not configured"));
+
+        service.executeClaimed(task);
+
+        verify(repository).markFailed(
+                task.id(), AiErrorCodes.AI_PROVIDER_NOT_CONFIGURED, "provider not configured");
+        verify(repository, never()).markRetry(any(), any(), any(), any());
+    }
+
+    @Test
+    void executeClaimedShouldRetryUnexpectedRuntimeFailureBeforeMaximumAttempts() {
+        AiExecutionTaskRepository repository = mock(AiExecutionTaskRepository.class);
+        AiInferenceService inferenceService = mock(AiInferenceService.class);
+        AiExecutionProperties properties = new AiExecutionProperties();
+        AiExecutionTaskService service = new AiExecutionTaskService(repository, inferenceService, properties);
+        AiExecutionTask task = task(1, 3);
+        when(inferenceService.create(any())).thenThrow(new IllegalStateException("provider down"));
+
+        service.executeClaimed(task);
+
+        verify(repository).markRetry(any(UUID.class), any(OffsetDateTime.class),
+                eq("AI_EXECUTION_UNEXPECTED"), eq("provider down"));
     }
 
     @Test

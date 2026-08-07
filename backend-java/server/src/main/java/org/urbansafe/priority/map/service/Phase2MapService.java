@@ -1,0 +1,149 @@
+package org.urbansafe.priority.map.service;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import java.net.URI;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.util.UriComponentsBuilder;
+import org.urbansafe.priority.common.exception.InvalidRequestException;
+import org.urbansafe.priority.common.exception.ResourceNotFoundException;
+import org.urbansafe.priority.map.config.AmapProperties;
+import org.urbansafe.priority.map.config.MapProperties;
+import org.urbansafe.priority.phase2.repository.Phase2Repository;
+
+@Service
+public class Phase2MapService {
+
+    private static final Set<String> LOCATION_PROVIDERS =
+            Set.of("AMAP", "MANUAL", "IMPORT", "MOCK");
+
+    private final MapProperties map;
+    private final AmapProperties amap;
+    private final Phase2Repository repository;
+    private final RestClient client = RestClient.create();
+
+    public Phase2MapService(MapProperties map, AmapProperties amap, Phase2Repository repository) {
+        this.map = map;
+        this.amap = amap;
+        this.repository = repository;
+    }
+
+    public Map<String, Object> runtimeConfig() {
+        boolean live = map.isEnabled() && text(amap.getJsApiKey()) != null;
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("enabled", map.isEnabled());
+        result.put("mode", live ? "LIVE" : "MOCK");
+        result.put("provider", map.getProvider());
+        result.put("jsApiKey", live ? amap.getJsApiKey() : "");
+        result.put("serviceHost", amap.getServiceHost());
+        result.put("securityJsCodeExposed", false);
+        result.put("defaultCenter", Map.of("longitude", map.getDefaultCenterLongitude(),
+                "latitude", map.getDefaultCenterLatitude()));
+        result.put("defaultZoom", map.getDefaultZoom());
+        return result;
+    }
+
+    public List<Map<String, Object>> communityPoints() {
+        return repository.listCommunityPoints();
+    }
+
+    public Map<String, Object> geocode(String address, String city) {
+        if (text(address) == null) {
+            throw new InvalidRequestException("MAP_ADDRESS_REQUIRED", "地址不能为空");
+        }
+        if (!map.isEnabled() || text(amap.getWebServiceKey()) == null) {
+            int hash = Math.abs(address.hashCode());
+            return Map.of("formattedAddress", address,
+                    "longitude", map.getDefaultCenterLongitude() + ((hash % 1000) - 500) / 100000.0,
+                    "latitude", map.getDefaultCenterLatitude() + (((hash / 1000) % 1000) - 500) / 100000.0,
+                    "provider", "MOCK", "matchLevel", "MOCK_PREVIEW", "mock", true);
+        }
+        URI uri = UriComponentsBuilder.fromUriString(amap.getWebServiceBaseUrl())
+                .path("/v3/geocode/geo").queryParam("key", amap.getWebServiceKey())
+                .queryParam("address", address).queryParamIfPresent("city", java.util.Optional.ofNullable(city))
+                .build(true).toUri();
+        JsonNode body = client.get().uri(uri).retrieve().body(JsonNode.class);
+        JsonNode item = body == null ? null : body.path("geocodes").path(0);
+        String location = item == null ? "" : item.path("location").asText();
+        String[] point = location.split(",");
+        if (point.length != 2) {
+            throw new InvalidRequestException("MAP_GEOCODE_NO_RESULT", "未找到可用坐标");
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("formattedAddress", item.path("formatted_address").asText(address));
+        result.put("longitude", Double.parseDouble(point[0]));
+        result.put("latitude", Double.parseDouble(point[1]));
+        result.put("provider", "AMAP");
+        result.put("matchLevel", item.path("level").asText("UNKNOWN"));
+        result.put("mock", false);
+        return result;
+    }
+
+    public Map<String, Object> saveLocation(UUID communityId, Map<String, Object> request) {
+        if (!repository.communityExists(communityId)) {
+            throw new ResourceNotFoundException("COMMUNITY_NOT_FOUND", "小区不存在");
+        }
+        double longitude = number(request.get("longitude"), "longitude");
+        double latitude = number(request.get("latitude"), "latitude");
+        if (longitude < -180 || longitude > 180 || latitude < -90 || latitude > 90) {
+            throw new InvalidRequestException("MAP_COORDINATE_INVALID", "经纬度超出有效范围");
+        }
+        String provider = locationProvider(request.get("provider"));
+        return repository.saveCommunityLocation(communityId, longitude, latitude,
+                text(request.get("formattedAddress")), provider,
+                text(request.get("matchLevel")), repository.json(locationMetadata(request)));
+    }
+
+    public Map<String, Object> getLocation(UUID communityId) {
+        if (!repository.communityExists(communityId)) {
+            throw new ResourceNotFoundException("COMMUNITY_NOT_FOUND", "小区不存在");
+        }
+        return repository.findCommunityLocation(communityId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "COMMUNITY_LOCATION_NOT_FOUND", "小区尚未保存地图位置"));
+    }
+
+    private String locationProvider(Object value) {
+        String provider = text(value);
+        if (provider == null) {
+            return "MANUAL";
+        }
+        provider = provider.toUpperCase(Locale.ROOT);
+        if (!LOCATION_PROVIDERS.contains(provider)) {
+            throw new InvalidRequestException(
+                    "MAP_PROVIDER_INVALID", "provider 仅支持 AMAP、MANUAL、IMPORT 或 MOCK");
+        }
+        return provider;
+    }
+
+    private Object locationMetadata(Map<String, Object> request) {
+        Object rawMetadata = request.get("metadata");
+        if (!Boolean.TRUE.equals(request.get("mock"))) {
+            return rawMetadata;
+        }
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        if (rawMetadata instanceof Map<?, ?> source) {
+            source.forEach((key, value) -> metadata.put(String.valueOf(key), value));
+        }
+        metadata.put("mock", true);
+        return metadata;
+    }
+
+    private double number(Object value, String field) {
+        try {
+            return value instanceof Number n ? n.doubleValue() : Double.parseDouble(String.valueOf(value));
+        } catch (RuntimeException ex) {
+            throw new InvalidRequestException("MAP_FIELD_INVALID", field + " 必须为数字");
+        }
+    }
+
+    private String text(Object value) {
+        return value == null || String.valueOf(value).isBlank() ? null : String.valueOf(value).trim();
+    }
+}

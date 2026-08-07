@@ -1,0 +1,283 @@
+### ====================================================================
+### 阶段一完整流程测试
+### 依次执行以下请求，验证小区、楼栋、证据的完整生命周期
+### ====================================================================
+
+### 1. 登录获取 Token
+< {%
+  const runId = Date.now().toString();
+  client.global.set("runId", runId);
+%}
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+> {%
+  client.test("登录成功", function () {
+    client.assert(response.status === 200, "预期状态码为 200");
+    client.assert(response.body.success === true);
+    client.assert(response.body.data.accessToken !== null);
+  });
+  client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+### 2. 创建小区 A
+POST {{baseUrl}}/api/v1/communities
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityCode": "FLOW-A-{{runId}}",
+  "communityName": "流程测试小区A",
+  "administrativeRegion": "流程测试市A区",
+  "status": "ACTIVE"
+}
+
+> {%
+  client.test("创建小区 A 成功", function () {
+    client.assert(response.status === 201);
+    client.assert(response.body.success === true);
+  });
+  client.global.set("communityIdA", response.body.data.id);
+  client.global.set("communityVersionA", response.body.data.version);
+%}
+
+### 3. 创建小区 B
+POST {{baseUrl}}/api/v1/communities
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityCode": "FLOW-B-{{runId}}",
+  "communityName": "流程测试小区B",
+  "administrativeRegion": "流程测试市B区",
+  "status": "ACTIVE"
+}
+
+> {%
+  client.test("创建小区 B 成功", function () {
+    client.assert(response.status === 201);
+    client.assert(response.body.success === true);
+  });
+  client.global.set("communityIdB", response.body.data.id);
+  client.global.set("communityVersionB", response.body.data.version);
+%}
+
+### 4. 在小区 A 中创建楼栋
+POST {{baseUrl}}/api/v1/buildings
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityId": "{{communityIdA}}",
+  "buildingCode": "FLOW-BLD-{{runId}}",
+  "buildingName": "流程测试1栋",
+  "constructionYear": 1998,
+  "structureType": "砖混结构",
+  "floorCount": 6,
+  "householdCount": 24,
+  "residentCount": 72,
+  "status": "ACTIVE"
+}
+
+> {%
+  client.test("创建楼栋成功", function () {
+    client.assert(response.status === 201);
+    client.assert(response.body.success === true);
+  });
+  client.global.set("buildingId", response.body.data.id);
+  client.global.set("buildingVersion", response.body.data.version);
+%}
+
+### 5. 创建维修记录证据
+POST {{baseUrl}}/api/v1/buildings/{{buildingId}}/evidence
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "evidenceType": "MAINTENANCE_RECORD",
+  "title": "2023年屋面防水维修",
+  "description": "对屋面进行了全面防水处理",
+  "occurredAt": "2023-06-01T09:00:00+08:00",
+  "source": "物业维修记录",
+  "reliabilityLevel": "USER_PROVIDED"
+}
+
+> {%
+  client.test("创建维修记录证据成功", function () {
+    client.assert(response.status === 201);
+    client.assert(response.body.success === true);
+    client.assert(response.body.data.evidenceType === "MAINTENANCE_RECORD");
+  });
+  client.global.set("evidenceId1", response.body.data.id);
+%}
+
+### 6. 创建专业检测证据
+POST {{baseUrl}}/api/v1/buildings/{{buildingId}}/evidence
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "evidenceType": "PROFESSIONAL_INSPECTION",
+  "title": "2024年房屋安全检测报告",
+  "description": "由XX检测机构出具的安全鉴定报告",
+  "occurredAt": "2024-01-20T14:00:00+08:00",
+  "source": "XX房屋安全鉴定中心",
+  "reliabilityLevel": "PROFESSIONAL_CONFIRMED",
+  "evidenceData": {
+    "inspector": "张工程师",
+    "rating": "B级",
+    "summary": "结构基本安全，建议局部修缮"
+  }
+}
+
+> {%
+  client.test("创建专业检测证据成功", function () {
+    client.assert(response.status === 201);
+    client.assert(response.body.success === true);
+    client.assert(response.body.data.evidenceType === "PROFESSIONAL_INSPECTION");
+  });
+  client.global.set("evidenceId2", response.body.data.id);
+%}
+
+### 7. 查询楼栋详情（验证证据关联）
+GET {{baseUrl}}/api/v1/buildings/{{buildingId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("查询楼栋详情成功", function () {
+    client.assert(response.status === 200);
+    client.assert(response.body.success === true);
+    client.assert(response.body.data.id === client.global.get("buildingId"));
+    client.assert(response.body.data.communityId === client.global.get("communityIdA"));
+  });
+%}
+
+### 8. 查询楼栋证据列表
+GET {{baseUrl}}/api/v1/buildings/{{buildingId}}/evidence?page=0&size=10
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("查询楼栋证据列表成功", function () {
+    client.assert(response.status === 200);
+    client.assert(response.body.success === true);
+    client.assert(response.body.data.content.length === 2);
+  });
+%}
+
+### 9. 将楼栋迁移到小区 B
+PUT {{baseUrl}}/api/v1/buildings/{{buildingId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "version": {{buildingVersion}},
+  "communityId": "{{communityIdB}}"
+}
+
+> {%
+  client.test("迁移楼栋到小区 B 成功", function () {
+    client.assert(response.status === 200);
+    client.assert(response.body.success === true);
+    client.assert(response.body.data.communityId === client.global.get("communityIdB"));
+  });
+  client.global.set("buildingVersion", response.body.data.version);
+%}
+
+### 10. 删除一条证据
+DELETE {{baseUrl}}/api/v1/building-evidence/{{evidenceId1}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("删除证据成功", function () {
+    client.assert(response.status === 200);
+    client.assert(response.body.success === true);
+  });
+%}
+
+### 11. 验证删除的证据已不可见
+GET {{baseUrl}}/api/v1/building-evidence/{{evidenceId1}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("删除的证据查询返回 404", function () {
+    client.assert(response.status === 404);
+  });
+%}
+
+### 12. 删除楼栋
+DELETE {{baseUrl}}/api/v1/buildings/{{buildingId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("删除楼栋成功", function () {
+    client.assert(response.status === 200);
+    client.assert(response.body.success === true);
+  });
+%}
+
+### 13. 删除小区 A（此时应无楼栋）
+DELETE {{baseUrl}}/api/v1/communities/{{communityIdA}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("删除小区 A 成功", function () {
+    client.assert(response.status === 200);
+    client.assert(response.body.success === true);
+  });
+%}
+
+### 14. 删除小区 B（此时楼栋已删除）
+DELETE {{baseUrl}}/api/v1/communities/{{communityIdB}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("删除小区 B 成功", function () {
+    client.assert(response.status === 200);
+    client.assert(response.body.success === true);
+  });
+%}
+
+### 15. 验证删除的楼栋返回 404
+GET {{baseUrl}}/api/v1/buildings/{{buildingId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("删除的楼栋查询返回 404", function () {
+    client.assert(response.status === 404);
+  });
+%}
+
+### 16. 验证删除的小区 A 返回 404
+GET {{baseUrl}}/api/v1/communities/{{communityIdA}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("删除的小区 A 查询返回 404", function () {
+    client.assert(response.status === 404);
+  });
+%}
+
+### 17. 验证删除的小区 B 返回 404
+GET {{baseUrl}}/api/v1/communities/{{communityIdB}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("删除的小区 B 查询返回 404", function () {
+    client.assert(response.status === 404);
+  });
+%}
+
+### 18. 验证删除的第二条证据也返回 404（楼栋删除后证据级联）
+GET {{baseUrl}}/api/v1/building-evidence/{{evidenceId2}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("楼栋删除后证据查询返回 404", function () {
+    client.assert(response.status === 404);
+  });
+%}

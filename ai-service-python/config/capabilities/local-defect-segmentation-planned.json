@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "capabilityId": "LOCAL-DEFECT-SEGMENTATION-001",
+  "name": "UrbanSafe Local Defect Segmentation",
+  "version": "0.1.0-planned",
+  "status": "PLANNED",
+  "task": "DEFECT_SEGMENTATION",
+  "implementation": "onnx-crack-segmentation-v1",
+  "requiresWeights": true,
+  "requiresCuda": true,
+  "networkAccess": false,
+  "formalEvidenceEnabled": false,
+  "plannedClasses": ["CRACK", "SPALLING"],
+  "limitations": [
+    "尚未完成独立数据集评估和人工审批",
+    "没有已提交或自动下载的模型权重",
+    "在状态变为 APPROVED 前不得进入真实运行时白名单"
+  ]
+}

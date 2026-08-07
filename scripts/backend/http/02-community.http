@@ -1,0 +1,161 @@
+### 0. 初始化本次运行的唯一编码
+< {%
+  const runId = Date.now().toString();
+  client.global.set("runId", runId);
+%}
+
+### 0.1 本模块独立登录
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+> {%
+  client.test("小区模块认证准备成功", function () {
+    client.assert(response.status === 200);
+  });
+  client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+### 1. 创建小区
+POST {{baseUrl}}/api/v1/communities
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityCode": "COM-{{runId}}",
+  "communityName": "测试小区A",
+  "administrativeRegion": "测试市测试区测试街道",
+  "address": "测试市测试区测试路1号",
+  "constructionPeriod": "2000年",
+  "householdCount": 120,
+  "residentCount": 350,
+  "status": "ACTIVE"
+}
+
+> {%
+  client.test("创建小区成功返回 201", function () {
+    client.assert(response.status === 201, "预期状态码为 201");
+    client.assert(response.body.success === true, "success 应为 true");
+    client.assert(response.body.data.communityCode === "COM-" + client.global.get("runId"));
+  });
+
+  client.global.set("communityId", response.body.data.id);
+  client.global.set("communityVersion", response.body.data.version);
+%}
+
+### 2. 重复编码创建小区（预期 409）
+POST {{baseUrl}}/api/v1/communities
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityCode": "COM-{{runId}}",
+  "communityName": "测试小区B",
+  "status": "ACTIVE"
+}
+
+> {%
+  client.test("重复编码返回 409", function () {
+    client.assert(response.status === 409, "预期状态码为 409");
+    client.assert(response.body.success === false, "success 应为 false");
+    client.assert(response.body.error !== null, "error 不应为空");
+  });
+%}
+
+### 3. 分页查询小区
+GET {{baseUrl}}/api/v1/communities?page=0&size=10&sort=createdAt,desc
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("分页查询成功", function () {
+    client.assert(response.status === 200, "预期状态码为 200");
+    client.assert(response.body.success === true, "success 应为 true");
+    client.assert(Array.isArray(response.body.data.content), "content 应为数组");
+    client.assert(response.body.data.page !== null, "page 不应为空");
+  });
+%}
+
+### 4. 关键词查询小区
+GET {{baseUrl}}/api/v1/communities?keyword=测试小区A&page=0&size=10
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("关键词查询成功", function () {
+    client.assert(response.status === 200, "预期状态码为 200");
+    client.assert(response.body.success === true, "success 应为 true");
+    client.assert(response.body.data.content.length > 0, "应返回至少一条结果");
+  });
+%}
+
+### 5. 查询小区详情
+GET {{baseUrl}}/api/v1/communities/{{communityId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("查询小区详情成功", function () {
+    client.assert(response.status === 200, "预期状态码为 200");
+    client.assert(response.body.success === true, "success 应为 true");
+    client.assert(response.body.data.id === client.global.get("communityId"));
+    client.assert(response.body.data.communityName === "测试小区A");
+  });
+%}
+
+### 6. 修改小区
+PUT {{baseUrl}}/api/v1/communities/{{communityId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "version": {{communityVersion}},
+  "communityName": "测试小区A（已修改）",
+  "householdCount": 150
+}
+
+> {%
+  client.test("修改小区成功", function () {
+    client.assert(response.status === 200, "预期状态码为 200");
+    client.assert(response.body.success === true, "success 应为 true");
+    client.assert(response.body.data.communityName === "测试小区A（已修改）");
+    client.assert(response.body.data.householdCount === 150);
+  });
+%}
+
+### 7. 未认证创建小区
+POST {{baseUrl}}/api/v1/communities
+Content-Type: application/json
+
+{
+  "communityCode": "COM-UNAUTH-{{runId}}",
+  "communityName": "未认证创建的小区"
+}
+
+> {%
+  client.test("未认证创建返回 401", function () {
+    client.assert(response.status === 401, "预期状态码为 401");
+  });
+%}
+
+### 8. 删除空小区（无楼栋）
+DELETE {{baseUrl}}/api/v1/communities/{{communityId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("删除空小区成功", function () {
+    client.assert(response.status === 200, "预期状态码为 200");
+    client.assert(response.body.success === true, "success 应为 true");
+  });
+%}
+
+### 9. 删除后查询小区（预期 404）
+GET {{baseUrl}}/api/v1/communities/{{communityId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("删除后查询返回 404", function () {
+    client.assert(response.status === 404, "预期状态码为 404");
+  });
+%}

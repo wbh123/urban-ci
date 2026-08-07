@@ -1,0 +1,341 @@
+openapi: 3.0.3
+info:
+  title: 公众反馈接口
+  version: 1.1.1
+  description: |
+    公众反馈采用两步式提交：先创建反馈并获得 reportCode 与 trackingSecret，
+    再逐张上传图片。图片上传失败不回滚已经创建的文字反馈。
+paths:
+  /api/v1/public/feedback/communities:
+    get:
+      tags: [PublicFeedback]
+      summary: 查询公众反馈可选小区
+      security: []
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackListResponse'
+  /api/v1/public/feedback/communities/{communityId}/buildings:
+    get:
+      tags: [PublicFeedback]
+      summary: 查询小区可选楼栋
+      security: []
+      parameters:
+        - name: communityId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackListResponse'
+  /api/v1/public/feedback/reports:
+    post:
+      tags: [PublicFeedback]
+      summary: 匿名提交公众反馈
+      description: |
+        返回一次性 trackingSecret，服务端仅保存其 SHA-256 摘要。
+        创建成功后可使用图片上传接口追加最多 6 张现场图片。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePublicFeedbackRequest'
+      responses:
+        '201':
+          description: 提交成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackObjectResponse'
+        '400': { description: 请求参数错误 }
+        '404': { description: 小区不存在 }
+  /api/v1/public/feedback/reports/{reportCode}:
+    get:
+      tags: [PublicFeedback]
+      summary: 查询反馈处理进度
+      description: 返回公开时间线和已上传图片元数据。
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ReportCode'
+        - $ref: '#/components/parameters/TrackingSecret'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackObjectResponse'
+        '404': { description: 工单编号或查询凭证不正确 }
+  /api/v1/public/feedback/reports/{reportCode}/images:
+    post:
+      tags: [PublicFeedback]
+      summary: 为公众反馈上传一张图片
+      description: |
+        每个反馈最多 6 张图片；单张大小沿用 urban-safe.storage.max-image-size-bytes，
+        默认 10MB；仅支持 JPEG、PNG、WebP。接口成功后图片绑定到
+        RESIDENT_REPORT / FEEDBACK_PHOTO。文字反馈不会因图片上传失败而回滚。
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ReportCode'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [trackingSecret, file]
+              properties:
+                trackingSecret:
+                  type: string
+                  minLength: 8
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: 图片上传成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackObjectResponse'
+        '400': { description: 图片为空、格式不支持或请求参数错误 }
+        '404': { description: 工单编号或查询凭证不正确 }
+        '409': { description: 已达到 6 张上限或反馈状态不允许上传 }
+        '413': { description: 图片超过服务端大小限制 }
+    get:
+      tags: [PublicFeedback]
+      summary: 查询公众反馈图片列表
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ReportCode'
+        - $ref: '#/components/parameters/TrackingSecret'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackImageListResponse'
+        '404': { description: 工单编号或查询凭证不正确 }
+  /api/v1/public/feedback/reports/{reportCode}/images/{assetId}/content:
+    get:
+      tags: [PublicFeedback]
+      summary: 读取公众反馈图片内容
+      description: 每次读取均重新验证工单编号和查询凭证，不直接公开 MinIO 对象地址。
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ReportCode'
+        - name: assetId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/TrackingSecret'
+      responses:
+        '200':
+          description: 图片内容
+          headers:
+            Cache-Control:
+              schema: { type: string }
+              description: no-store
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+            image/png:
+              schema: { type: string, format: binary }
+            image/webp:
+              schema: { type: string, format: binary }
+        '404': { description: 图片不存在、归属不匹配或查询凭证不正确 }
+  /api/v1/feedback/reports:
+    get:
+      tags: [FeedbackManagement]
+      summary: 分页查询公众反馈
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/FeedbackStatus' }
+        - name: feedbackChannel
+          in: query
+          schema: { $ref: '#/components/schemas/FeedbackChannel' }
+        - name: communityId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackObjectResponse'
+        '403': { description: 无权访问 }
+  /api/v1/feedback/reports/{reportId}/images:
+    get:
+      tags: [FeedbackManagement]
+      summary: 查询反馈工单图片列表
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackImageListResponse'
+        '403': { description: 无权访问 }
+        '404': { description: 反馈工单不存在 }
+  /api/v1/feedback/reports/manual:
+    post:
+      tags: [FeedbackManagement]
+      summary: 工作人员代录电话、短信、窗口或内部反馈
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/CreatePublicFeedbackRequest'
+                - type: object
+                  required: [feedbackChannel]
+                  properties:
+                    feedbackChannel:
+                      $ref: '#/components/schemas/ManualFeedbackChannel'
+      responses:
+        '201':
+          description: 代录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackObjectResponse'
+        '403': { description: 无权访问 }
+  /api/v1/feedback/reports/{reportId}/status:
+    post:
+      tags: [FeedbackManagement]
+      summary: 更新反馈处理状态
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFeedbackStatusRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackObjectResponse'
+        '409': { description: 状态流转冲突 }
+components:
+  parameters:
+    ReportCode:
+      name: reportCode
+      in: path
+      required: true
+      schema: { type: string }
+    TrackingSecret:
+      name: trackingSecret
+      in: query
+      required: true
+      schema: { type: string, minLength: 8 }
+  schemas:
+    FeedbackChannel:
+      type: string
+      enum: [WEB, PHONE, SMS, COUNTER, INTERNAL]
+    ManualFeedbackChannel:
+      type: string
+      enum: [PHONE, SMS, COUNTER, INTERNAL]
+    FeedbackStatus:
+      type: string
+      enum: [SUBMITTED, ACCEPTED, PROCESSING, NEED_MORE_INFO, RESOLVED, CLOSED, REJECTED, CANCELLED]
+    FeedbackUrgency:
+      type: string
+      enum: [LOW, NORMAL, HIGH, URGENT]
+    FeedbackReportType:
+      type: string
+      enum: [WALL_CRACK, SURFACE_FALLING, WATER_LEAKAGE, ILLEGAL_MODIFICATION, FIRE_ACCESS, OTHER]
+    FeedbackImage:
+      type: object
+      required: [assetId, originalFilename, contentType, fileSize, createdAt]
+      properties:
+        assetId: { type: string, format: uuid }
+        originalFilename: { type: string }
+        contentType:
+          type: string
+          enum: [image/jpeg, image/png, image/webp]
+        fileSize: { type: integer, format: int64 }
+        createdAt: { type: string, format: date-time }
+    CreatePublicFeedbackRequest:
+      type: object
+      required: [communityId, reportType, description]
+      properties:
+        communityId: { type: string, format: uuid }
+        buildingId: { type: string, format: uuid, nullable: true }
+        reportType: { $ref: '#/components/schemas/FeedbackReportType' }
+        description: { type: string, minLength: 10, maxLength: 2000 }
+        urgency: { $ref: '#/components/schemas/FeedbackUrgency' }
+        reporterName: { type: string, maxLength: 128 }
+        contactPhone: { type: string, maxLength: 32 }
+        contactEmail: { type: string, format: email, maxLength: 255 }
+        contactConsent: { type: boolean, default: false }
+        locationText: { type: string, maxLength: 512 }
+    UpdateFeedbackStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status: { $ref: '#/components/schemas/FeedbackStatus' }
+        handlingSummary: { type: string, maxLength: 2000 }
+        message: { type: string, maxLength: 2000 }
+        publicVisible: { type: boolean, default: true }
+    FeedbackObjectResponse:
+      type: object
+      required: [success, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data: { type: object, additionalProperties: true }
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    FeedbackListResponse:
+      type: object
+      required: [success, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data:
+          type: array
+          items: { type: object, additionalProperties: true }
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    FeedbackImageListResponse:
+      type: object
+      required: [success, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/FeedbackImage' }
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }

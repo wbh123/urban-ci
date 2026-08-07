@@ -1,0 +1,14 @@
+@baseUrl = http://localhost:8888
+@token = {{accessToken}}
+
+### 管理员查询人工智能提供者配置与近七日任务统计
+GET {{baseUrl}}/api/v1/ai-governance/status
+Authorization: Bearer {{token}}
+X-UrbanSafe-Request-Id: phase7-ai-governance-status
+
+### 预期
+# 1. ADMIN 返回 200；
+# 2. 普通角色返回 403；
+# 3. providers 只包含 enabled/configured/capabilities/defaultFor/metrics7d；
+# 4. connectivityStatus 固定为 NOT_PROBED；
+# 5. 不返回密钥、Base URL、权重路径、完整供应商响应或内部堆栈。

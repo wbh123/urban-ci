@@ -1,0 +1,255 @@
+app:
+  description: 城安智序单图建筑表观病害辅助分析工作流。输出固定 JSON，供 Spring Boot 第七阶段 DifyWorkflowProvider 解析。
+  icon: 🏢
+  icon_background: '#E8F3FF'
+  mode: workflow
+  name: UrbanSafe Image Analysis v1.0.0
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.1.5
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 1
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 1
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: urban-safe-start-source-urban-safe-vision-target
+      source: urban-safe-start
+      sourceHandle: source
+      target: urban-safe-vision
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: end
+      id: urban-safe-vision-source-urban-safe-end-target
+      source: urban-safe-vision
+      sourceHandle: source
+      target: urban-safe-end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: 接收 Spring Boot 上传的巡检图片和审计标识。
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - allowed_file_extensions:
+          - .JPG
+          - .JPEG
+          - .PNG
+          - .GIF
+          - .WEBP
+          allowed_file_types:
+          - image
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          label: 巡检图片
+          max_length: 48
+          options: []
+          required: true
+          type: file
+          variable: image
+        - label: 资产编号
+          max_length: 128
+          options: []
+          required: false
+          type: text-input
+          variable: assetId
+        - label: 请求编号
+          max_length: 128
+          options: []
+          required: false
+          type: text-input
+          variable: requestCode
+      height: 142
+      id: urban-safe-start
+      position:
+        x: 80
+        y: 280
+      positionAbsolute:
+        x: 80
+        y: 280
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: 只根据图片可见证据进行建筑表观病害初筛，并输出项目固定 JSON。
+        model:
+          completion_params:
+            temperature: 0.1
+          mode: chat
+          name: gpt-4o-mini
+          provider: langgenius/openai/openai
+        prompt_template:
+        - id: urban-safe-system-prompt
+          role: system
+          text: |-
+            你是“城安智序”建筑表观病害辅助筛查模型。你的输出只用于人工复核，不是正式房屋安全鉴定结论。
+
+            任务：
+            1. 判断图片是否适合进行建筑或构件表面分析。
+            2. 识别图片质量问题：模糊、过曝、欠曝、遮挡、距离过远、缺少比例尺。
+            3. 初筛可见表观病害：裂缝、剥落、渗水、钢筋外露、腐蚀、孔洞、施工缝或其他异常。
+            4. 区分常见干扰：阴影、污渍、砖缝、装饰线、电线、植物、反光。
+            5. 给出人工复核重点和补拍建议。
+
+            严格约束：
+            - 只依据图片可见证据，不推测结构内部状态。
+            - 不生成最终风险等级，不覆盖规则引擎和人工结论。
+            - confidence 取值必须在 0 到 1 之间，它只是模型自评可信度，不是统计概率。
+            - 在线多模态模型不可靠地输出精确检测框，因此 boundingBox 固定为 null；后续由本地专业模型承担精确定位。
+            - 信息不足时必须在 warnings 中说明，不得编造。
+            - 只输出一个合法 JSON 对象，不要输出 Markdown、代码围栏、前后解释或额外文字。
+
+            JSON 结构必须严格如下：
+            {
+              "summary": "中文分析摘要，不能为空",
+              "detections": [
+                {
+                  "classCode": "CRACK|SPALLING|SEEPAGE|EXPOSED_REBAR|CORROSION|HOLE|JOINT|OTHER",
+                  "className": "中文类别名称",
+                  "confidence": 0.0,
+                  "boundingBox": null
+                }
+              ],
+              "riskSignals": [
+                {
+                  "code": "可追溯的大写英文编号",
+                  "level": "LOW|MEDIUM|HIGH",
+                  "description": "中文说明",
+                  "confidence": 0.0
+                }
+              ],
+              "recommendations": ["人工复核或补拍建议"],
+              "confidence": 0.0,
+              "warnings": ["限制、图片质量问题或不适用原因"],
+              "modelVersion": "image-analysis-v1.0.0"
+            }
+
+            当图片不适用时：
+            - summary 明确写“图片不适用于建筑表观病害分析”；
+            - detections 和 riskSignals 返回空数组；
+            - confidence 返回 0；
+            - warnings 写明具体原因；
+            - recommendations 给出重新拍摄或重新上传建议。
+        - id: urban-safe-user-prompt
+          role: user
+          text: |-
+            请分析已附加的巡检图片。
+            审计上下文：
+            - requestCode: {{#urban-safe-start.requestCode#}}
+            - assetId: {{#urban-safe-start.assetId#}}
+
+            再次强调：只返回合法 JSON 对象。
+        selected: false
+        title: 建筑病害多模态分析
+        type: llm
+        variables: []
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - urban-safe-start
+            - image
+          enabled: true
+      height: 118
+      id: urban-safe-vision
+      position:
+        x: 390
+        y: 280
+      positionAbsolute:
+        x: 390
+        y: 280
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 将 LLM 原始文本作为 result 输出，由 Spring Boot 解析和二次校验。
+        outputs:
+        - value_selector:
+          - urban-safe-vision
+          - text
+          value_type: string
+          variable: result
+        selected: false
+        title: 结束
+        type: end
+      height: 90
+      id: urban-safe-end
+      position:
+        x: 700
+        y: 280
+      positionAbsolute:
+        x: 700
+        y: 280
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 0
+      y: 0
+      zoom: 1
+  rag_pipeline_variables: []

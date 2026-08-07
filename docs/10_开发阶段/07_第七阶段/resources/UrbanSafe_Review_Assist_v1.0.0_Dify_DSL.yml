@@ -1,0 +1,236 @@
+app:
+  description: 为专业人员整理证据一致性、冲突与补拍问题，不执行复核写操作。
+  icon: 🏢
+  icon_background: '#E8F3FF'
+  mode: workflow
+  name: UrbanSafe Review Assist v1.0.0
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.1.5
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .WEBP
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 1
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 1
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: review-start-source-review-llm
+      source: review-start
+      sourceHandle: source
+      target: review-llm
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: review-llm-source-review-normalize
+      source: review-llm
+      sourceHandle: source
+      target: review-normalize
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: end
+      id: review-normalize-source-review-end
+      source: review-normalize
+      sourceHandle: source
+      target: review-end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: 只接收 Spring Boot 已授权和最小化的复核材料。
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - label: 图片分析结果 JSON
+          max_length: 65535
+          options: []
+          required: true
+          type: paragraph
+          variable: analysisJson
+        - label: 本地模型结果 JSON
+          max_length: 65535
+          options: []
+          required: false
+          type: paragraph
+          variable: localModelJson
+        - label: 巡检记录 JSON
+          max_length: 65535
+          options: []
+          required: true
+          type: paragraph
+          variable: inspectionRecordJson
+        - label: 楼栋最小上下文 JSON
+          max_length: 65535
+          options: []
+          required: false
+          type: paragraph
+          variable: buildingContextJson
+      height: 180
+      id: review-start
+      position:
+        x: 80
+        y: 280
+      positionAbsolute:
+        x: 80
+        y: 280
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: 复核材料整理
+        model:
+          completion_params:
+            max_tokens: 1800
+            temperature: 0
+          mode: chat
+          name: gpt-4o-mini
+          provider: langgenius/openai/openai
+        prompt_template:
+        - id: 复核材料整理-system
+          role: system
+          text: "你只整理复核材料，不能代替专家提交结论，不能修改业务数据。指出证据一致项、冲突项、缺失字段、补拍需求和待专家回答的问题。只输出 JSON：\n{\n  \"schemaVersion\":\"1.0\",\"workflowCode\":\"DIFY-REVIEW-ASSIST-001\",\"workflowVersion\":\"review-assist-v1.0.0\",\n  \"summary\":\"材料整理摘要\",\"evidenceAgreements\":[],\"evidenceConflicts\":[],\"missingFields\":[],\n  \"reshootRequests\":[],\"reviewQuestions\":[],\"warnings\":[],\"needsHumanReview\":true\n}"
+        - id: 复核材料整理-user
+          role: user
+          text: '图片分析={{#review-start.analysisJson#}}
+
+            本地模型={{#review-start.localModelJson#}}
+
+            巡检记录={{#review-start.inspectionRecordJson#}}
+
+            楼栋上下文={{#review-start.buildingContextJson#}}'
+        selected: false
+        title: 复核材料整理
+        type: llm
+        variables: []
+      height: 130
+      id: review-llm
+      position:
+        x: 390
+        y: 280
+      positionAbsolute:
+        x: 390
+        y: 280
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\ndef main(raw: str) -> dict:\n    text = (raw or \"\").strip()\n    if text.startswith(\"```\"):\n        first = text.find(\"\\\\n\")\n        last = text.rfind(\"```\")\n        if first >= 0 and last > first:\n            text = text[first + 1:last].strip()\n    try:\n        payload = json.loads(text)\n        if not isinstance(payload, dict):\n            raise ValueError(\"not object\")\n    except Exception:\n        payload = {'summary': '复核辅助输出异常，请人工查看原始材料', 'evidenceAgreements': [], 'evidenceConflicts': [], 'missingFields': [], 'reshootRequests': [], 'reviewQuestions': [], 'warnings': ['AI_OUTPUT_INVALID'], 'needsHumanReview': True}\n    payload[\"schemaVersion\"] = \"1.0\"\n    payload[\"workflowCode\"] = \"DIFY-REVIEW-ASSIST-001\"\n    payload[\"workflowVersion\"] = \"review-assist-v1.0.0\"\n    return {\"result\": json.dumps(payload, ensure_ascii=False)}\n"
+        code_language: python3
+        desc: 复核结果归一化
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: 复核结果归一化
+        type: code
+        variables:
+        - value_selector:
+          - review-llm
+          - text
+          variable: raw
+      height: 100
+      id: review-normalize
+      position:
+        x: 700
+        y: 280
+      positionAbsolute:
+        x: 700
+        y: 280
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 返回稳定结构，由 Spring Boot 执行业务校验、持久化和审计。
+        outputs:
+        - value_selector:
+          - review-normalize
+          - result
+          value_type: string
+          variable: result
+        selected: false
+        title: 结束
+        type: end
+      height: 90
+      id: review-end
+      position:
+        x: 1010
+        y: 280
+      positionAbsolute:
+        x: 1010
+        y: 280
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.8
+  rag_pipeline_variables: []

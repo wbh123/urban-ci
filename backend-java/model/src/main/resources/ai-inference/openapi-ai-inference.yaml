@@ -1,0 +1,421 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe Priority 人工智能推理与编排接口
+  description: |
+    人工智能辅助识别公共接口。前端只调用 Spring Boot，不直接访问 FastAPI、Dify 或在线模型供应商。
+
+    约定：
+    - 输入图片必须来自已登记的 file_asset，并可追溯到巡检任务/记录、楼栋和小区；
+    - 业务请求通过 AiOrchestrationService 与 AiProviderRouter 选择唯一提供者；
+    - 第一轮禁止提供者失败后静默切换，fallbackUsed 固定为 false；
+    - REAL 仅在模型状态为 APPROVED 时可用；
+    - 供应商响应必须转换为 AiStructuredResult 并完成后端校验；
+    - recommendations 仅为辅助建议，不能覆盖规则评分、人工结论和正式报告；
+    - rawResponseReference 只保存受控引用，不向前端返回完整供应商原始响应；
+    - 人工智能结果必须经过人工复核后，才可能成为评分证据。
+  version: 7.1.0
+
+paths:
+  /api/v1/ai-models:
+    get:
+      operationId: listAiModels
+      summary: 查询可用人工智能模型目录
+      description: 合并数据库模型登记与实际运行状态，前端不得直接访问提供者服务。
+      x-apifox-folder: 人工智能推理
+      x-apifox-status: tested
+      responses:
+        '200':
+          description: 模型目录
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items: { $ref: '#/components/schemas/AiModelCatalogItem' }
+                  error: { nullable: true }
+                  requestId: { type: string }
+                  timestamp: { type: string, format: date-time }
+
+  /api/v1/ai-inferences:
+    post:
+      operationId: createAiInference
+      summary: 创建人工智能推理或工作流任务
+      description: |
+        验证图片资产与权限后创建任务，通过统一路由调用 FastAPI、Dify 或 Spring AI，
+        保存结构化结果、稳定错误码与审计信息。同一用户、图片、模式、模型在活跃任务内受幂等保护。
+      x-apifox-folder: 人工智能推理
+      x-apifox-status: tested
+      x-apifox-name: 创建人工智能推理任务
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiInferenceCreateRequest'
+            examples:
+              fastApiMock:
+                value:
+                  assetId: 44444444-4444-4444-4444-444444444444
+                  mode: MOCK
+                  modelId: AI-DEFECT-MOCK-001
+                  providerCode: FAST_API
+                  capabilityType: VISION_INFERENCE
+                  idempotencyKey: inspection-image-fast-api
+              difyWorkflow:
+                value:
+                  assetId: 44444444-4444-4444-4444-444444444444
+                  mode: REAL
+                  modelId: AI-DIFY-WORKFLOW-001
+                  providerCode: DIFY
+                  capabilityType: WORKFLOW
+                  prompt: 分析图片中的建筑表观病害并给出补拍建议
+                  idempotencyKey: inspection-image-dify
+              springAiDirect:
+                value:
+                  assetId: 44444444-4444-4444-4444-444444444444
+                  mode: REAL
+                  modelId: AI-SPRING-AI-DIRECT-001
+                  providerCode: SPRING_AI
+                  capabilityType: VISION_INFERENCE
+                  idempotencyKey: inspection-image-spring-ai
+      responses:
+        '201':
+          description: 已创建任务
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AiInferenceDetail' }
+                  error: { nullable: true }
+                  requestId: { type: string }
+                  timestamp: { type: string, format: date-time }
+        '400': { description: 能力类型、输入参数或输出校验失败 }
+        '404': { description: 图片资产、模型或提供者不存在 }
+        '409': { description: 模型未批准或存在活跃重复任务 }
+        '422': { description: 图片可读取但不适用于当前能力 }
+        '502': { description: 提供者响应结构无效 }
+        '503': { description: 提供者禁用、未配置或不可用 }
+        '504': { description: 提供者调用超时 }
+    get:
+      operationId: listAiInferences
+      summary: 查询人工智能任务
+      description: 按状态、模式、模型、提供者、能力、图片和业务追溯对象筛选。
+      x-apifox-folder: 人工智能推理
+      x-apifox-status: tested
+      x-apifox-name: 查询人工智能推理任务
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, RUNNING, SUCCEEDED, FAILED, REJECTED, CANCELLED]
+        - name: mode
+          in: query
+          schema: { type: string, enum: [MOCK, REAL] }
+        - name: modelId
+          in: query
+          schema: { type: string }
+        - name: providerCode
+          in: query
+          schema: { $ref: '#/components/schemas/AiProviderCode' }
+        - name: capabilityType
+          in: query
+          schema: { $ref: '#/components/schemas/AiCapabilityType' }
+        - name: assetId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: inspectionTaskId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: inspectionRecordId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: buildingId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: communityId
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: 人工智能任务分页列表 }
+
+  /api/v1/ai-inferences/{inferenceId}:
+    get:
+      operationId: getAiInference
+      summary: 查询人工智能任务详情
+      description: 返回提供者、模型/工作流、统一结构化结果、错误、追溯关系和人工复核状态。
+      x-apifox-folder: 人工智能推理
+      x-apifox-status: tested
+      x-apifox-name: 查询人工智能任务详情
+      parameters:
+        - name: inferenceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: 人工智能任务详情 }
+        '404': { description: 人工智能任务不存在 }
+
+  /api/v1/ai-inferences/{inferenceId}/retry:
+    post:
+      operationId: retryAiInference
+      summary: 重试失败人工智能任务
+      description: |
+        只允许对 FAILED 任务重试；创建新的 attemptNo 并保留历史失败记录。
+        默认沿用原提供者与能力，不会静默切换提供者。
+      x-apifox-folder: 人工智能推理
+      x-apifox-status: tested
+      x-apifox-name: 重试人工智能任务
+      parameters:
+        - name: inferenceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiInferenceRetryRequest'
+      responses:
+        '201': { description: 已创建重试任务 }
+        '409': { description: 任务状态不可重试 }
+
+components:
+  schemas:
+    AiProviderCode:
+      type: string
+      enum: [FAST_API, DIFY, SPRING_AI]
+
+    AiCapabilityType:
+      type: string
+      enum: [VISION_INFERENCE, WORKFLOW, TEXT_GENERATION]
+
+    AiModelDeploymentStage:
+      type: string
+      enum: [VALIDATING, DEMO, SHADOW, ACTIVE, SUSPENDED]
+
+    AiModelCatalogItem:
+      type: object
+      required:
+        - modelId
+        - modelName
+        - modelVersion
+        - mode
+        - status
+        - deploymentStage
+        - formalEvidenceEnabled
+        - runtimeReady
+        - selectable
+      properties:
+        modelId: { type: string }
+        modelName: { type: string }
+        modelVersion: { type: string }
+        modelType: { type: string }
+        mode: { type: string, enum: [MOCK, REAL] }
+        status: { type: string }
+        license: { type: string }
+        supportedClasses: { type: array, items: { type: string } }
+        limitations: { type: array, items: { type: string } }
+        deploymentStage: { $ref: '#/components/schemas/AiModelDeploymentStage' }
+        formalEvidenceEnabled: { type: boolean }
+        runtimeReady: { type: boolean }
+        executionProvider: { type: string, nullable: true }
+        deviceId: { type: integer, nullable: true }
+        selectable: { type: boolean }
+        runtimeErrorCode: { type: string, nullable: true }
+        runtimeErrorMessage: { type: string, nullable: true }
+
+    AiInferenceCreateRequest:
+      type: object
+      required: [assetId, mode, modelId]
+      properties:
+        assetId:
+          type: string
+          format: uuid
+          description: 已登记且具有权限的巡检图片资产编号
+        mode:
+          type: string
+          enum: [MOCK, REAL]
+        modelId:
+          type: string
+          minLength: 1
+          description: 业务模型或工作流登记编号
+        providerCode:
+          $ref: '#/components/schemas/AiProviderCode'
+        capabilityType:
+          allOf:
+            - $ref: '#/components/schemas/AiCapabilityType'
+          default: VISION_INFERENCE
+        prompt:
+          type: string
+          maxLength: 2000
+          description: 可选受控任务说明；不得包含密钥或无关居民隐私
+        idempotencyKey:
+          type: string
+          maxLength: 128
+          description: 可选客户端幂等键
+
+    AiInferenceRetryRequest:
+      type: object
+      properties:
+        modelId:
+          type: string
+          description: 可选，指定另一个已批准模型；提供者与能力默认沿用原任务
+
+    AiAssessmentEligibility:
+      type: string
+      description: 人工智能结果进入第四阶段评分前的资格。
+      enum: [DEMO_ONLY, REVIEW_REQUIRED, ELIGIBLE, EXCLUDED]
+
+    AiEvidenceReliability:
+      type: string
+      enum: [SIMULATED, MODEL_UNREVIEWED, PROFESSIONAL_REVIEWED, HUMAN_REJECTED, NOT_USABLE, UNKNOWN_SOURCE]
+
+    AiInferenceSummary:
+      type: object
+      properties:
+        inferenceId: { type: string, format: uuid }
+        requestCode: { type: string }
+        status:
+          type: string
+          enum: [PENDING, RUNNING, SUCCEEDED, FAILED, REJECTED, CANCELLED]
+        mode: { type: string, enum: [MOCK, REAL] }
+        providerCode: { $ref: '#/components/schemas/AiProviderCode' }
+        capabilityType: { $ref: '#/components/schemas/AiCapabilityType' }
+        modelId: { type: string }
+        modelVersion: { type: string }
+        workflowCode: { type: string, nullable: true }
+        workflowVersion: { type: string, nullable: true }
+        assetId: { type: string, format: uuid }
+        resultAvailable: { type: boolean }
+        applicability:
+          type: string
+          enum: [APPLICABLE, NO_DEFECT_FOUND, LOW_QUALITY, NOT_APPLICABLE, INVALID_IMAGE]
+        qualityStatus: { type: string }
+        detectionCount: { type: integer }
+        durationMs: { type: integer, format: int64 }
+        confidence: { type: number, format: double, minimum: 0, maximum: 1, nullable: true }
+        errorCode: { type: string, nullable: true }
+        errorMessage: { type: string, nullable: true }
+        reviewStatus:
+          type: string
+          enum: [UNREVIEWED, CONFIRMED, CORRECTED, REJECTED]
+        fallbackUsed: { type: boolean, default: false }
+        fallbackProviderCode: { type: string, nullable: true }
+        fallbackReason: { type: string, nullable: true }
+        assessmentEligibility: { $ref: '#/components/schemas/AiAssessmentEligibility' }
+        eligibleForFormalAssessment: { type: boolean }
+        evidenceReliability: { $ref: '#/components/schemas/AiEvidenceReliability' }
+        assessmentNote: { type: string }
+        createdAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time, nullable: true }
+
+    AiInferenceDetail:
+      allOf:
+        - $ref: '#/components/schemas/AiInferenceSummary'
+        - type: object
+          properties:
+            inspectionTaskId: { type: string, format: uuid, nullable: true }
+            inspectionRecordId: { type: string, format: uuid, nullable: true }
+            buildingId: { type: string, format: uuid }
+            communityId: { type: string, format: uuid }
+            requestedBy: { type: string, format: uuid }
+            attemptNo: { type: integer }
+            imageWidth: { type: integer, nullable: true }
+            imageHeight: { type: integer, nullable: true }
+            detections:
+              type: array
+              items: { $ref: '#/components/schemas/AiDetectionItem' }
+            structuredResult: { $ref: '#/components/schemas/AiStructuredResult' }
+            warnings:
+              type: array
+              items: { type: string }
+            rawResponseReference:
+              type: string
+              nullable: true
+              description: 受控审计引用，不是完整供应商响应
+            disclaimer: { type: string }
+
+    AiStructuredResult:
+      type: object
+      required:
+        - requestId
+        - providerCode
+        - modelCode
+        - capabilityType
+        - status
+        - summary
+        - detections
+        - riskSignals
+        - recommendations
+        - warnings
+        - durationMs
+      properties:
+        requestId: { type: string }
+        providerCode: { $ref: '#/components/schemas/AiProviderCode' }
+        modelCode: { type: string }
+        modelVersion: { type: string, nullable: true }
+        capabilityType: { $ref: '#/components/schemas/AiCapabilityType' }
+        status: { type: string, enum: [SUCCEEDED, REJECTED] }
+        summary: { type: string, minLength: 1 }
+        detections:
+          type: array
+          items: { $ref: '#/components/schemas/AiDetectionItem' }
+        riskSignals:
+          type: array
+          items: { $ref: '#/components/schemas/AiRiskSignal' }
+        recommendations:
+          type: array
+          items: { type: string }
+        confidence:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          nullable: true
+        warnings:
+          type: array
+          items: { type: string }
+        rawResponseReference: { type: string, nullable: true }
+        durationMs: { type: integer, format: int64, minimum: 0 }
+
+    AiRiskSignal:
+      type: object
+      properties:
+        code: { type: string }
+        level: { type: string }
+        description: { type: string }
+        confidence: { type: number, format: double, minimum: 0, maximum: 1, nullable: true }
+
+    AiDetectionItem:
+      type: object
+      properties:
+        sequence: { type: integer }
+        classCode: { type: string }
+        className: { type: string }
+        confidence: { type: number, format: double, minimum: 0, maximum: 1 }
+        boundingBox: { $ref: '#/components/schemas/AiBoundingBox' }
+
+    AiBoundingBox:
+      type: object
+      properties:
+        x: { type: number, format: double, minimum: 0, maximum: 1 }
+        y: { type: number, format: double, minimum: 0, maximum: 1 }
+        width: { type: number, format: double, exclusiveMinimum: 0, maximum: 1 }
+        height: { type: number, format: double, exclusiveMinimum: 0, maximum: 1 }
+        coordinateType: { type: string, default: NORMALIZED_XYWH }

@@ -1,0 +1,9 @@
+### 第二阶段完整演示顺序
+# 1. 登录并设置 @token
+# 2. GET /api/v1/map/communities
+# 3. PUT /api/v1/communities/{communityId}/location
+# 4. POST /api/v1/inspection-tasks
+# 5. POST /api/v1/inspection-tasks/{taskId}/start
+# 6. POST /api/v1/inspection-records
+# 7. POST /api/v1/assets/images
+# 8. POST /api/v1/inspection-tasks/{taskId}/complete

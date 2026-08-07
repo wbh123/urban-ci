@@ -1,0 +1,120 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe Priority 当前用户接口
+  version: 1.0.0
+paths:
+  /api/v1/auth/me:
+    get:
+      tags:
+        - AuthCurrentUser
+      operationId: getCurrentUser
+      summary: 获取当前用户信息
+      description: 获取当前登录用户的详细信息
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUserSuccessResponse'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '403':
+          description: 账号停用或锁定
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '404':
+          description: 用户不存在
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '500':
+          description: 服务器内部错误
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    CurrentUserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 用户唯一标识
+        username:
+          type: string
+          description: 用户名
+        realName:
+          type: string
+          description: 真实姓名
+        phone:
+          type: string
+          description: 手机号（脱敏）
+        email:
+          type: string
+          description: 邮箱
+        organizationName:
+          type: string
+          description: 组织名称
+        status:
+          type: string
+          description: 账号状态
+          enum:
+            - ACTIVE
+            - DISABLED
+            - LOCKED
+        roles:
+          type: array
+          description: 角色列表
+          items:
+            $ref: '#/components/schemas/CurrentUserRole'
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间
+
+    CurrentUserRole:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 角色唯一标识
+        roleCode:
+          type: string
+          description: 角色编码
+        roleName:
+          type: string
+          description: 角色名称
+
+    CurrentUserSuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/CurrentUserResponse'
+            error:
+              type: object
+              nullable: true
+              description: 成功响应固定为空
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Bearer Token 认证

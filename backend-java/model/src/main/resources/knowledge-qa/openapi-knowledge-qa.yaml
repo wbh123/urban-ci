@@ -1,0 +1,160 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe Priority 内部知识问答接口
+  version: 1.0.0
+  description: |
+    面向管理员、巡检人员和专业人员的受控知识问答接口。
+    第一版使用权限过滤后的知识片段生成可引用答案；证据不足时必须拒答。
+paths:
+  /api/v1/knowledge/documents:
+    post:
+      tags: [KnowledgeQa]
+      operationId: createKnowledgeDocument
+      summary: 登记经过审核的知识文档与切片
+      description: 只允许 ADMIN 调用。原始文件仍由受控文档流程管理，本接口写入可检索片段和来源元数据。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/KnowledgeDocumentCreateRequest' }
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KnowledgeDocumentSuccessResponse' }
+        '400': { description: 请求无效 }
+        '401': { description: 未登录 }
+        '403': { description: 无权限 }
+        '409': { description: 文档编号或版本冲突 }
+  /api/v1/knowledge/questions:
+    post:
+      tags: [KnowledgeQa]
+      operationId: askKnowledgeQuestion
+      summary: 提交内部知识问题并返回引用答案
+      description: |
+        允许 ADMIN、PROPERTY_INSPECTOR 和 EXPERT 调用。系统只使用当前角色和请求业务范围允许访问的 ACTIVE 文档。
+        没有足够证据时返回 REFUSED，不使用模型记忆补全业务规则。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/KnowledgeQuestionRequest' }
+      responses:
+        '200':
+          description: 返回答案或受控拒答
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KnowledgeAnswerSuccessResponse' }
+        '400': { description: 请求无效 }
+        '401': { description: 未登录 }
+        '403': { description: 无权限 }
+components:
+  schemas:
+    KnowledgeChunkCreateRequest:
+      type: object
+      required: [chunkIndex, content]
+      properties:
+        chunkIndex: { type: integer, minimum: 0 }
+        sectionTitle: { type: string, maxLength: 500, nullable: true }
+        pageNumber: { type: integer, minimum: 1, nullable: true }
+        content: { type: string, minLength: 1, maxLength: 12000 }
+        metadata:
+          type: object
+          additionalProperties: true
+    KnowledgeDocumentCreateRequest:
+      type: object
+      required: [documentCode, title, documentType, documentVersion, securityLevel, roleScope, status, contentChecksum, chunks]
+      properties:
+        documentCode: { type: string, minLength: 3, maxLength: 100, pattern: '^[A-Z0-9_-]+$' }
+        title: { type: string, minLength: 1, maxLength: 500 }
+        documentType: { type: string, minLength: 1, maxLength: 100 }
+        documentVersion: { type: string, minLength: 1, maxLength: 100 }
+        securityLevel: { type: string, enum: [PUBLIC, INTERNAL, RESTRICTED] }
+        roleScope:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { type: string, enum: [ADMIN, PROPERTY_INSPECTOR, EXPERT] }
+        communityId: { type: string, format: uuid, nullable: true }
+        buildingId: { type: string, format: uuid, nullable: true }
+        status: { type: string, enum: [DRAFT, ACTIVE] }
+        sourceUri: { type: string, maxLength: 1000, nullable: true }
+        contentChecksum: { type: string, pattern: '^[a-f0-9]{64}$' }
+        effectiveFrom: { type: string, format: date-time, nullable: true }
+        effectiveTo: { type: string, format: date-time, nullable: true }
+        metadata:
+          type: object
+          additionalProperties: true
+        chunks:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items: { $ref: '#/components/schemas/KnowledgeChunkCreateRequest' }
+    KnowledgeDocumentView:
+      type: object
+      required: [documentId, documentCode, title, documentVersion, status, chunkCount, createdAt]
+      properties:
+        documentId: { type: string, format: uuid }
+        documentCode: { type: string }
+        title: { type: string }
+        documentVersion: { type: string }
+        status: { type: string }
+        chunkCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+    KnowledgeQuestionRequest:
+      type: object
+      required: [question]
+      properties:
+        question: { type: string, minLength: 2, maxLength: 1000 }
+        communityId: { type: string, format: uuid, nullable: true }
+        buildingId: { type: string, format: uuid, nullable: true }
+        topK: { type: integer, minimum: 1, maximum: 8, default: 5 }
+    KnowledgeCitationView:
+      type: object
+      required: [citationId, documentId, documentCode, documentTitle, documentVersion, chunkId, excerpt, rank]
+      properties:
+        citationId: { type: string, format: uuid }
+        documentId: { type: string, format: uuid }
+        documentCode: { type: string }
+        documentTitle: { type: string }
+        documentVersion: { type: string }
+        chunkId: { type: string, format: uuid }
+        sectionTitle: { type: string, nullable: true }
+        pageNumber: { type: integer, nullable: true }
+        excerpt: { type: string }
+        rank: { type: integer }
+        score: { type: number, format: double }
+    KnowledgeAnswerView:
+      type: object
+      required: [questionId, status, answer, evidenceSufficient, citations, providerCode, modelCode, generatedAt, disclaimer]
+      properties:
+        questionId: { type: string, format: uuid }
+        status: { type: string, enum: [ANSWERED, REFUSED] }
+        answer: { type: string }
+        evidenceSufficient: { type: boolean }
+        citations:
+          type: array
+          items: { $ref: '#/components/schemas/KnowledgeCitationView' }
+        providerCode: { type: string }
+        modelCode: { type: string }
+        generatedAt: { type: string, format: date-time }
+        disclaimer: { type: string }
+    KnowledgeDocumentSuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/KnowledgeDocumentView' }
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    KnowledgeAnswerSuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/KnowledgeAnswerView' }
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }

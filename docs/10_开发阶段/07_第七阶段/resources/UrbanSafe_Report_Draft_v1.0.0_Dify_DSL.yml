@@ -1,0 +1,212 @@
+app:
+  description: 从冻结报告快照生成受控草稿，不计算分数、不发布报告。
+  icon: 🏢
+  icon_background: '#E8F3FF'
+  mode: workflow
+  name: UrbanSafe Report Draft v1.0.0
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.1.5
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .WEBP
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 1
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 1
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: report-start-source-report-llm
+      source: report-start
+      sourceHandle: source
+      target: report-llm
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: report-llm-source-report-normalize
+      source: report-llm
+      sourceHandle: source
+      target: report-normalize
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: end
+      id: report-normalize-source-report-end
+      source: report-normalize
+      sourceHandle: source
+      target: report-end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: 只接收 Spring Boot 生成并冻结的报告快照。
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - label: 报告快照 JSON
+          max_length: 65535
+          options: []
+          required: true
+          type: paragraph
+          variable: reportSnapshotJson
+      height: 110
+      id: report-start
+      position:
+        x: 80
+        y: 280
+      positionAbsolute:
+        x: 80
+        y: 280
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: 楼栋报告草稿生成
+        model:
+          completion_params:
+            max_tokens: 2400
+            temperature: 0
+          mode: chat
+          name: gpt-4o-mini
+          provider: langgenius/openai/openai
+        prompt_template:
+        - id: 楼栋报告草稿生成-system
+          role: system
+          text: "根据冻结快照生成中文报告草稿。不得重新计算风险分、完整度、优先级或任何数值；不得发布报告；不得把人工智能结果写成正式鉴定结论。只输出 JSON：\n{\n  \"schemaVersion\":\"1.0\",\"workflowCode\":\"DIFY-REPORT-DRAFT-001\",\"workflowVersion\":\"report-draft-v1.0.0\",\n  \"title\":\"报告草稿标题\",\"draftSections\":[{\"sectionCode\":\"OVERVIEW\",\"title\":\"概述\",\"content\":\"正文\"}],\n  \"dataLimitations\":[],\"followUpRecommendations\":[],\"disclaimer\":\"仅用于风险筛查与辅助决策，不作为正式房屋安全鉴定结论。\"\n}"
+        - id: 楼栋报告草稿生成-user
+          role: user
+          text: 冻结报告快照={{#report-start.reportSnapshotJson#}}
+        selected: false
+        title: 楼栋报告草稿生成
+        type: llm
+        variables: []
+      height: 130
+      id: report-llm
+      position:
+        x: 390
+        y: 280
+      positionAbsolute:
+        x: 390
+        y: 280
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\ndef main(raw: str) -> dict:\n    text = (raw or \"\").strip()\n    if text.startswith(\"```\"):\n        first = text.find(\"\\\\n\")\n        last = text.rfind(\"```\")\n        if first >= 0 and last > first:\n            text = text[first + 1:last].strip()\n    try:\n        payload = json.loads(text)\n        if not isinstance(payload, dict):\n            raise ValueError(\"not object\")\n    except Exception:\n        payload = {'title': '楼栋风险筛查报告草稿', 'draftSections': [], 'dataLimitations': ['AI_OUTPUT_INVALID'], 'followUpRecommendations': ['请人工根据冻结快照编写报告'], 'disclaimer': '仅用于风险筛查与辅助决策，不作为正式房屋安全鉴定结论。'}\n    payload[\"schemaVersion\"] = \"1.0\"\n    payload[\"workflowCode\"] = \"DIFY-REPORT-DRAFT-001\"\n    payload[\"workflowVersion\"] = \"report-draft-v1.0.0\"\n    return {\"result\": json.dumps(payload, ensure_ascii=False)}\n"
+        code_language: python3
+        desc: 报告草稿归一化
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: 报告草稿归一化
+        type: code
+        variables:
+        - value_selector:
+          - report-llm
+          - text
+          variable: raw
+      height: 100
+      id: report-normalize
+      position:
+        x: 700
+        y: 280
+      positionAbsolute:
+        x: 700
+        y: 280
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 返回稳定结构，由 Spring Boot 执行业务校验、持久化和审计。
+        outputs:
+        - value_selector:
+          - report-normalize
+          - result
+          value_type: string
+          variable: result
+        selected: false
+        title: 结束
+        type: end
+      height: 90
+      id: report-end
+      position:
+        x: 1010
+        y: 280
+      positionAbsolute:
+        x: 1010
+        y: 280
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.8
+  rag_pipeline_variables: []

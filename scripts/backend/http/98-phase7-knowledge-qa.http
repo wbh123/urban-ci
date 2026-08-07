@@ -1,0 +1,55 @@
+### 第七阶段第二轮：内部知识文档与可引用问答
+### 先在 scripts/backend/http/http-client.env.json 配置 baseUrl 和 adminToken/expertToken。
+
+@baseUrl = http://localhost:8888
+
+### 管理员登记经过审核的知识片段
+POST {{baseUrl}}/api/v1/knowledge/documents
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+X-UrbanSafe-Request-Id: knowledge-doc-001
+
+{
+  "documentCode": "INSPECTION-PHOTO-GUIDE",
+  "title": "巡检图片拍摄与补拍指南",
+  "documentType": "OPERATING_GUIDE",
+  "documentVersion": "1.0.0",
+  "securityLevel": "INTERNAL",
+  "roleScope": ["ADMIN", "PROPERTY_INSPECTOR", "EXPERT"],
+  "status": "ACTIVE",
+  "sourceUri": "minio://knowledge/inspection-photo-guide-v1.pdf",
+  "contentChecksum": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "metadata": {
+    "reviewed": true,
+    "owner": "UrbanSafe"
+  },
+  "chunks": [
+    {
+      "chunkIndex": 0,
+      "sectionTitle": "模糊图片补拍",
+      "pageNumber": 3,
+      "content": "巡检图片模糊时，应保持镜头稳定，补拍整体定位照、构件近景照和带比例尺的细节照。",
+      "metadata": {"reviewed": true}
+    }
+  ]
+}
+
+### 专家提问；答案必须返回引用，证据不足时返回 REFUSED
+POST {{baseUrl}}/api/v1/knowledge/questions
+Authorization: Bearer {{expertToken}}
+Content-Type: application/json
+X-UrbanSafe-Request-Id: knowledge-question-001
+
+{
+  "question": "巡检图片模糊时应该如何补拍？",
+  "topK": 5
+}
+
+### 未授权角色调用应返回 403
+POST {{baseUrl}}/api/v1/knowledge/questions
+Authorization: Bearer {{communityManagerToken}}
+Content-Type: application/json
+
+{
+  "question": "如何补拍？"
+}

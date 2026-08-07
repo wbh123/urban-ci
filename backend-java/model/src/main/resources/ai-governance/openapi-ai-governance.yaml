@@ -1,0 +1,157 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe Priority 人工智能治理接口
+  version: 1.1.0
+  description: |
+    面向系统管理员的人工智能提供者配置状态、近七日任务统计与自动化开关。
+    接口不返回密钥、基础地址、模型权重路径、完整供应商响应或内部堆栈。
+paths:
+  /api/v1/ai-governance/status:
+    get:
+      operationId: getAiGovernanceStatus
+      summary: 查询人工智能治理运行状态
+      description: |
+        只允许 ADMIN 调用。CONFIGURED 仅表示配置完整，接口不会主动调用外部模型，
+        connectivityStatus 固定为 NOT_PROBED，避免状态页触发费用、超时或隐私外发。
+      tags: [AiGovernance]
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiGovernanceStatusSuccessResponse'
+        '401': { description: 未登录 }
+        '403': { description: 非管理员无权访问 }
+  /api/v1/ai-governance/automation-settings:
+    get:
+      operationId: getAiAutomationSettings
+      summary: 查询人工智能自动化设置
+      description: 只允许 ADMIN 调用，不会主动访问 Dify 或其他外部服务。
+      tags: [AiAutomationSettings]
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiAutomationSettingsSuccessResponse'
+        '401': { description: 未登录 }
+        '403': { description: 非管理员无权访问 }
+    put:
+      operationId: updateAiAutomationSettings
+      summary: 更新上传后自动识别开关
+      description: |
+        只允许 ADMIN 调用。开启前要求 Dify 工作流提供者已启用且配置完整。
+        开启后，仅成功上传并绑定 INSPECTION_TASK 的图片触发自动识别；自动识别失败不回滚图片上传。
+      tags: [AiAutomationSettings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiAutomationSettingsUpdateRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiAutomationSettingsSuccessResponse'
+        '400': { description: 请求值无效 }
+        '401': { description: 未登录 }
+        '403': { description: 非管理员无权访问 }
+        '409': { description: Dify 工作流提供者尚未配置完整 }
+components:
+  schemas:
+    AiProviderMetrics:
+      type: object
+      required: [totalTasks, succeededTasks, failedTasks, reviewedTasks, pendingReviewTasks, averageDurationMs, successRate]
+      properties:
+        totalTasks: { type: integer, format: int64 }
+        succeededTasks: { type: integer, format: int64 }
+        failedTasks: { type: integer, format: int64 }
+        reviewedTasks: { type: integer, format: int64 }
+        pendingReviewTasks: { type: integer, format: int64 }
+        averageDurationMs: { type: integer, format: int64 }
+        successRate: { type: number, format: double, minimum: 0, maximum: 100 }
+    AiProviderStatus:
+      type: object
+      required: [providerCode, enabled, configured, configurationStatus, connectivityStatus, capabilities, defaultFor, metrics7d]
+      properties:
+        providerCode: { type: string }
+        enabled: { type: boolean }
+        configured: { type: boolean }
+        configurationStatus:
+          type: string
+          description: DISABLED、NOT_CONFIGURED 或 CONFIGURED
+        connectivityStatus:
+          type: string
+          description: 当前固定为 NOT_PROBED，不主动访问第三方服务
+        capabilities:
+          type: array
+          items: { type: string }
+        defaultFor:
+          type: array
+          items: { type: string }
+        metrics7d:
+          $ref: '#/components/schemas/AiProviderMetrics'
+    AiGovernanceStatus:
+      type: object
+      required: [generatedAt, statisticsWindow, providers, total7d, unassignedLegacyTasks7d, healthSemantics, disclaimer]
+      properties:
+        generatedAt: { type: string, format: date-time }
+        statisticsWindow:
+          type: string
+          description: 当前固定为 LAST_7_DAYS
+        providers:
+          type: array
+          items: { $ref: '#/components/schemas/AiProviderStatus' }
+        total7d:
+          $ref: '#/components/schemas/AiProviderMetrics'
+        unassignedLegacyTasks7d: { type: integer, format: int64 }
+        healthSemantics: { type: string }
+        disclaimer: { type: string }
+    AiAutomationSettingsView:
+      type: object
+      required: [autoInferenceOnUpload, modelId, providerCode, capabilityType]
+      properties:
+        autoInferenceOnUpload:
+          type: boolean
+          description: 成功上传巡检任务图片后是否自动执行识别
+        modelId:
+          type: string
+          description: 自动识别使用的稳定模型登记编号
+        providerCode:
+          type: string
+          description: 当前固定为 DIFY
+        capabilityType:
+          type: string
+          description: 当前固定为 WORKFLOW
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+    AiAutomationSettingsUpdateRequest:
+      type: object
+      required: [autoInferenceOnUpload]
+      properties:
+        autoInferenceOnUpload: { type: boolean }
+    AiGovernanceStatusSuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/AiGovernanceStatus' }
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    AiAutomationSettingsSuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/AiAutomationSettingsView' }
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }

@@ -1,0 +1,4 @@
+-r requirements-real.txt
+
+# 向后兼容旧命令的别名。真实模型依赖已经统一到 requirements-real.txt，
+# 该统一依赖只安装 onnxruntime-gpu，不提供中央处理器运行时。

@@ -1,0 +1,8 @@
+dist
+node_modules
+public/mockServiceWorker.js
+src/shared/api/generated
+playwright-report
+test-results
+coverage
+package-lock.json

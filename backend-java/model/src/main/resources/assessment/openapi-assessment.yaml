@@ -1,0 +1,657 @@
+openapi: 3.0.3
+info:
+  title: 第四阶段评分与城市更新优先级接口
+  version: 1.0.0
+  description: |
+    提供规则版本、楼栋资料完整度、安全风险筛查、判断置信度和城市更新优先级。
+    所有风险结论仅用于风险筛查与辅助决策，不作为正式房屋安全鉴定结论。
+paths:
+  /api/v1/assessment-rules:
+    get:
+      tags: [Assessment]
+      operationId: listAssessmentRules
+      summary: 查询评分规则版本
+      parameters:
+        - name: ruleType
+          in: query
+          schema: { type: string, enum: [COMPLETENESS, RISK, RENEWAL] }
+        - name: status
+          in: query
+          schema: { type: string, enum: [DRAFT, ACTIVE, RETIRED] }
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssessmentRuleListSuccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Assessment]
+      operationId: createAssessmentRule
+      summary: 创建评分规则草稿
+      description: 仅系统管理员可用；checksum 由服务端对规范化规则 JSON 计算。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateAssessmentRuleRequest' }
+      responses:
+        '201':
+          description: 草稿创建成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssessmentRuleSuccessResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/v1/assessment-rules/{ruleId}:
+    get:
+      tags: [Assessment]
+      operationId: getAssessmentRule
+      summary: 查询评分规则详情
+      parameters:
+        - $ref: '#/components/parameters/RuleId'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssessmentRuleSuccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/assessment-rules/{ruleId}/activate:
+    post:
+      tags: [Assessment]
+      operationId: activateAssessmentRule
+      summary: 激活评分规则草稿
+      description: 激活后规则内容不可编辑；同类型旧 ACTIVE 规则在同一事务内退役。
+      parameters:
+        - $ref: '#/components/parameters/RuleId'
+      responses:
+        '200':
+          description: 激活成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssessmentRuleActivationSuccessResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/v1/assessments/buildings/{buildingId}/calculate:
+    post:
+      tags: [Assessment]
+      operationId: calculateBuildingAssessment
+      summary: 计算单栋楼评分
+      parameters:
+        - $ref: '#/components/parameters/BuildingId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BuildingAssessmentCalculationRequest' }
+      responses:
+        '200':
+          description: 计算成功或复用已有结果
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BuildingAssessmentCalculationSuccessResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/v1/assessments/buildings/{buildingId}/current:
+    get:
+      tags: [Assessment]
+      operationId: getCurrentBuildingAssessment
+      summary: 查询楼栋当前评分
+      parameters:
+        - $ref: '#/components/parameters/BuildingId'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BuildingCurrentAssessmentSuccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/assessments/buildings/{buildingId}/summary:
+    get:
+      tags: [Assessment]
+      operationId: getBuildingAssessmentSummary
+      summary: 查询楼栋移动端评分摘要
+      description: 仅返回移动作业端所需摘要，不包含输入快照、规则 JSON 或全局排名。
+      parameters:
+        - $ref: '#/components/parameters/BuildingId'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BuildingAssessmentSummarySuccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/assessments/buildings/{buildingId}/history:
+    get:
+      tags: [Assessment]
+      operationId: getBuildingAssessmentHistory
+      summary: 查询楼栋评分历史
+      parameters:
+        - $ref: '#/components/parameters/BuildingId'
+        - name: assessmentType
+          in: query
+          schema: { type: string, enum: [COMPLETENESS, RISK, RENEWAL] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AssessmentHistoryPageSuccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/assessments/recalculate:
+    post:
+      tags: [Assessment]
+      operationId: recalculateAssessments
+      summary: 按范围批量重算
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BatchAssessmentRequest' }
+      responses:
+        '200':
+          description: 批量处理完成，允许部分失败
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BatchAssessmentSuccessResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/v1/renewal-priorities:
+    get:
+      tags: [Assessment]
+      operationId: listRenewalPriorities
+      summary: 查询服务端正式城市更新优先级排行榜
+      description: 前端必须按服务端返回的 ranking 展示正式排名。
+      parameters:
+        - name: scopeType
+          in: query
+          required: true
+          schema: { type: string, enum: [ALL, REGION, COMMUNITY] }
+        - name: scopeId
+          in: query
+          schema: { type: string, maxLength: 255 }
+        - name: priorityLevel
+          in: query
+          schema: { type: string, enum: [P1, P2, P3, P4] }
+        - name: riskLevel
+          in: query
+          schema: { type: string, enum: [LOW, MEDIUM, HIGH, VERY_HIGH] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RenewalPriorityPageSuccessResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+components:
+  parameters:
+    RuleId:
+      name: ruleId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    BuildingId:
+      name: buildingId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    Size:
+      name: size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+  responses:
+    BadRequest:
+      description: 请求参数或规则无效
+      content:
+        application/json:
+          schema: { $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse' }
+    Unauthorized:
+      description: 未登录
+      content:
+        application/json:
+          schema: { $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse' }
+    Forbidden:
+      description: 无权访问
+      content:
+        application/json:
+          schema: { $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema: { $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse' }
+    Conflict:
+      description: 状态或并发冲突
+      content:
+        application/json:
+          schema: { $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse' }
+  schemas:
+    RuleType:
+      type: string
+      enum: [COMPLETENESS, RISK, RENEWAL]
+    RuleStatus:
+      type: string
+      enum: [DRAFT, ACTIVE, RETIRED]
+    AssessmentStatus:
+      type: string
+      enum: [CURRENT, STALE, SUPERSEDED]
+    TriggerType:
+      type: string
+      enum: [MANUAL, BATCH, DATA_CHANGE, RULE_CHANGE, DEMO_SEED]
+    RankingScopeType:
+      type: string
+      enum: [ALL, REGION, COMMUNITY]
+    CreateAssessmentRuleRequest:
+      type: object
+      required: [ruleType, versionCode, ruleName, ruleContent]
+      properties:
+        ruleType: { $ref: '#/components/schemas/RuleType' }
+        versionCode: { type: string, minLength: 3, maxLength: 64 }
+        ruleName: { type: string, minLength: 2, maxLength: 255 }
+        ruleContent:
+          type: object
+          additionalProperties: true
+    AssessmentRuleResponse:
+      type: object
+      required: [ruleId, ruleType, versionCode, ruleName, checksum, status, ruleContent, createdAt]
+      properties:
+        ruleId: { type: string, format: uuid }
+        ruleType: { $ref: '#/components/schemas/RuleType' }
+        versionCode: { type: string }
+        ruleName: { type: string }
+        checksum: { type: string, minLength: 64, maxLength: 64 }
+        status: { $ref: '#/components/schemas/RuleStatus' }
+        ruleContent: { type: object, additionalProperties: true }
+        activatedAt: { type: string, format: date-time, nullable: true }
+        createdBy: { type: string, format: uuid, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    AssessmentRuleListResponse:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AssessmentRuleResponse' }
+    AssessmentRuleActivationResponse:
+      type: object
+      required: [activeRule]
+      properties:
+        activeRule: { $ref: '#/components/schemas/AssessmentRuleResponse' }
+        retiredRuleId: { type: string, format: uuid, nullable: true }
+        staleAssessmentCount: { type: integer, format: int64, minimum: 0 }
+    BuildingAssessmentCalculationRequest:
+      type: object
+      properties:
+        include:
+          type: array
+          uniqueItems: true
+          items: { type: string, enum: [COMPLETENESS, RISK, RENEWAL] }
+          default: [COMPLETENESS, RISK, RENEWAL]
+        force: { type: boolean, default: false }
+        rankingScopes:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/RankingScopeType' }
+          default: [COMMUNITY, ALL]
+    ScoreDimension:
+      type: object
+      required: [code, label, score, weight, contribution]
+      properties:
+        code: { type: string }
+        label: { type: string }
+        score: { type: number, format: double, minimum: 0, maximum: 100 }
+        weight: { type: number, format: double, minimum: 0, maximum: 1 }
+        contribution: { type: number, format: double }
+        status: { type: string }
+        evidenceCount: { type: integer, minimum: 0 }
+    AssessmentFactor:
+      type: object
+      required: [factorCode, label, effect, direction]
+      properties:
+        factorCode: { type: string }
+        label: { type: string }
+        effect: { type: number, format: double }
+        direction: { type: string, enum: [INCREASE, DECREASE, NEUTRAL, EXCLUDED] }
+        sourceType: { type: string, nullable: true }
+        sourceId: { type: string, nullable: true }
+        reliability: { type: number, format: double, nullable: true }
+    ExcludedEvidence:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string }
+        sourceId: { type: string, nullable: true }
+        sourceType: { type: string, nullable: true }
+    CompletenessAssessmentSummary:
+      type: object
+      required: [assessmentId, completenessScore, completenessLevel, status, assessedAt, ruleVersion, inputChecksum, engineVersion]
+      properties:
+        assessmentId: { type: string, format: uuid }
+        completenessScore: { type: number, format: double, minimum: 0, maximum: 100 }
+        completenessLevel: { type: string, enum: [INSUFFICIENT, LIMITED, GOOD, EXCELLENT] }
+        status: { $ref: '#/components/schemas/AssessmentStatus' }
+        dimensionScores:
+          type: array
+          items: { $ref: '#/components/schemas/ScoreDimension' }
+        availableItems: { type: array, items: { type: string } }
+        missingItems: { type: array, items: { type: string } }
+        suggestions: { type: array, items: { type: string } }
+        assessedAt: { type: string, format: date-time }
+        ruleVersion: { type: string }
+        inputChecksum: { type: string }
+        engineVersion: { type: string }
+        triggerType: { $ref: '#/components/schemas/TriggerType' }
+        staleReason: { type: string, nullable: true }
+    RiskAssessmentSummary:
+      type: object
+      required: [assessmentId, riskScore, riskLevel, confidenceScore, confidenceLevel, evidenceReliabilityScore, status, assessedAt, ruleVersion, inputChecksum, engineVersion, disclaimer]
+      properties:
+        assessmentId: { type: string, format: uuid }
+        riskScore: { type: number, format: double, minimum: 0, maximum: 100 }
+        riskLevel: { type: string, enum: [LOW, MEDIUM, HIGH, VERY_HIGH] }
+        confidenceScore: { type: number, format: double, minimum: 0, maximum: 100 }
+        confidenceLevel: { type: string, enum: [LOW, MEDIUM, HIGH] }
+        evidenceReliabilityScore: { type: number, format: double, minimum: 0, maximum: 100 }
+        status: { $ref: '#/components/schemas/AssessmentStatus' }
+        dimensionScores:
+          type: array
+          items: { $ref: '#/components/schemas/ScoreDimension' }
+        topFactors:
+          type: array
+          items: { $ref: '#/components/schemas/AssessmentFactor' }
+        excludedEvidence:
+          type: array
+          items: { $ref: '#/components/schemas/ExcludedEvidence' }
+        missingData: { type: array, items: { type: string } }
+        recommendations: { type: array, items: { type: string } }
+        needManualReview: { type: boolean }
+        needProfessionalInspection: { type: boolean }
+        assessedAt: { type: string, format: date-time }
+        ruleVersion: { type: string }
+        inputChecksum: { type: string }
+        engineVersion: { type: string }
+        triggerType: { $ref: '#/components/schemas/TriggerType' }
+        staleReason: { type: string, nullable: true }
+        disclaimer: { type: string }
+    RenewalPrioritySummary:
+      type: object
+      required: [priorityId, priorityScore, priorityLevel, rankingScopeKey, status, generatedAt, ruleVersion, inputChecksum, engineVersion, disclaimer]
+      properties:
+        priorityId: { type: string, format: uuid }
+        priorityScore: { type: number, format: double, minimum: 0, maximum: 100 }
+        priorityLevel: { type: string, enum: [P1, P2, P3, P4] }
+        ranking: { type: integer, minimum: 1, nullable: true }
+        rankingScopeKey: { type: string }
+        status: { $ref: '#/components/schemas/AssessmentStatus' }
+        factors:
+          type: array
+          items: { $ref: '#/components/schemas/ScoreDimension' }
+        recommendations: { type: array, items: { type: string } }
+        generatedAt: { type: string, format: date-time }
+        ruleVersion: { type: string }
+        inputChecksum: { type: string }
+        engineVersion: { type: string }
+        triggerType: { $ref: '#/components/schemas/TriggerType' }
+        staleReason: { type: string, nullable: true }
+        disclaimer: { type: string }
+    BuildingAssessmentCalculationResponse:
+      type: object
+      required: [buildingId, calculationBatchId, reused, warnings, excludedEvidenceCount, disclaimer]
+      properties:
+        buildingId: { type: string, format: uuid }
+        calculationBatchId: { type: string, format: uuid }
+        reused: { type: boolean }
+        completeness: { $ref: '#/components/schemas/CompletenessAssessmentSummary' }
+        risk: { $ref: '#/components/schemas/RiskAssessmentSummary' }
+        renewalPriorities:
+          type: array
+          items: { $ref: '#/components/schemas/RenewalPrioritySummary' }
+        warnings: { type: array, items: { type: string } }
+        excludedEvidenceCount: { type: integer, minimum: 0 }
+        disclaimer: { type: string }
+    BuildingCurrentAssessmentResponse:
+      type: object
+      required: [buildingId, buildingCode, buildingName, communityId, communityName, freshness, disclaimer]
+      properties:
+        buildingId: { type: string, format: uuid }
+        buildingCode: { type: string }
+        buildingName: { type: string }
+        communityId: { type: string, format: uuid }
+        communityName: { type: string }
+        freshness: { type: string, enum: [CURRENT, STALE, NO_RESULT] }
+        completeness: { $ref: '#/components/schemas/CompletenessAssessmentSummary' }
+        risk: { $ref: '#/components/schemas/RiskAssessmentSummary' }
+        renewalPriorities:
+          type: array
+          items: { $ref: '#/components/schemas/RenewalPrioritySummary' }
+        inputSummary: { type: object, additionalProperties: true }
+        disclaimer: { type: string }
+    BuildingAssessmentSummaryResponse:
+      type: object
+      required: [buildingId, buildingCode, buildingName, communityId, communityName, freshness, disclaimer]
+      properties:
+        buildingId: { type: string, format: uuid }
+        buildingCode: { type: string }
+        buildingName: { type: string }
+        communityId: { type: string, format: uuid }
+        communityName: { type: string }
+        freshness: { type: string, enum: [CURRENT, STALE, NO_RESULT] }
+        completeness:
+          type: object
+          nullable: true
+          properties:
+            completenessScore: { type: number, format: double, minimum: 0, maximum: 100 }
+            completenessLevel: { type: string, enum: [INSUFFICIENT, LIMITED, GOOD, EXCELLENT] }
+            missingItems: { type: array, items: { type: string } }
+            suggestions: { type: array, items: { type: string } }
+        risk:
+          type: object
+          nullable: true
+          properties:
+            riskScore: { type: number, format: double, minimum: 0, maximum: 100 }
+            riskLevel: { type: string, enum: [LOW, MEDIUM, HIGH, VERY_HIGH] }
+            confidenceScore: { type: number, format: double, minimum: 0, maximum: 100 }
+            confidenceLevel: { type: string, enum: [LOW, MEDIUM, HIGH] }
+            needManualReview: { type: boolean }
+            needProfessionalInspection: { type: boolean }
+            recommendations: { type: array, items: { type: string } }
+        disclaimer: { type: string }
+    AssessmentHistoryItem:
+      type: object
+      required: [assessmentId, assessmentType, score, level, status, ruleVersion, inputChecksum, engineVersion, triggerType, calculatedAt, disclaimer]
+      properties:
+        assessmentId: { type: string, format: uuid }
+        assessmentType: { type: string, enum: [COMPLETENESS, RISK, RENEWAL] }
+        score: { type: number, format: double }
+        secondaryScore: { type: number, format: double, nullable: true }
+        level: { type: string }
+        status: { $ref: '#/components/schemas/AssessmentStatus' }
+        ruleVersion: { type: string }
+        inputChecksum: { type: string }
+        engineVersion: { type: string }
+        triggerType: { $ref: '#/components/schemas/TriggerType' }
+        triggeredBy: { type: string, format: uuid, nullable: true }
+        calculationBatchId: { type: string, format: uuid }
+        calculatedAt: { type: string, format: date-time }
+        staleReason: { type: string, nullable: true }
+        disclaimer: { type: string }
+    AssessmentHistoryPageResponse:
+      type: object
+      required: [content, page]
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AssessmentHistoryItem' }
+        page:
+          $ref: '../common-page/openapi-common-page.yaml#/components/schemas/PageMetadata'
+    BatchAssessmentRequest:
+      type: object
+      required: [scopeType]
+      properties:
+        scopeType: { $ref: '#/components/schemas/RankingScopeType' }
+        scopeId: { type: string, maxLength: 255, nullable: true }
+        force: { type: boolean, default: false }
+        maxBuildings: { type: integer, minimum: 1, maximum: 500, default: 100 }
+    BatchAssessmentItem:
+      type: object
+      required: [buildingId, status]
+      properties:
+        buildingId: { type: string, format: uuid }
+        status: { type: string, enum: [SUCCESS, REUSED, SKIPPED, FAILED] }
+        calculationBatchId: { type: string, format: uuid, nullable: true }
+        errorCode: { type: string, nullable: true }
+        message: { type: string, nullable: true }
+    BatchAssessmentResultResponse:
+      type: object
+      required: [scopeKey, requestedCount, successCount, reusedCount, skippedCount, failedCount, items, disclaimer]
+      properties:
+        scopeKey: { type: string }
+        requestedCount: { type: integer, minimum: 0 }
+        successCount: { type: integer, minimum: 0 }
+        reusedCount: { type: integer, minimum: 0 }
+        skippedCount: { type: integer, minimum: 0 }
+        failedCount: { type: integer, minimum: 0 }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/BatchAssessmentItem' }
+        disclaimer: { type: string }
+    RenewalPriorityRow:
+      type: object
+      required: [ranking, buildingId, buildingCode, buildingName, communityId, communityName, priorityScore, priorityLevel, riskScore, riskLevel, confidenceScore, residentCount, rankingScopeKey, status, generatedAt, disclaimer]
+      properties:
+        ranking: { type: integer, minimum: 1 }
+        buildingId: { type: string, format: uuid }
+        buildingCode: { type: string }
+        buildingName: { type: string }
+        communityId: { type: string, format: uuid }
+        communityName: { type: string }
+        priorityScore: { type: number, format: double }
+        priorityLevel: { type: string, enum: [P1, P2, P3, P4] }
+        riskScore: { type: number, format: double }
+        riskLevel: { type: string, enum: [LOW, MEDIUM, HIGH, VERY_HIGH] }
+        confidenceScore: { type: number, format: double }
+        completenessScore: { type: number, format: double, nullable: true }
+        completenessLevel: { type: string, nullable: true }
+        residentCount: { type: integer, minimum: 0 }
+        mainReasons: { type: array, items: { type: string } }
+        needManualReview: { type: boolean }
+        needProfessionalInspection: { type: boolean }
+        rankingScopeKey: { type: string }
+        status: { $ref: '#/components/schemas/AssessmentStatus' }
+        generatedAt: { type: string, format: date-time }
+        disclaimer: { type: string }
+    RenewalPriorityPageResponse:
+      type: object
+      required: [scopeKey, content, page, disclaimer]
+      properties:
+        scopeKey: { type: string }
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/RenewalPriorityRow' }
+        page:
+          $ref: '../common-page/openapi-common-page.yaml#/components/schemas/PageMetadata'
+        disclaimer: { type: string }
+    AssessmentRuleSuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/AssessmentRuleResponse' }
+            error: { type: object, nullable: true }
+    AssessmentRuleListSuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/AssessmentRuleListResponse' }
+            error: { type: object, nullable: true }
+    AssessmentRuleActivationSuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/AssessmentRuleActivationResponse' }
+            error: { type: object, nullable: true }
+    BuildingAssessmentCalculationSuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/BuildingAssessmentCalculationResponse' }
+            error: { type: object, nullable: true }
+    BuildingCurrentAssessmentSuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/BuildingCurrentAssessmentResponse' }
+            error: { type: object, nullable: true }
+    BuildingAssessmentSummarySuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/BuildingAssessmentSummaryResponse' }
+            error: { type: object, nullable: true }
+    AssessmentHistoryPageSuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/AssessmentHistoryPageResponse' }
+            error: { type: object, nullable: true }
+    BatchAssessmentSuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/BatchAssessmentResultResponse' }
+            error: { type: object, nullable: true }
+    RenewalPriorityPageSuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/RenewalPriorityPageResponse' }
+            error: { type: object, nullable: true }

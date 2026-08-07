@@ -1,0 +1,67 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe Priority 人工智能推理人工复核接口
+  description: |
+    第三阶段人工复核接口。人工复核只修正人工智能结果，不直接形成正式房屋安全鉴定结论。
+  version: 3.0.0
+
+paths:
+  /api/v1/ai-inferences/{inferenceId}/review:
+    post:
+      operationId: reviewAiInference
+      summary: 提交人工复核
+      description: |
+        对已完成的推理任务提交人工复核状态与备注。复核状态流转为
+        CONFIRMED、CORRECTED 或 REJECTED，并保留历史记录。
+      x-apifox-folder: 人工智能推理
+      x-apifox-status: tested
+      x-apifox-name: 提交人工复核
+      parameters:
+        - name: inferenceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiInferenceReviewRequest'
+            example:
+              reviewStatus: CONFIRMED
+              comment: 现场复核确认裂缝区域，建议安排专业检测
+      responses:
+        '200':
+          description: 已记录复核
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  inferenceId: 55555555-5555-5555-5555-555555555555
+                  reviewStatus: CONFIRMED
+                  reviewedAt: '2026-07-24T15:00:00+08:00'
+                error: null
+        '404':
+          description: 推理任务不存在
+        '409':
+          description: 任务未完成或复核状态冲突
+
+components:
+  schemas:
+    AiInferenceReviewRequest:
+      type: object
+      required: [reviewStatus]
+      properties:
+        reviewStatus:
+          type: string
+          enum: [CONFIRMED, CORRECTED, REJECTED]
+        comment:
+          type: string
+          description: 复核备注，不含敏感信息
+        correctedDetections:
+          type: array
+          description: 第一版可选，检测框修正
+          items:
+            type: object
+            additionalProperties: true

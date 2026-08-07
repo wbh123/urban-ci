@@ -1,0 +1,156 @@
+### 0. 初始化本模块并独立准备认证、父小区与父楼栋
+< {%
+  client.global.set("runId", Date.now().toString());
+%}
+
+### 0.1 登录
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+> {%
+  client.test("证据模块认证准备成功", function () { client.assert(response.status === 200); });
+  client.global.set("accessToken", response.body.data.accessToken);
+%}
+
+### 0.2 创建父小区
+POST {{baseUrl}}/api/v1/communities
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityCode": "EVI-COM-{{runId}}",
+  "communityName": "证据模块父小区"
+}
+
+> {%
+  client.test("创建证据父小区成功", function () { client.assert(response.status === 201); });
+  client.global.set("evidenceCommunityId", response.body.data.id);
+%}
+
+### 0.3 创建父楼栋
+POST {{baseUrl}}/api/v1/buildings
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityId": "{{evidenceCommunityId}}",
+  "buildingCode": "EVI-BLD-{{runId}}",
+  "residentCount": 0,
+  "elderlyCount": 0,
+  "childCount": 0
+}
+
+> {%
+  client.test("创建证据父楼栋成功", function () { client.assert(response.status === 201); });
+  client.global.set("buildingId", response.body.data.id);
+%}
+
+### 1. 创建楼栋证据
+POST {{baseUrl}}/api/v1/buildings/{{buildingId}}/evidence
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "evidenceType": "MAINTENANCE_RECORD",
+  "title": "2024年外墙维修记录",
+  "description": "2024年3月对1栋外墙进行了防水维修，处理了多处裂缝。",
+  "occurredAt": "2024-03-15T10:00:00+08:00",
+  "source": "物业公司",
+  "reliabilityLevel": "USER_PROVIDED",
+  "evidenceData": {
+    "repairType": "外墙防水",
+    "cost": 15000,
+    "contractor": "XX维修公司"
+  }
+}
+
+> {%
+  client.test("创建证据成功返回 201", function () {
+    client.assert(response.status === 201, "预期状态码为 201");
+    client.assert(response.body.success === true);
+    client.assert(response.body.data.evidenceType === "MAINTENANCE_RECORD");
+    client.assert(response.body.data.title === "2024年外墙维修记录");
+  });
+
+  client.global.set("evidenceId", response.body.data.id);
+  client.global.set("evidenceVersion", response.body.data.version);
+%}
+
+### 2. 列表查询楼栋证据
+GET {{baseUrl}}/api/v1/buildings/{{buildingId}}/evidence?page=0&size=10
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("列表查询证据成功", function () {
+    client.assert(response.status === 200, "预期状态码为 200");
+    client.assert(response.body.success === true);
+    client.assert(Array.isArray(response.body.data.content));
+    client.assert(response.body.data.content.length > 0);
+  });
+%}
+
+### 3. 查询证据详情
+GET {{baseUrl}}/api/v1/building-evidence/{{evidenceId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("查询证据详情成功", function () {
+    client.assert(response.status === 200, "预期状态码为 200");
+    client.assert(response.body.success === true);
+    client.assert(response.body.data.id === client.global.get("evidenceId"));
+    client.assert(response.body.data.title === "2024年外墙维修记录");
+  });
+%}
+
+### 4. 修改证据
+PUT {{baseUrl}}/api/v1/building-evidence/{{evidenceId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "version": {{evidenceVersion}},
+  "title": "2024年外墙维修记录（已更新）",
+  "reliabilityLevel": "PROFESSIONAL_CONFIRMED",
+  "evidenceData": {
+    "repairType": "外墙防水",
+    "cost": 18000,
+    "contractor": "XX维修公司",
+    "verified": true
+  }
+}
+
+> {%
+  client.test("修改证据成功", function () {
+    client.assert(response.status === 200, "预期状态码为 200");
+    client.assert(response.body.success === true);
+    client.assert(response.body.data.title === "2024年外墙维修记录（已更新）");
+    client.assert(response.body.data.reliabilityLevel === "PROFESSIONAL_CONFIRMED");
+  });
+%}
+
+### 5. 删除证据
+DELETE {{baseUrl}}/api/v1/building-evidence/{{evidenceId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("删除证据成功", function () {
+    client.assert(response.status === 200, "预期状态码为 200");
+    client.assert(response.body.success === true);
+  });
+%}
+
+### 6. 父楼栋删除后查询证据（预期 404）
+### 注意：需要先执行 03-building.http 的删除楼栋步骤，然后查询证据
+GET {{baseUrl}}/api/v1/building-evidence/{{evidenceId}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("父楼栋删除后查询证据返回 404", function () {
+    client.assert(response.status === 404, "预期状态码为 404");
+  });
+%}

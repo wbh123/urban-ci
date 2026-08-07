@@ -1,0 +1,49 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe Priority 公共分页模型
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    PageRequest:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 0
+          default: 0
+          description: 页码，从 0 开始
+        size:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+          description: 每页数量
+        sort:
+          type: string
+          description: "排序字段，格式为 field,asc 或 field,desc"
+          example: createdAt,desc
+      description: 通用分页请求参数
+
+    PageMetadata:
+      type: object
+      required:
+        - page
+        - size
+        - totalElements
+        - totalPages
+      properties:
+        page:
+          type: integer
+          description: 当前页码
+        size:
+          type: integer
+          description: 每页数量
+        totalElements:
+          type: integer
+          format: int64
+          description: 总记录数
+        totalPages:
+          type: integer
+          description: 总页数
+      description: 分页元数据

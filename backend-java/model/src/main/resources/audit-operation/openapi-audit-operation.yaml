@@ -1,0 +1,183 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe Priority 操作审计接口
+  version: 1.0.0
+paths:
+  /api/v1/audit/operations:
+    get:
+      tags:
+        - AuditOperation
+      operationId: listOperationLogs
+      summary: 分页查询操作日志
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: requestId
+          in: query
+          description: 请求编号
+          schema:
+            type: string
+            maxLength: 128
+        - name: action
+          in: query
+          description: 操作类型
+          schema:
+            type: string
+            maxLength: 64
+        - name: resourceType
+          in: query
+          description: 资源类型
+          schema:
+            type: string
+            maxLength: 64
+        - name: resourceId
+          in: query
+          description: 资源ID
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationLogPageSuccessResponse'
+        '401':
+          description: 未认证
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+        '403':
+          description: 权限不足
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+  /api/v1/audit/operations/{operationId}:
+    get:
+      tags:
+        - AuditOperation
+      operationId: getOperationLog
+      summary: 查询操作日志详情
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: operationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationLogSuccessResponse'
+        '404':
+          description: 日志不存在
+          content:
+            application/json:
+              schema:
+                $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    OperationLogResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        requestId:
+          type: string
+          description: 请求编号
+        userId:
+          type: string
+          format: uuid
+          description: 操作人
+        action:
+          type: string
+          description: 操作类型
+        resourceType:
+          type: string
+          description: 资源类型
+        resourceId:
+          type: string
+          format: uuid
+          description: 资源ID
+        success:
+          type: boolean
+          description: 是否成功
+        changeSummary:
+          type: object
+          description: 变更摘要（脱敏）
+        clientIp:
+          type: string
+          description: 客户端IP
+        operatedAt:
+          type: string
+          format: date-time
+          description: 操作时间
+        errorCode:
+          type: string
+          description: 错误码
+        errorMessage:
+          type: string
+          description: 错误信息
+
+    OperationLogPageResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/OperationLogResponse'
+        page:
+          $ref: '../common-page/openapi-common-page.yaml#/components/schemas/PageMetadata'
+
+    OperationLogSuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/OperationLogResponse'
+            error:
+              type: object
+              nullable: true
+              description: 成功响应固定为空
+
+    OperationLogPageSuccessResponse:
+      allOf:
+        - $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ApiResponseMetadata'
+        - type: object
+          required:
+            - data
+          properties:
+            data:
+              $ref: '#/components/schemas/OperationLogPageResponse'
+            error:
+              type: object
+              nullable: true
+              description: 成功响应固定为空
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

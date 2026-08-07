@@ -1,0 +1,583 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe Priority 第二阶段接口
+  description: 小区地图、巡检任务、现场记录和图片资源闭环接口。
+  version: 2.1.0
+
+paths:
+  /api/v1/map/runtime-config:
+    get:
+      operationId: getPhase2MapRuntimeConfig
+      summary: 查询地图运行配置
+      description: 返回真实地图或模拟地图模式、默认中心点和前端地图加载参数。
+      x-apifox-folder: 小区与地图
+      x-apifox-status: tested
+      x-apifox-name: 查询地图运行配置
+      responses:
+        '200':
+          description: 地图运行配置
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  enabled: false
+                  mode: MOCK
+                  provider: AMAP
+                  jsApiKey: ''
+                  serviceHost: /_AMapService
+                  securityJsCodeExposed: false
+                  defaultCenter:
+                    longitude: 113.13396
+                    latitude: 27.82767
+                  defaultZoom: 12
+                error: null
+
+  /api/v1/map/geocoding/preview:
+    post:
+      operationId: previewPhase2Geocoding
+      summary: 预览地址地理编码
+      description: 根据地址生成真实或模拟坐标，结果可继续用于保存小区位置。
+      x-apifox-folder: 小区与地图
+      x-apifox-status: tested
+      x-apifox-name: 预览地址地理编码
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GeocodingRequest'
+            example:
+              address: 湖南省株洲市天元区示范路1号
+              city: 株洲市
+      responses:
+        '200':
+          description: 地理编码结果
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  formattedAddress: 湖南省株洲市天元区示范路1号
+                  longitude: 113.13396
+                  latitude: 27.82767
+                  provider: MOCK
+                  matchLevel: MOCK_PREVIEW
+                  mock: true
+                error: null
+
+  /api/v1/map/communities:
+    get:
+      operationId: listPhase2CommunityPoints
+      summary: 查询小区地图点位
+      description: 查询所有有效小区及其已保存的地图坐标。
+      x-apifox-folder: 小区与地图
+      x-apifox-status: tested
+      x-apifox-name: 查询小区地图点位
+      responses:
+        '200':
+          description: 小区地图点位
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  - communityId: 11111111-1111-1111-1111-111111111111
+                    communityName: ApiFox 自动验收小区
+                    address: 湖南省株洲市天元区示范路1号
+                    longitude: 113.13396
+                    latitude: 27.82767
+                    provider: MOCK
+                    matchLevel: MOCK_PREVIEW
+                error: null
+
+  /api/v1/communities/{communityId}/location:
+    parameters:
+      - name: communityId
+        in: path
+        required: true
+        description: 小区唯一标识
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getPhase2CommunityLocation
+      summary: 查询小区位置
+      description: 查询指定小区已保存的位置和坐标来源。
+      x-apifox-folder: 小区与地图
+      x-apifox-status: tested
+      x-apifox-name: 查询小区位置
+      responses:
+        '200':
+          description: 小区位置
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  communityId: 11111111-1111-1111-1111-111111111111
+                  longitude: 113.13396
+                  latitude: 27.82767
+                  formattedAddress: 湖南省株洲市天元区示范路1号
+                  provider: MOCK
+                  coordinateSystem: GCJ02
+                  matchLevel: MOCK_PREVIEW
+                error: null
+    put:
+      operationId: savePhase2CommunityLocation
+      summary: 保存小区位置
+      description: 新增或更新指定小区的中心点和地理编码元数据。
+      x-apifox-folder: 小区与地图
+      x-apifox-status: tested
+      x-apifox-name: 保存小区位置
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommunityLocationRequest'
+            example:
+              longitude: 113.13396
+              latitude: 27.82767
+              formattedAddress: 湖南省株洲市天元区示范路1号
+              provider: MOCK
+              matchLevel: MOCK_PREVIEW
+              mock: true
+              metadata:
+                source: APIFOX_AUTO_FLOW
+      responses:
+        '200':
+          description: 已保存位置
+
+  /api/v1/inspection-tasks:
+    get:
+      operationId: listPhase2InspectionTasks
+      summary: 查询巡检任务
+      description: 可按楼栋和任务状态筛选巡检任务。
+      x-apifox-folder: 巡检任务
+      x-apifox-status: tested
+      x-apifox-name: 查询巡检任务
+      parameters:
+        - name: buildingId
+          in: query
+          description: 楼栋唯一标识
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          description: 任务状态
+          schema:
+            type: string
+            enum:
+              - PENDING
+              - IN_PROGRESS
+              - COMPLETED
+              - CANCELLED
+      responses:
+        '200':
+          description: 巡检任务列表
+    post:
+      operationId: createPhase2InspectionTask
+      summary: 创建巡检任务
+      description: 为已有楼栋创建待开始的巡检任务。
+      x-apifox-folder: 巡检任务
+      x-apifox-status: tested
+      x-apifox-name: 创建巡检任务
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InspectionTaskCreateRequest'
+            example:
+              buildingId: 11111111-1111-1111-1111-111111111111
+              inspectionType: ROUTINE
+              title: ApiFox 自动现场安全巡检
+              description: 由 ApiFox 可执行集合创建的第二阶段验收任务
+      responses:
+        '201':
+          description: 已创建任务
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  taskId: 22222222-2222-2222-2222-222222222222
+                  taskCode: IT-20260714-12345678
+                  buildingId: 11111111-1111-1111-1111-111111111111
+                  inspectionType: ROUTINE
+                  title: ApiFox 自动现场安全巡检
+                  status: PENDING
+                  version: 0
+                error: null
+
+  /api/v1/inspection-tasks/{taskId}:
+    get:
+      operationId: getPhase2InspectionTask
+      summary: 查询巡检任务详情
+      description: 查询指定巡检任务及当前状态。
+      x-apifox-folder: 巡检任务
+      x-apifox-status: tested
+      x-apifox-name: 查询巡检任务详情
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          description: 巡检任务唯一标识
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 巡检任务
+
+  /api/v1/inspection-tasks/{taskId}/start:
+    post:
+      operationId: startPhase2InspectionTask
+      summary: 开始巡检任务
+      description: 将待开始任务从 PENDING 转换为 IN_PROGRESS。
+      x-apifox-folder: 巡检任务
+      x-apifox-status: tested
+      x-apifox-name: 开始巡检任务
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          description: 巡检任务唯一标识
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 已开始任务
+
+  /api/v1/inspection-tasks/{taskId}/complete:
+    post:
+      operationId: completePhase2InspectionTask
+      summary: 完成巡检任务
+      description: 将进行中任务标记为完成；任务必须至少包含一条巡检记录。
+      x-apifox-folder: 巡检任务
+      x-apifox-status: tested
+      x-apifox-name: 完成巡检任务
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          description: 巡检任务唯一标识
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 已完成任务
+        '409':
+          description: 任务状态冲突或尚无巡检记录
+
+  /api/v1/inspection-tasks/{taskId}/cancel:
+    post:
+      operationId: cancelPhase2InspectionTask
+      summary: 取消巡检任务
+      description: 取消待开始或进行中的巡检任务。
+      x-apifox-folder: 巡检任务
+      x-apifox-status: tested
+      x-apifox-name: 取消巡检任务
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          description: 巡检任务唯一标识
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 已取消任务
+        '409':
+          description: 已结束任务不能取消
+
+  /api/v1/inspection-records:
+    get:
+      operationId: listPhase2InspectionRecords
+      summary: 查询巡检记录
+      description: 查询指定巡检任务的全部现场记录。
+      x-apifox-folder: 巡检任务
+      x-apifox-status: tested
+      x-apifox-name: 查询巡检记录
+      parameters:
+        - name: taskId
+          in: query
+          required: true
+          description: 巡检任务唯一标识
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 巡检记录列表
+    post:
+      operationId: createPhase2InspectionRecord
+      summary: 创建巡检记录
+      description: 为进行中的巡检任务新增现场问题记录。
+      x-apifox-folder: 巡检任务
+      x-apifox-status: tested
+      x-apifox-name: 创建巡检记录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InspectionRecordCreateRequest'
+            example:
+              taskId: 22222222-2222-2222-2222-222222222222
+              inspectionPart: 外墙与公共区域
+              issueType: OTHER
+              severity: LOW
+              summary: 外墙未发现明显贯穿裂缝，部分墙面存在轻微表层脱落。
+              rectificationSuggestion: 建议物业进行局部修补并持续观察。
+              formData:
+                source: APIFOX_AUTO_FLOW
+      responses:
+        '201':
+          description: 已创建记录
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  recordId: 33333333-3333-3333-3333-333333333333
+                  taskId: 22222222-2222-2222-2222-222222222222
+                  severity: LOW
+                  summary: 外墙未发现明显贯穿裂缝，部分墙面存在轻微表层脱落。
+                  status: DRAFT
+                error: null
+
+  /api/v1/assets/images:
+    post:
+      operationId: uploadPhase2InspectionImage
+      summary: 上传巡检图片
+      description: 上传 JPEG、PNG 或 WebP 图片，并绑定到指定业务对象。
+      x-apifox-folder: 图片资源
+      x-apifox-status: tested
+      x-apifox-name: 上传巡检图片
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - businessType
+                - businessId
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: JPEG、PNG 或 WebP 图片文件
+                businessType:
+                  type: string
+                  example: INSPECTION_TASK
+                businessId:
+                  type: string
+                  format: uuid
+                bindingRole:
+                  type: string
+                  example: INSPECTION_PHOTO
+      responses:
+        '201':
+          description: 已上传图片
+          content:
+            application/json:
+              example:
+                success: true
+                data:
+                  assetId: 44444444-4444-4444-4444-444444444444
+                  originalFilename: inspection-sample.png
+                  contentType: image/png
+                  storageProvider: LOCAL
+                error: null
+        '415':
+          description: 不支持的图片类型
+
+  /api/v1/assets:
+    get:
+      operationId: listPhase2Assets
+      summary: 查询业务图片
+      description: 根据业务类型和业务编号查询已绑定的图片资源。
+      x-apifox-folder: 图片资源
+      x-apifox-status: tested
+      x-apifox-name: 查询业务图片
+      parameters:
+        - name: businessType
+          in: query
+          required: true
+          description: 业务类型，例如 INSPECTION_TASK
+          schema:
+            type: string
+        - name: businessId
+          in: query
+          required: true
+          description: 业务对象唯一标识
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 图片列表
+
+  /api/v1/assets/{assetId}/preview:
+    get:
+      operationId: previewPhase2Asset
+      summary: 获取图片预览地址
+      description: 重定向到本地内容地址或对象存储临时预览地址。
+      x-apifox-folder: 图片资源
+      x-apifox-status: tested
+      x-apifox-name: 获取图片预览地址
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          description: 图片资源唯一标识
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '302':
+          description: 跳转到预览地址
+
+  /api/v1/assets/{assetId}/content:
+    get:
+      operationId: readPhase2AssetContent
+      summary: 读取图片内容
+      description: 直接读取本地存储图片的二进制内容。
+      x-apifox-folder: 图片资源
+      x-apifox-status: tested
+      x-apifox-name: 读取图片内容
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          description: 图片资源唯一标识
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 图片内容
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+
+components:
+  schemas:
+    GeocodingRequest:
+      type: object
+      required:
+        - address
+      properties:
+        address:
+          type: string
+          minLength: 1
+          description: 需要地理编码的完整地址
+        city:
+          type: string
+          description: 可选城市名称，用于提高匹配精度
+
+    CommunityLocationRequest:
+      type: object
+      required:
+        - longitude
+        - latitude
+      properties:
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        formattedAddress:
+          type: string
+        provider:
+          type: string
+          enum:
+            - AMAP
+            - MANUAL
+            - IMPORT
+            - MOCK
+          example: MOCK
+        matchLevel:
+          type: string
+          example: MOCK_PREVIEW
+        mock:
+          type: boolean
+          description: 是否来自本地模拟地理编码
+        metadata:
+          type: object
+          additionalProperties: true
+
+    InspectionTaskCreateRequest:
+      type: object
+      required:
+        - buildingId
+        - inspectionType
+      properties:
+        buildingId:
+          type: string
+          format: uuid
+        inspectionType:
+          type: string
+          example: ROUTINE
+        title:
+          type: string
+          default: 现场巡检
+        description:
+          type: string
+        plannedAt:
+          type: string
+          format: date-time
+
+    InspectionRecordCreateRequest:
+      type: object
+      required:
+        - taskId
+        - summary
+      properties:
+        taskId:
+          type: string
+          format: uuid
+        inspectionPart:
+          type: string
+        issueType:
+          type: string
+          default: OTHER
+        severity:
+          type: string
+          default: LOW
+          enum:
+            - LOW
+            - MEDIUM
+            - HIGH
+        summary:
+          type: string
+          minLength: 1
+        rectificationSuggestion:
+          type: string
+          description: 严重程度为 HIGH 时必填
+        formData:
+          type: object
+          additionalProperties: true

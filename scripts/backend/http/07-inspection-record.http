@@ -1,0 +1,14 @@
+@baseUrl = http://localhost:8888
+@token = replace-with-jwt
+@taskId = replace-with-task-uuid
+
+### 新增巡检记录
+POST {{baseUrl}}/api/v1/inspection-records
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"taskId":"{{taskId}}","inspectionPart":"外立面","issueType":"OTHER","severity":"MEDIUM","summary":"发现局部破损","rectificationSuggestion":"安排复核并维修"}
+
+### 完成任务
+POST {{baseUrl}}/api/v1/inspection-tasks/{{taskId}}/complete
+Authorization: Bearer {{token}}

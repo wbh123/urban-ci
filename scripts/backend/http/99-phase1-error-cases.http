@@ -1,0 +1,309 @@
+### ====================================================================
+### 阶段一错误场景测试
+### 验证各类异常输入和边界条件的 HTTP 状态码与错误响应
+### ====================================================================
+
+### --- 400 参数错误 ---
+
+### 400-1 登录缺少必填字段
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{}
+
+> {%
+  client.test("登录缺少字段返回 400", function () {
+    client.assert(response.status === 400, "预期状态码为 400");
+    client.assert(response.body.success === false);
+  });
+%}
+
+### 400-1.1 准备后续受保护错误场景的认证
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+> {%
+  client.test("错误场景认证准备成功", function () { client.assert(response.status === 200); });
+  client.global.set("accessToken", response.body.data.accessToken);
+  client.global.set("runId", Date.now().toString());
+%}
+
+### 400-2 创建小区缺少必填字段
+POST {{baseUrl}}/api/v1/communities
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityName": "只有名称没有编码"
+}
+
+> {%
+  client.test("创建小区缺少编码返回 400", function () {
+    client.assert(response.status === 400, "预期状态码为 400");
+    client.assert(response.body.success === false);
+  });
+%}
+
+### 400-3 创建楼栋年份越界
+POST {{baseUrl}}/api/v1/buildings
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityId": "00000000-0000-0000-0000-000000000000",
+  "buildingCode": "ERR-YEAR",
+  "constructionYear": 1799
+}
+
+> {%
+  client.test("年份过小返回 400", function () {
+    client.assert(response.status === 400, "预期状态码为 400");
+    client.assert(response.body.success === false);
+  });
+%}
+
+### 400-4 创建楼栋缺少必填字段
+POST {{baseUrl}}/api/v1/buildings
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "buildingName": "缺少编码和小区ID"
+}
+
+> {%
+  client.test("创建楼栋缺少必填字段返回 400", function () {
+    client.assert(response.status === 400, "预期状态码为 400");
+    client.assert(response.body.success === false);
+  });
+%}
+
+### --- 401 未认证 ---
+
+### 401-1 无 Token 访问受保护接口
+GET {{baseUrl}}/api/v1/auth/me
+
+> {%
+  client.test("无 Token 返回 401", function () {
+    client.assert(response.status === 401, "预期状态码为 401");
+  });
+%}
+
+### 401-2 无 Token 创建小区
+POST {{baseUrl}}/api/v1/communities
+Content-Type: application/json
+
+{
+  "communityCode": "ERR-UNAUTH",
+  "communityName": "未认证创建"
+}
+
+> {%
+  client.test("无 Token 创建小区返回 401", function () {
+    client.assert(response.status === 401, "预期状态码为 401");
+  });
+%}
+
+### 401-3 无 Token 查询楼栋
+GET {{baseUrl}}/api/v1/buildings?page=0&size=10
+
+> {%
+  client.test("无 Token 查询楼栋返回 401", function () {
+    client.assert(response.status === 401, "预期状态码为 401");
+  });
+%}
+
+### 401-4 无效 Token
+GET {{baseUrl}}/api/v1/auth/me
+Authorization: Bearer invalid-token-here
+
+> {%
+  client.test("无效 Token 返回 401", function () {
+    client.assert(response.status === 401, "预期状态码为 401");
+  });
+%}
+
+### --- 403 权限错误 ---
+### 注意：403 场景通常需要特定角色的账号，此处使用占位
+
+### 401-5 错误密码（验证身份验证失败）
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "definitely_wrong"
+}
+
+> {%
+  client.test("错误密码返回 401", function () {
+    client.assert(response.status === 401, "预期状态码为 401");
+  });
+%}
+
+### --- 404 资源不存在 ---
+
+### 404-1 查询不存在的小区
+GET {{baseUrl}}/api/v1/communities/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("不存在的小区返回 404", function () {
+    client.assert(response.status === 404, "预期状态码为 404");
+    client.assert(response.body.success === false);
+  });
+%}
+
+### 404-2 查询不存在的楼栋
+GET {{baseUrl}}/api/v1/buildings/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("不存在的楼栋返回 404", function () {
+    client.assert(response.status === 404, "预期状态码为 404");
+    client.assert(response.body.success === false);
+  });
+%}
+
+### 404-3 查询不存在的证据
+GET {{baseUrl}}/api/v1/building-evidence/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("不存在的证据返回 404", function () {
+    client.assert(response.status === 404, "预期状态码为 404");
+  });
+%}
+
+### 404-4 创建楼栋时所属小区不存在
+POST {{baseUrl}}/api/v1/buildings
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityId": "00000000-0000-0000-0000-000000000000",
+  "buildingCode": "ERR-404-BLD",
+  "buildingName": "不存在小区的楼栋"
+}
+
+> {%
+  client.test("所属小区不存在返回 404", function () {
+    client.assert(response.status === 404, "预期状态码为 404");
+    client.assert(response.body.success === false);
+  });
+%}
+
+### 404-5 已删除资源查询
+### 注意：需要先执行 02-community.http 的删除流程，然后在此查询
+### GET {{baseUrl}}/api/v1/communities/{{deletedCommunityId}}
+### Authorization: Bearer {{accessToken}}
+
+### --- 409 冲突 ---
+
+### 409-1 创建重复编码小区
+POST {{baseUrl}}/api/v1/communities
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityCode": "DUP-COM-001",
+  "communityName": "重复编码小区1"
+}
+
+> {%
+  client.global.set("dupComId1", response.body.data ? response.body.data.id : null);
+%}
+
+### 再次创建相同编码
+POST {{baseUrl}}/api/v1/communities
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityCode": "DUP-COM-001",
+  "communityName": "重复编码小区2"
+}
+
+> {%
+  client.test("重复编码创建小区返回 409", function () {
+    client.assert(response.status === 409, "预期状态码为 409");
+    client.assert(response.body.success === false);
+    client.assert(response.body.error !== null);
+  });
+%}
+
+### 409-2 创建楼栋编码冲突
+POST {{baseUrl}}/api/v1/buildings
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityId": "{{dupComId1}}",
+  "buildingCode": "DUP-BLD-001",
+  "buildingName": "重复编码楼栋1"
+}
+
+> {%
+  client.global.set("dupBldId1", response.body.data ? response.body.data.id : null);
+%}
+
+### 同一小区再次创建相同编码
+POST {{baseUrl}}/api/v1/buildings
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityId": "{{dupComId1}}",
+  "buildingCode": "DUP-BLD-001",
+  "buildingName": "重复编码楼栋2"
+}
+
+> {%
+  client.test("楼栋编码冲突返回 409", function () {
+    client.assert(response.status === 409, "预期状态码为 409");
+    client.assert(response.body.success === false);
+  });
+%}
+
+### 409-3 删除有楼栋的小区
+POST {{baseUrl}}/api/v1/buildings
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "communityId": "{{dupComId1}}",
+  "buildingCode": "CONFLICT-BLD-001",
+  "buildingName": "阻止删除的楼栋"
+}
+
+### 尝试删除有楼栋的小区
+DELETE {{baseUrl}}/api/v1/communities/{{dupComId1}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("删除有楼栋的小区返回 409", function () {
+    client.assert(response.status === 409, "预期状态码为 409");
+    client.assert(response.body.success === false);
+  });
+%}
+
+### 清理：先删除楼栋再删除小区
+DELETE {{baseUrl}}/api/v1/buildings/{{dupBldId1}}
+Authorization: Bearer {{accessToken}}
+
+DELETE {{baseUrl}}/api/v1/buildings/{{dupBldId2}}
+Authorization: Bearer {{accessToken}}
+
+DELETE {{baseUrl}}/api/v1/communities/{{dupComId1}}
+Authorization: Bearer {{accessToken}}
+
+> {%
+  client.test("清理测试数据成功", function () {
+    client.assert(response.status === 200);
+  });
+%}

@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "project_root": "backend-java",
+  "text": {
+    "roots": [
+      "pom.xml",
+      "client",
+      "model",
+      "server",
+      "starter",
+      "README.md",
+      "AGENTS.md"
+    ],
+    "exclude_dirs": [
+      ".git",
+      "target",
+      ".idea",
+      ".vscode",
+      "__pycache__"
+    ],
+    "include_extensions": [
+      ".xml",
+      ".java",
+      ".yaml",
+      ".yml",
+      ".properties",
+      ".md",
+      ".json"
+    ],
+    "include_names": [
+      "Dockerfile"
+    ]
+  },
+  "replacements": [
+    {
+      "from": "<groupId>com.service.demo</groupId>",
+      "to": "<groupId>org.urbansafe</groupId>"
+    },
+    {
+      "from": "<artifactId>ServiceDemo</artifactId>",
+      "to": "<artifactId>urban-safe-priority-server</artifactId>"
+    },
+    {
+      "from": "title: ServiceDemo 接口",
+      "to": "title: UrbanSafe Priority 接口"
+    },
+    {
+      "from": "name: ServiceDemo",
+      "to": "name: urban-safe-priority-server"
+    },
+    {
+      "from": "StartApplication",
+      "to": "UrbanSafePriorityApplication"
+    },
+    {
+      "from": "com.service.demo",
+      "to": "org.urbansafe.priority"
+    },
+    {
+      "from": "com/service/demo",
+      "to": "org/urbansafe/priority"
+    },
+    {
+      "from": "service_demo",
+      "to": "urban_safe_priority"
+    },
+    {
+      "from": "service-demo",
+      "to": "urban-safe-priority"
+    },
+    {
+      "from": "ServiceDemo",
+      "to": "UrbanSafePriority"
+    }
+  ],
+  "moves": [
+    {
+      "source": "server/src/main/java/com/service/demo",
+      "target": "server/src/main/java/org/urbansafe/priority"
+    },
+    {
+      "source": "starter/src/main/java/com/service/demo/StartApplication.java",
+      "target": "starter/src/main/java/org/urbansafe/priority/UrbanSafePriorityApplication.java"
+    },
+    {
+      "source": "server/src/main/resources/com/service/demo",
+      "target": "server/src/main/resources/org/urbansafe/priority",
+      "required": false
+    }
+  ],
+  "build": {
+    "command": "mvn -f backend-java/pom.xml clean install -DskipTests",
+    "jar": "backend-java/starter/target/Service.jar"
+  }
+}

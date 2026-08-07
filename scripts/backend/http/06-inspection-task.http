@@ -1,0 +1,15 @@
+@baseUrl = http://localhost:8888
+@token = replace-with-jwt
+@buildingId = replace-with-building-uuid
+@taskId = replace-with-task-uuid
+
+### 创建任务
+POST {{baseUrl}}/api/v1/inspection-tasks
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"buildingId":"{{buildingId}}","inspectionType":"ROUTINE","title":"现场安全巡检"}
+
+### 开始任务
+POST {{baseUrl}}/api/v1/inspection-tasks/{{taskId}}/start
+Authorization: Bearer {{token}}

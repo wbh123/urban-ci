@@ -1,0 +1,458 @@
+app:
+  description: 单图建筑表观病害辅助分析；含图片回显、确定性结构校验和一次修复。
+  icon: 🏢
+  icon_background: '#E8F3FF'
+  mode: workflow
+  name: UrbanSafe Image Analysis v1.1.0
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.1.5
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .WEBP
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 1
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 1
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: llm
+      id: image-start-source-image-vision
+      source: image-start
+      sourceHandle: source
+      target: image-vision
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: image-vision-source-image-normalize
+      source: image-vision
+      sourceHandle: source
+      target: image-normalize
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: image-normalize-source-image-valid
+      source: image-normalize
+      sourceHandle: source
+      target: image-valid
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: variable-aggregator
+      id: image-valid-true-image-result
+      source: image-valid
+      sourceHandle: 'true'
+      target: image-result
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: llm
+      id: image-valid-false-image-repair
+      source: image-valid
+      sourceHandle: 'false'
+      target: image-repair
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: code
+      id: image-repair-source-image-repair-normalize
+      source: image-repair
+      sourceHandle: source
+      target: image-repair-normalize
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: image-repair-normalize-source-image-result
+      source: image-repair-normalize
+      sourceHandle: source
+      target: image-result
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: variable-aggregator
+        targetType: end
+      id: image-result-source-image-end
+      source: image-result
+      sourceHandle: source
+      target: image-end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: 接收单张巡检图片、质量预检和最小业务上下文。
+        selected: false
+        title: 开始
+        type: start
+        variables:
+        - allowed_file_extensions:
+          - .JPG
+          - .JPEG
+          - .PNG
+          - .WEBP
+          allowed_file_types:
+          - image
+          allowed_file_upload_methods:
+          - local_file
+          - remote_url
+          label: 巡检图片
+          max_length: 48
+          options: []
+          required: true
+          type: file
+          variable: image
+        - label: 资产编号
+          max_length: 128
+          options: []
+          required: false
+          type: text-input
+          variable: assetId
+        - label: 请求编号
+          max_length: 128
+          options: []
+          required: false
+          type: text-input
+          variable: requestCode
+        - label: 本地质量预检 JSON
+          max_length: 65535
+          options: []
+          required: false
+          type: paragraph
+          variable: precheckJson
+        - label: 最小业务上下文 JSON
+          max_length: 65535
+          options: []
+          required: false
+          type: paragraph
+          variable: businessContextJson
+      height: 210
+      id: image-start
+      position:
+        x: 80
+        y: 300
+      positionAbsolute:
+        x: 80
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: 建筑表观病害多模态分析 v1.1.0
+        model:
+          completion_params:
+            max_tokens: 1800
+            temperature: 0
+          mode: chat
+          name: gpt-4o-mini
+          provider: langgenius/openai/openai
+        prompt_template:
+        - id: 建筑表观病害多模态分析 v1.1.0-system
+          role: system
+          text: "你是“城安智序”建筑表观病害辅助筛查模型。只依据图片像素与提供的最小上下文，不能认定危房、不能计算最终风险分、不能覆盖人工复核。\n\n图片通过视觉附件传入；模糊、无比例尺或未发现病害都不等于没有收到图片。boundingBox 固定为 null，精确定位由本地专业模型承担。模型置信度只是自评可信度，不是房屋危险概率。\n\n必须只输出一个 JSON 对象，不输出 Markdown。结构：\n{\n  \"schemaVersion\": \"1.1\",\n  \"workflowCode\": \"DIFY-IMAGE-ANALYSIS-001\",\n  \"workflowVersion\": \"image-analysis-v1.1.0\",\n  \"applicable\": true,\n  \"summary\": \"中文摘要\",\n  \"observations\": [\"可见事实\"],\n  \"detections\": [{\"classCode\":\"CRACK\",\"className\":\"裂缝\",\"confidence\":0.0,\"boundingBox\":null}],\n  \"riskSignals\": [{\"code\":\"VISIBLE_CRACK\",\"level\":\"LOW|MEDIUM|HIGH\",\"description\":\"说明\",\"confidence\":0.0}],\n  \"recommendations\": [\"人工复核或补拍建议\"],\n  \"warnings\": [\"信息限制\"],\n  \"needsHumanReview\": true,\n  \"confidence\": 0.0\n}"
+        - id: 建筑表观病害多模态分析 v1.1.0-user
+          role: user
+          text: '请分析 Start/image 的图片。
+
+            requestCode={{#image-start.requestCode#}}
+
+            assetId={{#image-start.assetId#}}
+
+            本地质量预检={{#image-start.precheckJson#}}
+
+            业务上下文={{#image-start.businessContextJson#}}'
+        selected: false
+        title: 建筑表观病害多模态分析 v1.1.0
+        type: llm
+        variables: []
+        vision:
+          configs:
+            detail: high
+            variable_selector:
+            - image-start
+            - image
+          enabled: true
+      height: 150
+      id: image-vision
+      position:
+        x: 390
+        y: 300
+      positionAbsolute:
+        x: 390
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\ndef _clean(value: str) -> str:\n    text = (value or \"\").strip()\n    if text.startswith(\"```\"):\n        first = text.find(\"\\n\")\n        last = text.rfind(\"```\")\n        if first >= 0 and last > first:\n            text = text[first + 1:last].strip()\n    return text\n\ndef main(raw: str) -> dict:\n    try:\n        payload = json.loads(_clean(raw))\n        required = [\"schemaVersion\", \"workflowCode\", \"workflowVersion\", \"applicable\", \"summary\", \"needsHumanReview\", \"confidence\"]\n        if not isinstance(payload, dict) or any(key not in payload for key in required):\n            raise ValueError(\"missing required field\")\n        if payload.get(\"schemaVersion\") != \"1.1\" or payload.get(\"workflowCode\") != \"DIFY-IMAGE-ANALYSIS-001\":\n            raise ValueError(\"contract identity mismatch\")\n        if not isinstance(payload.get(\"summary\"), str) or not payload[\"summary\"].strip():\n            raise ValueError(\"summary\
+          \ missing\")\n        confidence = float(payload.get(\"confidence\"))\n        if confidence < 0 or confidence > 1:\n            raise ValueError(\"confidence out of range\")\n        for key in [\"observations\", \"detections\", \"riskSignals\", \"recommendations\", \"warnings\"]:\n            value = payload.get(key, [])\n            payload[key] = value if isinstance(value, list) else []\n        payload[\"confidence\"] = confidence\n        return {\"valid\": \"true\", \"result\": json.dumps(payload, ensure_ascii=False), \"error\": \"\"}\n    except Exception as exc:\n        return {\"valid\": \"false\", \"result\": \"\", \"error\": str(exc)}\n"
+        code_language: python3
+        desc: 结构归一化与校验
+        outputs:
+          valid:
+            children: null
+            type: string
+          result:
+            children: null
+            type: string
+          error:
+            children: null
+            type: string
+        selected: false
+        title: 结构归一化与校验
+        type: code
+        variables:
+        - value_selector:
+          - image-vision
+          - text
+          variable: raw
+      height: 110
+      id: image-normalize
+      position:
+        x: 700
+        y: 300
+      positionAbsolute:
+        x: 700
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: image-valid-condition
+            value: 'true'
+            varType: string
+            variable_selector:
+            - image-normalize
+            - valid
+          id: 'true'
+          logical_operator: and
+        desc: 合法结构直接返回，否则只允许一次修复。
+        selected: false
+        title: 结构是否有效
+        type: if-else
+      height: 130
+      id: image-valid
+      position:
+        x: 1010
+        y: 300
+      positionAbsolute:
+        x: 1010
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: 仅修复 JSON 结构
+        model:
+          completion_params:
+            max_tokens: 1600
+            temperature: 0
+          mode: chat
+          name: gpt-4o-mini
+          provider: langgenius/openai/openai
+        prompt_template:
+        - id: 仅修复 JSON 结构-system
+          role: system
+          text: "你只负责把输入内容修复为合法 JSON，不增加新的病害事实，不改变不确定性，不输出 Markdown。必须满足：\n{\n  \"schemaVersion\": \"1.1\",\n  \"workflowCode\": \"DIFY-IMAGE-ANALYSIS-001\",\n  \"workflowVersion\": \"image-analysis-v1.1.0\",\n  \"applicable\": true,\n  \"summary\": \"中文摘要\",\n  \"observations\": [\"可见事实\"],\n  \"detections\": [{\"classCode\":\"CRACK\",\"className\":\"裂缝\",\"confidence\":0.0,\"boundingBox\":null}],\n  \"riskSignals\": [{\"code\":\"VISIBLE_CRACK\",\"level\":\"LOW|MEDIUM|HIGH\",\"description\":\"说明\",\"confidence\":0.0}],\n  \"recommendations\": [\"人工复核或补拍建议\"],\n  \"warnings\": [\"信息限制\"],\n  \"needsHumanReview\": true,\n  \"confidence\": 0.0\n}"
+        - id: 仅修复 JSON 结构-user
+          role: user
+          text: '待修复内容={{#image-vision.text#}}
+
+            校验错误={{#image-normalize.error#}}'
+        selected: false
+        title: 仅修复 JSON 结构
+        type: llm
+        variables: []
+      height: 130
+      id: image-repair
+      position:
+        x: 1320
+        y: 520
+      positionAbsolute:
+        x: 1320
+        y: 520
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "import json\n\ndef main(raw: str) -> dict:\n    text = (raw or \"\").strip()\n    if text.startswith(\"```\"):\n        first = text.find(\"\\n\")\n        last = text.rfind(\"```\")\n        if first >= 0 and last > first:\n            text = text[first + 1:last].strip()\n    try:\n        payload = json.loads(text)\n        if not isinstance(payload, dict):\n            raise ValueError(\"not object\")\n    except Exception:\n        payload = {\n            \"schemaVersion\": \"1.1\",\n            \"workflowCode\": \"DIFY-IMAGE-ANALYSIS-001\",\n            \"workflowVersion\": \"image-analysis-v1.1.0\",\n            \"applicable\": False,\n            \"summary\": \"人工智能输出结构异常，本次结果不能作为病害判断依据。\",\n            \"observations\": [], \"detections\": [], \"riskSignals\": [],\n            \"recommendations\": [\"请人工查看原图并重新执行分析\"],\n            \"warnings\": [\"AI_OUTPUT_REPAIR_FAILED\"],\n            \"needsHumanReview\": True, \"confidence\": 0.0\n        }\n    payload.setdefault(\"\
+          schemaVersion\", \"1.1\")\n    payload.setdefault(\"workflowCode\", \"DIFY-IMAGE-ANALYSIS-001\")\n    payload.setdefault(\"workflowVersion\", \"image-analysis-v1.1.0\")\n    payload.setdefault(\"applicable\", False)\n    payload.setdefault(\"summary\", \"输出需要人工复核\")\n    payload.setdefault(\"observations\", [])\n    payload.setdefault(\"detections\", [])\n    payload.setdefault(\"riskSignals\", [])\n    payload.setdefault(\"recommendations\", [])\n    payload.setdefault(\"warnings\", [\"AI_OUTPUT_REPAIRED\"])\n    payload.setdefault(\"needsHumanReview\", True)\n    payload.setdefault(\"confidence\", 0.0)\n    return {\"result\": json.dumps(payload, ensure_ascii=False)}\n"
+        code_language: python3
+        desc: 修复结果安全归一化
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: 修复结果安全归一化
+        type: code
+        variables:
+        - value_selector:
+          - image-repair
+          - text
+          variable: raw
+      height: 100
+      id: image-repair-normalize
+      position:
+        x: 1630
+        y: 520
+      positionAbsolute:
+        x: 1630
+        y: 520
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        advanced_settings:
+          group_enabled: false
+          groups: []
+        desc: 聚合合法原始结果或一次修复结果。
+        output_type: string
+        selected: false
+        title: 最终结果
+        type: variable-aggregator
+        variables:
+        - - image-normalize
+          - result
+        - - image-repair-normalize
+          - result
+      height: 120
+      id: image-result
+      position:
+        x: 1940
+        y: 300
+      positionAbsolute:
+        x: 1940
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 返回稳定结构，由 Spring Boot 执行业务校验、持久化和审计。
+        outputs:
+        - value_selector:
+          - image-result
+          - output
+          value_type: string
+          variable: result
+        - value_selector:
+          - image-start
+          - image
+          value_type: file
+          variable: inputImage
+        selected: false
+        title: 结束
+        type: end
+      height: 120
+      id: image-end
+      position:
+        x: 2250
+        y: 300
+      positionAbsolute:
+        x: 2250
+        y: 300
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 0
+      y: 0
+      zoom: 0.8
+  rag_pipeline_variables: []

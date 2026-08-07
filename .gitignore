@@ -1,0 +1,76 @@
+# Public CI mirror only. Formal docs and private runtime data stay in urban-safe-priority.
+
+# Project documentation and development records
+README.md
+**/README.md
+AGENTS.md
+**/AGENTS.md
+/records/
+*.md
+*.mdx
+*.doc
+*.docx
+*.pdf
+*.ppt
+*.pptx
+
+# Local/private configuration
+.env
+.env.local
+.env.*.local
+.env.backup-*
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+**/http-client.private.env.json
+
+# Public examples are allowed
+!.env.example
+!frontend/.env.example
+!scripts/backend/http/http-client.private.env.json.example
+
+# Datasets, models and runtime state
+/downloads/
+/data/
+*.pt
+*.pth
+*.onnx
+*.ckpt
+*.safetensors
+*.bin
+*.pkl
+*.joblib
+
+# Secrets and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Build/runtime outputs
+backend-java/**/target/
+scripts/backend/persistence-codegen/target/
+frontend/node_modules/
+frontend/dist/
+ai-service-python/venv/
+ai-service-python/.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+build/
+logs/
+*.log
+tmp/
+temp/
+*.tmp
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

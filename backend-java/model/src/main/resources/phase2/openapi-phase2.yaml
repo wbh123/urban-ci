@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: UrbanSafe Priority 第二阶段接口
   description: 小区地图、巡检任务、现场记录和图片资源闭环接口。
-  version: 2.1.0
+  version: 2.2.0
 
 paths:
   /api/v1/map/runtime-config:
@@ -18,6 +18,8 @@ paths:
           description: 地图运行配置
           content:
             application/json:
+              schema:
+                $ref: '#/components/schemas/MapRuntimeConfigSuccessResponse'
               example:
                 success: true
                 data:
@@ -32,6 +34,8 @@ paths:
                     latitude: 27.82767
                   defaultZoom: 12
                 error: null
+                requestId: 01J00000000000000000000000
+                timestamp: '2026-08-07T18:00:00+08:00'
 
   /api/v1/map/geocoding/preview:
     post:
@@ -55,6 +59,8 @@ paths:
           description: 地理编码结果
           content:
             application/json:
+              schema:
+                $ref: '#/components/schemas/GeocodingResultSuccessResponse'
               example:
                 success: true
                 data:
@@ -79,6 +85,8 @@ paths:
           description: 小区地图点位
           content:
             application/json:
+              schema:
+                $ref: '#/components/schemas/CommunityPointListSuccessResponse'
               example:
                 success: true
                 data:
@@ -112,6 +120,8 @@ paths:
           description: 小区位置
           content:
             application/json:
+              schema:
+                $ref: '#/components/schemas/CommunityLocationSuccessResponse'
               example:
                 success: true
                 data:
@@ -148,6 +158,10 @@ paths:
       responses:
         '200':
           description: 已保存位置
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommunityLocationSuccessResponse'
 
   /api/v1/inspection-tasks:
     get:
@@ -169,14 +183,14 @@ paths:
           description: 任务状态
           schema:
             type: string
-            enum:
-              - PENDING
-              - IN_PROGRESS
-              - COMPLETED
-              - CANCELLED
+            enum: [PENDING, IN_PROGRESS, COMPLETED, CANCELLED]
       responses:
         '200':
           description: 巡检任务列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InspectionTaskListSuccessResponse'
     post:
       operationId: createPhase2InspectionTask
       summary: 创建巡检任务
@@ -200,16 +214,21 @@ paths:
           description: 已创建任务
           content:
             application/json:
+              schema:
+                $ref: '#/components/schemas/InspectionTaskSuccessResponse'
               example:
                 success: true
                 data:
                   taskId: 22222222-2222-2222-2222-222222222222
                   taskCode: IT-20260714-12345678
                   buildingId: 11111111-1111-1111-1111-111111111111
+                  buildingName: 1号楼
+                  communityId: 11111111-1111-1111-1111-111111111111
                   inspectionType: ROUTINE
                   title: ApiFox 自动现场安全巡检
                   status: PENDING
                   version: 0
+                  createdAt: '2026-08-07T18:00:00+08:00'
                 error: null
 
   /api/v1/inspection-tasks/{taskId}:
@@ -231,6 +250,10 @@ paths:
       responses:
         '200':
           description: 巡检任务
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InspectionTaskSuccessResponse'
 
   /api/v1/inspection-tasks/{taskId}/start:
     post:
@@ -251,6 +274,10 @@ paths:
       responses:
         '200':
           description: 已开始任务
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InspectionTaskSuccessResponse'
 
   /api/v1/inspection-tasks/{taskId}/complete:
     post:
@@ -271,6 +298,10 @@ paths:
       responses:
         '200':
           description: 已完成任务
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InspectionTaskSuccessResponse'
         '409':
           description: 任务状态冲突或尚无巡检记录
 
@@ -293,6 +324,10 @@ paths:
       responses:
         '200':
           description: 已取消任务
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InspectionTaskSuccessResponse'
         '409':
           description: 已结束任务不能取消
 
@@ -315,6 +350,10 @@ paths:
       responses:
         '200':
           description: 巡检记录列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InspectionRecordListSuccessResponse'
     post:
       operationId: createPhase2InspectionRecord
       summary: 创建巡检记录
@@ -342,14 +381,19 @@ paths:
           description: 已创建记录
           content:
             application/json:
+              schema:
+                $ref: '#/components/schemas/InspectionRecordSuccessResponse'
               example:
                 success: true
                 data:
                   recordId: 33333333-3333-3333-3333-333333333333
                   taskId: 22222222-2222-2222-2222-222222222222
+                  buildingId: 11111111-1111-1111-1111-111111111111
                   severity: LOW
                   summary: 外墙未发现明显贯穿裂缝，部分墙面存在轻微表层脱落。
                   status: DRAFT
+                  inspectedAt: '2026-08-07T18:00:00+08:00'
+                  createdAt: '2026-08-07T18:00:00+08:00'
                 error: null
 
   /api/v1/assets/images:
@@ -366,10 +410,7 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required:
-                - file
-                - businessType
-                - businessId
+              required: [file, businessType, businessId]
               properties:
                 file:
                   type: string
@@ -467,24 +508,70 @@ paths:
           description: 图片内容
           content:
             image/jpeg:
-              schema:
-                type: string
-                format: binary
+              schema: { type: string, format: binary }
             image/png:
-              schema:
-                type: string
-                format: binary
+              schema: { type: string, format: binary }
             image/webp:
-              schema:
-                type: string
-                format: binary
+              schema: { type: string, format: binary }
 
 components:
   schemas:
+    Phase2SuccessBase:
+      type: object
+      required: [success, error, requestId, timestamp]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        error:
+          type: object
+          nullable: true
+          additionalProperties: true
+        requestId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    MapCenter:
+      type: object
+      required: [longitude, latitude]
+      properties:
+        longitude: { type: number, format: double }
+        latitude: { type: number, format: double }
+
+    MapRuntimeConfig:
+      type: object
+      required: [enabled, mode, provider, jsApiKey, serviceHost, securityJsCodeExposed, defaultCenter, defaultZoom]
+      properties:
+        enabled: { type: boolean }
+        mode:
+          type: string
+          enum: [MOCK, LIVE]
+        provider: { type: string }
+        jsApiKey: { type: string }
+        serviceHost: { type: string }
+        securityJsCodeExposed: { type: boolean }
+        defaultCenter:
+          $ref: '#/components/schemas/MapCenter'
+        defaultZoom: { type: integer }
+
+    CommunityPoint:
+      type: object
+      required: [communityId, communityName]
+      properties:
+        communityId: { type: string, format: uuid }
+        communityName: { type: string }
+        address: { type: string, nullable: true }
+        formattedAddress: { type: string, nullable: true }
+        longitude: { type: number, format: double, nullable: true }
+        latitude: { type: number, format: double, nullable: true }
+        provider: { type: string, nullable: true }
+        matchLevel: { type: string, nullable: true }
+
     GeocodingRequest:
       type: object
-      required:
-        - address
+      required: [address]
       properties:
         address:
           type: string
@@ -494,11 +581,20 @@ components:
           type: string
           description: 可选城市名称，用于提高匹配精度
 
+    GeocodingResult:
+      type: object
+      required: [formattedAddress, longitude, latitude, provider, matchLevel, mock]
+      properties:
+        formattedAddress: { type: string }
+        longitude: { type: number, format: double }
+        latitude: { type: number, format: double }
+        provider: { type: string }
+        matchLevel: { type: string }
+        mock: { type: boolean }
+
     CommunityLocationRequest:
       type: object
-      required:
-        - longitude
-        - latitude
+      required: [longitude, latitude]
       properties:
         longitude:
           type: number
@@ -510,15 +606,10 @@ components:
           format: double
           minimum: -90
           maximum: 90
-        formattedAddress:
-          type: string
+        formattedAddress: { type: string }
         provider:
           type: string
-          enum:
-            - AMAP
-            - MANUAL
-            - IMPORT
-            - MOCK
+          enum: [AMAP, MANUAL, IMPORT, MOCK]
           example: MOCK
         matchLevel:
           type: string
@@ -530,48 +621,72 @@ components:
           type: object
           additionalProperties: true
 
+    CommunityLocation:
+      type: object
+      required: [communityId, longitude, latitude, provider, coordinateSystem, matchLevel]
+      properties:
+        communityId: { type: string, format: uuid }
+        longitude: { type: number, format: double }
+        latitude: { type: number, format: double }
+        formattedAddress: { type: string, nullable: true }
+        provider: { type: string }
+        coordinateSystem: { type: string }
+        matchLevel: { type: string }
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+        updatedAt: { type: string, format: date-time, nullable: true }
+
     InspectionTaskCreateRequest:
       type: object
-      required:
-        - buildingId
-        - inspectionType
+      required: [buildingId, inspectionType]
       properties:
-        buildingId:
-          type: string
-          format: uuid
+        buildingId: { type: string, format: uuid }
         inspectionType:
           type: string
-          example: ROUTINE
+          enum: [ROUTINE, SPECIAL]
         title:
           type: string
           default: 现场巡检
-        description:
+        description: { type: string }
+        plannedAt: { type: string, format: date-time }
+
+    InspectionTask:
+      type: object
+      required: [taskId, taskCode, buildingId, buildingName, communityId, inspectionType, title, status, version, createdAt]
+      properties:
+        taskId: { type: string, format: uuid }
+        taskCode: { type: string }
+        buildingId: { type: string, format: uuid }
+        buildingName: { type: string }
+        communityId: { type: string, format: uuid }
+        inspectionType: { type: string }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        plannedAt: { type: string, format: date-time, nullable: true }
+        status:
           type: string
-        plannedAt:
-          type: string
-          format: date-time
+          enum: [PENDING, IN_PROGRESS, COMPLETED, CANCELLED]
+        startedAt: { type: string, format: date-time, nullable: true }
+        completedAt: { type: string, format: date-time, nullable: true }
+        cancelledAt: { type: string, format: date-time, nullable: true }
+        version: { type: integer }
+        createdAt: { type: string, format: date-time }
 
     InspectionRecordCreateRequest:
       type: object
-      required:
-        - taskId
-        - summary
+      required: [taskId, summary]
       properties:
-        taskId:
-          type: string
-          format: uuid
-        inspectionPart:
-          type: string
+        taskId: { type: string, format: uuid }
+        inspectionPart: { type: string }
         issueType:
           type: string
           default: OTHER
         severity:
           type: string
           default: LOW
-          enum:
-            - LOW
-            - MEDIUM
-            - HIGH
+          enum: [LOW, MEDIUM, HIGH]
         summary:
           type: string
           minLength: 1
@@ -581,3 +696,94 @@ components:
         formData:
           type: object
           additionalProperties: true
+
+    InspectionRecord:
+      type: object
+      required: [recordId, taskId, buildingId, issueType, severity, summary, formData, status, inspectedAt, createdAt]
+      properties:
+        recordId: { type: string, format: uuid }
+        taskId: { type: string, format: uuid }
+        buildingId: { type: string, format: uuid }
+        inspectionPart: { type: string, nullable: true }
+        issueType: { type: string }
+        severity:
+          type: string
+          enum: [LOW, MEDIUM, HIGH]
+        summary: { type: string }
+        rectificationSuggestion: { type: string, nullable: true }
+        formData:
+          type: object
+          additionalProperties: true
+        status: { type: string }
+        inspectedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+
+    MapRuntimeConfigSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/Phase2SuccessBase'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/MapRuntimeConfig' }
+
+    GeocodingResultSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/Phase2SuccessBase'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/GeocodingResult' }
+
+    CommunityPointListSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/Phase2SuccessBase'
+        - type: object
+          required: [data]
+          properties:
+            data:
+              type: array
+              items: { $ref: '#/components/schemas/CommunityPoint' }
+
+    CommunityLocationSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/Phase2SuccessBase'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/CommunityLocation' }
+
+    InspectionTaskSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/Phase2SuccessBase'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/InspectionTask' }
+
+    InspectionTaskListSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/Phase2SuccessBase'
+        - type: object
+          required: [data]
+          properties:
+            data:
+              type: array
+              items: { $ref: '#/components/schemas/InspectionTask' }
+
+    InspectionRecordSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/Phase2SuccessBase'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/InspectionRecord' }
+
+    InspectionRecordListSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/Phase2SuccessBase'
+        - type: object
+          required: [data]
+          properties:
+            data:
+              type: array
+              items: { $ref: '#/components/schemas/InspectionRecord' }

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const confirm = vi.fn()
+const { confirm } = vi.hoisted(() => ({ confirm: vi.fn() }))
 vi.mock('element-plus', () => ({
   ElMessageBox: { confirm },
 }))

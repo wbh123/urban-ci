@@ -52,6 +52,11 @@ for (const contract of contracts) {
   rmSync(contract.tmp, { force: true })
   if (committedContent !== generatedContent) {
     console.error(`[api:check] ${contract.name}生成类型与 OpenAPI 契约不一致（已漂移）。`)
+    if (contract.name === '空间') {
+      console.error('---SPATIAL_SCHEMA_BEGIN---')
+      console.error(generatedContent)
+      console.error('---SPATIAL_SCHEMA_END---')
+    }
     console.error('[api:check] 请执行 npm run api:generate 重新生成并提交。')
     process.exit(1)
   }

@@ -8,7 +8,7 @@ on:
       - 'feat/**'
   pull_request:
     branches:
-      - ci-base
+      - 'work/r0-validation-base'
   workflow_dispatch:
 
 permissions:
@@ -39,6 +39,10 @@ jobs:
       - run: npm run test
       - run: npm run build
       - run: npm run lint
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run role and navigation E2E regression tests
+        run: npm run test:e2e
 
   backend:
     name: Backend compile and test

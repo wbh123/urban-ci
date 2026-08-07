@@ -225,21 +225,37 @@ jobs:
           python -m unittest scripts/ai/tests/test_evaluate_phase7_validation.py
           python -m unittest scripts/ai/tests/test_phase7_workflow_dsl.py
 
-      - name: Publish validated orphan snapshot to ci-base
+      - name: Publish validated snapshot to ci-base
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          cd mirror
-          git init
-          git config user.name 'urban-ci-bot'
-          git config user.email 'urban-ci-bot@users.noreply.github.com'
-          git checkout --orphan ci-base
-          git add -A
-          git commit -m "ci: validated snapshot ${SOURCE_REF:0:12}"
-          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git push --force origin HEAD:ci-base
+          remote_url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git ls-remote --exit-code "$remote_url" refs/heads/ci-base >/dev/null 2>&1; then
+            git clone --depth 1 --branch ci-base "$remote_url" publish
+            rsync -a --delete --exclude='.git/' mirror/ publish/
+            cd publish
+            git config user.name 'urban-ci-bot'
+            git config user.email 'urban-ci-bot@users.noreply.github.com'
+            git add -A
+            if git diff --cached --quiet; then
+              echo "Validated snapshot is unchanged; ci-base already matches source."
+            else
+              git commit -m "ci: validated snapshot ${SOURCE_REF:0:12}"
+              git push origin HEAD:ci-base
+            fi
+          else
+            cd mirror
+            git init
+            git config user.name 'urban-ci-bot'
+            git config user.email 'urban-ci-bot@users.noreply.github.com'
+            git checkout --orphan ci-base
+            git add -A
+            git commit -m "ci: validated snapshot ${SOURCE_REF:0:12}"
+            git remote add origin "$remote_url"
+            git push origin HEAD:ci-base
+          fi
 
       - name: Record synchronization result
         if: always()

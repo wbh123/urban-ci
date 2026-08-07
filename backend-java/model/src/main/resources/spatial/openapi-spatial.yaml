@@ -258,29 +258,29 @@ components:
       description: 参数错误
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          schema: { $ref: '#/components/schemas/SpatialErrorResponse' }
     Unauthorized:
       description: 未认证
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          schema: { $ref: '#/components/schemas/SpatialErrorResponse' }
     Forbidden:
       description: 无权限
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          schema: { $ref: '#/components/schemas/SpatialErrorResponse' }
     NotFound:
       description: 资源不存在
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          schema: { $ref: '#/components/schemas/SpatialErrorResponse' }
     Conflict:
       description: 版本冲突
       content:
         application/json:
-          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          schema: { $ref: '#/components/schemas/SpatialErrorResponse' }
   schemas:
-    ErrorDetail:
+    SpatialErrorDetail:
       type: object
       required: [code, message]
       properties:
@@ -289,13 +289,13 @@ components:
         fieldErrors:
           type: object
           additionalProperties: { type: string }
-    ErrorResponse:
+    SpatialErrorResponse:
       type: object
       required: [success, requestId, timestamp]
       properties:
         success: { type: boolean, example: false }
         data: { nullable: true }
-        error: { $ref: '#/components/schemas/ErrorDetail' }
+        error: { $ref: '#/components/schemas/SpatialErrorDetail' }
         requestId: { type: string }
         timestamp: { type: string, format: date-time }
     SpatialGeometry:

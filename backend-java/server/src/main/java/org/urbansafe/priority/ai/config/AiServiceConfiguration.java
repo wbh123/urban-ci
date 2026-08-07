@@ -19,6 +19,7 @@ import org.urbansafe.priority.ai.client.SpringAiChatGateway;
 import org.urbansafe.priority.ai.execution.AiExecutionProperties;
 import org.urbansafe.priority.ai.orchestration.AiCapabilityProvider;
 import org.urbansafe.priority.ai.orchestration.AiErrorCodes;
+import org.urbansafe.priority.ai.orchestration.AiImagePrecheckService;
 import org.urbansafe.priority.ai.orchestration.AiOrchestrationProperties;
 import org.urbansafe.priority.ai.orchestration.AiOrchestrationService;
 import org.urbansafe.priority.ai.orchestration.AiProviderRouter;
@@ -127,8 +128,9 @@ public class AiServiceConfiguration {
     @Bean
     public AiOrchestrationService aiOrchestrationService(
             AiProviderRouter router,
-            AiStructuredResultValidator validator) {
-        return new AiOrchestrationService(router, validator);
+            AiStructuredResultValidator validator,
+            AiImagePrecheckService imagePrecheckService) {
+        return new AiOrchestrationService(router, validator, imagePrecheckService);
     }
 
     private static SimpleClientHttpRequestFactory requestFactory(

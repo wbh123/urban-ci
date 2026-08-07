@@ -94,24 +94,24 @@ public class SpatialBoundaryService {
             BoundaryEntityType type,
             UUID entityId,
             SpatialBoundaryWriteCommand command) {
-        validateCommand(command);
+        SpatialBoundaryWriteCommand normalized = normalizeCommand(command);
         Optional<SpatialBoundarySnapshot> current = repository.findCurrent(type, entityId);
         UUID actorId = CurrentUser.getUserId();
         try {
             SpatialBoundarySnapshot saved;
             if (current.isEmpty()) {
-                if (command.expectedVersion() != 0L) {
+                if (normalized.expectedVersion() != 0L) {
                     throw versionConflict();
                 }
-                saved = repository.insertUnverified(type, entityId, command, 1L);
+                saved = repository.insertUnverified(type, entityId, normalized, 1L);
             } else {
                 SpatialBoundarySnapshot existing = current.get();
-                if (command.expectedVersion() != existing.version()) {
+                if (normalized.expectedVersion() != existing.version()) {
                     throw versionConflict();
                 }
                 long nextVersion = existing.version() + 1L;
                 saved = repository.updateUnverified(
-                                type, entityId, command, existing.version(), nextVersion)
+                                type, entityId, normalized, existing.version(), nextVersion)
                         .orElseThrow(this::versionConflict);
             }
             repository.appendRevision(saved, BoundaryChangeType.UPSERT, actorId);
@@ -158,7 +158,7 @@ public class SpatialBoundaryService {
                 .orElseThrow(() -> new ResourceNotFoundException(NOT_FOUND, "空间边界不存在"));
     }
 
-    private void validateCommand(SpatialBoundaryWriteCommand command) {
+    private SpatialBoundaryWriteCommand normalizeCommand(SpatialBoundaryWriteCommand command) {
         if (command == null || command.expectedVersion() < 0L) {
             throw new InvalidRequestException(INVALID, "expectedVersion 不能为空且不能小于 0");
         }
@@ -174,6 +174,16 @@ public class SpatialBoundaryService {
         }
         validateJson(command.sourceGeometryJson(), false);
         validateJson(command.displayGeometryJson(), true);
+        return new SpatialBoundaryWriteCommand(
+                command.expectedVersion(),
+                sourceType,
+                normalizeNullable(command.sourceProvider()),
+                normalizeNullable(command.sourceObjectId()),
+                sourceCoordinateSystem,
+                command.sourceGeometryJson().trim(),
+                displayCoordinateSystem,
+                command.displayGeometryJson().trim(),
+                normalizeRemark(command.remark()));
     }
 
     private void validateJson(String json, boolean requirePolygon) {
@@ -204,7 +214,15 @@ public class SpatialBoundaryService {
     }
 
     private String normalizeRemark(String remark) {
-        return remark == null ? null : remark.trim();
+        return normalizeNullable(remark);
+    }
+
+    private String normalizeNullable(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private String upper(String value) {

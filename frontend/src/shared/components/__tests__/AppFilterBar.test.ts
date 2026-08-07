@@ -1,11 +1,25 @@
-import { defineComponent, ref } from 'vue'
+import { defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ElementPlus from 'element-plus'
 import AppFilterBar from '@/shared/components/filter/AppFilterBar.vue'
 
-const compact = ref(false)
-vi.mock('@vueuse/core', () => ({ useMediaQuery: () => compact }))
+function installMatchMedia(matches: boolean): void {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    configurable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  })
+}
 
 const DrawerStub = defineComponent({
   props: { modelValue: Boolean, title: String },
@@ -15,7 +29,7 @@ const DrawerStub = defineComponent({
 
 describe('AppFilterBar', () => {
   beforeEach(() => {
-    compact.value = false
+    installMatchMedia(false)
   })
 
   it('桌面端直接展示筛选字段并统一发出 reset/submit', async () => {
@@ -31,7 +45,7 @@ describe('AppFilterBar', () => {
   })
 
   it('窄屏用 Drawer 承载筛选条件', async () => {
-    compact.value = true
+    installMatchMedia(true)
     const wrapper = mount(AppFilterBar, {
       props: { activeCount: 2 },
       slots: { default: '<label>处理状态</label>' },

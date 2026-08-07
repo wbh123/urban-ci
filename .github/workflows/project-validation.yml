@@ -3,7 +3,6 @@ name: Project Validation
 on:
   push:
     branches:
-      - ci-base
       - 'work/**'
       - 'fix/**'
       - 'feat/**'

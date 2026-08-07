@@ -1,0 +1,94 @@
+name: Project Validation
+
+on:
+  push:
+    branches:
+      - ci-base
+      - 'work/**'
+      - 'fix/**'
+      - 'feat/**'
+  pull_request:
+    branches:
+      - ci-base
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: project-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend contract and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run api:generate
+      - run: npm run api:check
+      - run: npm run type-check
+      - run: npm run test
+      - run: npm run build
+      - run: npm run lint
+
+  backend:
+    name: Backend compile and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend-java
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Use Maven Central on GitHub runner
+        shell: bash
+        run: |
+          mkdir -p .mvn
+          cat > .mvn/settings.xml <<'SETTINGS_EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd" />
+          SETTINGS_EOF
+      - name: Run backend tests
+        run: mvn -B -ntp test
+
+  ai-service:
+    name: Python AI service tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: ai-service-python/requirements.txt
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -r ai-service-python/requirements.txt
+      - name: Validate model tooling syntax
+        working-directory: ai-service-python
+        run: |
+          python -m compileall -q app modeling training tools
+          python -m tools.model_pipeline --help >/dev/null
+      - name: Run AI service tests
+        working-directory: ai-service-python
+        run: pytest -q
+      - name: Run phase 7 evaluation tool tests
+        run: python -m unittest scripts/ai/tests/test_evaluate_phase7_validation.py
+      - name: Validate phase 7 Dify workflow DSL contracts
+        run: python -m unittest scripts/ai/tests/test_phase7_workflow_dsl.py

@@ -1,5 +1,6 @@
 package org.urbansafe.priority.ai.orchestration;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import java.util.List;
 import org.apache.ibatis.type.Alias;
 
@@ -7,8 +8,14 @@ import org.apache.ibatis.type.Alias;
  * 项目统一结构化人工智能结果基类，不直接暴露供应商原始响应。
  *
  * <p>显式类型别名用于避免与 OpenAPI 生成的同名数据传输对象发生 MyBatis 别名冲突。
+ * 访问器采用 {@code requestId()} 等非 Bean 命名，Jackson 无法按 getter 识别属性，
+ * 必须显式允许字段可见性，才能将结构化结果序列化为 ai.inference_result.structured_result 快照。
  */
 @Alias("Phase7AiStructuredResult")
+@JsonAutoDetect(
+        fieldVisibility = JsonAutoDetect.Visibility.ANY,
+        getterVisibility = JsonAutoDetect.Visibility.NONE,
+        isGetterVisibility = JsonAutoDetect.Visibility.NONE)
 public class AiStructuredResult {
 
     private final String requestId;

@@ -1,0 +1,626 @@
+openapi: 3.0.3
+info:
+  title: Urban Building Safety Priority - Spatial Boundary API
+  version: 1.0.0
+  description: >-
+    R2 空间边界契约。边界来源坐标与前端展示坐标必须显式区分；正式 bbox 查询只返回
+    VERIFIED 边界。地图页面与高德 Polygon 渲染属于后续 R3，不属于本契约。
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+tags:
+  - name: Spatial
+    description: 小区与楼栋空间边界
+paths:
+  /api/v1/spatial/communities:
+    get:
+      tags: [Spatial]
+      operationId: querySpatialCommunities
+      summary: 按 bbox/zoom 查询已确认小区边界
+      parameters:
+        - $ref: '#/components/parameters/West'
+        - $ref: '#/components/parameters/South'
+        - $ref: '#/components/parameters/East'
+        - $ref: '#/components/parameters/North'
+        - $ref: '#/components/parameters/Zoom'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpatialFeatureCollectionSuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v1/spatial/buildings:
+    get:
+      tags: [Spatial]
+      operationId: querySpatialBuildings
+      summary: 按 bbox/zoom 查询已确认楼栋边界
+      parameters:
+        - $ref: '#/components/parameters/West'
+        - $ref: '#/components/parameters/South'
+        - $ref: '#/components/parameters/East'
+        - $ref: '#/components/parameters/North'
+        - $ref: '#/components/parameters/Zoom'
+        - name: communityId
+          in: query
+          required: false
+          description: 可选的小区过滤条件
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpatialFeatureCollectionSuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v1/spatial/communities/{communityId}/boundary:
+    parameters:
+      - $ref: '#/components/parameters/CommunityId'
+    get:
+      tags: [Spatial]
+      operationId: getCommunityBoundary
+      summary: 读取小区当前边界版本
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpatialBoundarySuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Spatial]
+      operationId: upsertCommunityBoundary
+      summary: 新增或修改小区边界
+      description: 写入后统一进入 UNVERIFIED；expectedVersion 不一致返回 409。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpatialBoundaryWriteRequest'
+      responses:
+        '200':
+          description: 写入成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpatialBoundarySuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/spatial/communities/{communityId}/boundary/verify:
+    parameters:
+      - $ref: '#/components/parameters/CommunityId'
+    post:
+      tags: [Spatial]
+      operationId: verifyCommunityBoundary
+      summary: 人工确认小区边界
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpatialBoundaryReviewRequest'
+      responses:
+        '200':
+          description: 确认成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpatialBoundarySuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/spatial/communities/{communityId}/boundary/reject:
+    parameters:
+      - $ref: '#/components/parameters/CommunityId'
+    post:
+      tags: [Spatial]
+      operationId: rejectCommunityBoundary
+      summary: 驳回小区边界
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpatialBoundaryReviewRequest'
+      responses:
+        '200':
+          description: 驳回成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpatialBoundarySuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/spatial/buildings/{buildingId}/boundary:
+    parameters:
+      - $ref: '#/components/parameters/BuildingId'
+    get:
+      tags: [Spatial]
+      operationId: getBuildingBoundary
+      summary: 读取楼栋当前边界版本
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpatialBoundarySuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Spatial]
+      operationId: upsertBuildingBoundary
+      summary: 新增或修改楼栋边界
+      description: 写入后统一进入 UNVERIFIED；expectedVersion 不一致返回 409。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpatialBoundaryWriteRequest'
+      responses:
+        '200':
+          description: 写入成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpatialBoundarySuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/spatial/buildings/{buildingId}/boundary/verify:
+    parameters:
+      - $ref: '#/components/parameters/BuildingId'
+    post:
+      tags: [Spatial]
+      operationId: verifyBuildingBoundary
+      summary: 人工确认楼栋边界
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpatialBoundaryReviewRequest'
+      responses:
+        '200':
+          description: 确认成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpatialBoundarySuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/spatial/buildings/{buildingId}/boundary/reject:
+    parameters:
+      - $ref: '#/components/parameters/BuildingId'
+    post:
+      tags: [Spatial]
+      operationId: rejectBuildingBoundary
+      summary: 驳回楼栋边界
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpatialBoundaryReviewRequest'
+      responses:
+        '200':
+          description: 驳回成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpatialBoundarySuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    West:
+      name: west
+      in: query
+      required: true
+      description: bbox 西经度
+      schema:
+        type: number
+        format: double
+        minimum: -180
+        maximum: 180
+    South:
+      name: south
+      in: query
+      required: true
+      description: bbox 南纬度
+      schema:
+        type: number
+        format: double
+        minimum: -90
+        maximum: 90
+    East:
+      name: east
+      in: query
+      required: true
+      description: bbox 东经度
+      schema:
+        type: number
+        format: double
+        minimum: -180
+        maximum: 180
+    North:
+      name: north
+      in: query
+      required: true
+      description: bbox 北纬度
+      schema:
+        type: number
+        format: double
+        minimum: -90
+        maximum: 90
+    Zoom:
+      name: zoom
+      in: query
+      required: true
+      description: 地图缩放级别，用于后端几何简化；范围 3..22
+      schema:
+        type: integer
+        format: int32
+        minimum: 3
+        maximum: 22
+    CommunityId:
+      name: communityId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    BuildingId:
+      name: buildingId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    SpatialBoundaryWriteRequest:
+      type: object
+      required:
+        - expectedVersion
+        - sourceType
+        - sourceCoordinateSystem
+        - sourceGeometry
+        - displayCoordinateSystem
+        - displayGeometry
+      properties:
+        expectedVersion:
+          type: integer
+          format: int64
+          minimum: 0
+          description: 首次创建为 0；后续必须等于服务端当前 version。
+        sourceType:
+          type: string
+          description: AMAP_AOI、MANUAL_EDIT、MANUAL_DRAW 或 GEOJSON_IMPORT
+          example: MANUAL_DRAW
+        sourceProvider:
+          type: string
+          nullable: true
+          example: INTERNAL_EDITOR
+        sourceObjectId:
+          type: string
+          nullable: true
+        sourceCoordinateSystem:
+          type: string
+          description: GCJ02、WGS84 或 BD09
+          example: GCJ02
+        sourceGeometry:
+          type: object
+          additionalProperties: true
+          description: 来源 GeoJSON 原始几何，完整保留用于审计追溯。
+        displayCoordinateSystem:
+          type: string
+          description: 前端展示坐标系；禁止仅依据 PostGIS SRID 推断。
+          example: GCJ02
+        displayGeometry:
+          type: object
+          additionalProperties: true
+          description: Polygon 或 MultiPolygon GeoJSON。
+        remark:
+          type: string
+          nullable: true
+          maxLength: 1000
+    SpatialBoundaryReviewRequest:
+      type: object
+      required: [expectedVersion]
+      properties:
+        expectedVersion:
+          type: integer
+          format: int64
+          minimum: 0
+        remark:
+          type: string
+          nullable: true
+          maxLength: 1000
+    SpatialBoundaryView:
+      type: object
+      required:
+        - id
+        - entityType
+        - entityId
+        - sourceType
+        - sourceCoordinateSystem
+        - sourceGeometry
+        - displayCoordinateSystem
+        - displayGeometry
+        - status
+        - version
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        entityType:
+          type: string
+          example: COMMUNITY
+        entityId:
+          type: string
+          format: uuid
+        sourceType:
+          type: string
+          example: MANUAL_DRAW
+        sourceProvider:
+          type: string
+          nullable: true
+        sourceObjectId:
+          type: string
+          nullable: true
+        sourceCoordinateSystem:
+          type: string
+          example: GCJ02
+        sourceGeometry:
+          type: object
+          additionalProperties: true
+        displayCoordinateSystem:
+          type: string
+          example: GCJ02
+        displayGeometry:
+          type: object
+          additionalProperties: true
+        status:
+          type: string
+          description: UNVERIFIED、VERIFIED 或 REJECTED；正式地图查询仅返回 VERIFIED。
+          example: VERIFIED
+        version:
+          type: integer
+          format: int64
+        verifiedBy:
+          type: string
+          format: uuid
+          nullable: true
+        verifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        remark:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SpatialGeoJsonFeatureCollection:
+      type: object
+      required: [type, features]
+      properties:
+        type:
+          type: string
+          example: FeatureCollection
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpatialGeoJsonFeature'
+    SpatialGeoJsonFeature:
+      type: object
+      required: [type, id, geometry, properties]
+      properties:
+        type:
+          type: string
+          example: Feature
+        id:
+          type: string
+          format: uuid
+        geometry:
+          type: object
+          additionalProperties: true
+        properties:
+          $ref: '#/components/schemas/SpatialFeatureProperties'
+    SpatialFeatureProperties:
+      type: object
+      required:
+        - entityType
+        - entityId
+        - entityCode
+        - name
+        - status
+        - version
+        - coordinateSystem
+        - sourceType
+      properties:
+        entityType:
+          type: string
+          example: BUILDING
+        entityId:
+          type: string
+          format: uuid
+        entityCode:
+          type: string
+        name:
+          type: string
+        communityId:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          description: 正式 bbox 查询仅返回 VERIFIED。
+          example: VERIFIED
+        version:
+          type: integer
+          format: int64
+        coordinateSystem:
+          type: string
+          example: GCJ02
+        sourceType:
+          type: string
+          example: MANUAL_DRAW
+    SpatialBoundarySuccessResponse:
+      type: object
+      required: [success, data, timestamp]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/SpatialBoundaryView'
+        requestId:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+    SpatialFeatureCollectionSuccessResponse:
+      type: object
+      required: [success, data, timestamp]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/SpatialGeoJsonFeatureCollection'
+        requestId:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+    SpatialErrorResponse:
+      type: object
+      required: [success, code, message, timestamp]
+      properties:
+        success:
+          type: boolean
+          example: false
+        code:
+          type: string
+          example: SPATIAL_BOUNDARY_VERSION_CONFLICT
+        message:
+          type: string
+        requestId:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+  responses:
+    BadRequest:
+      description: 请求参数或 GeoJSON 无效
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SpatialErrorResponse'
+    Unauthorized:
+      description: 未登录
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SpatialErrorResponse'
+    Forbidden:
+      description: 无对象访问权限
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SpatialErrorResponse'
+    NotFound:
+      description: 边界不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SpatialErrorResponse'
+    Conflict:
+      description: expectedVersion 过期或边界状态冲突
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SpatialErrorResponse'

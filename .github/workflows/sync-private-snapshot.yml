@@ -133,10 +133,12 @@ jobs:
             exit 1
           fi
 
-          if find mirror -type d \( -name records -o -name downloads -o -name data \) -print -quit | grep -q .; then
-            echo "Forbidden private/runtime directory found in public mirror."
-            exit 1
-          fi
+          for private_dir in mirror/records mirror/downloads mirror/data; do
+            if [[ -e "$private_dir" ]]; then
+              echo "Forbidden root private/runtime path found: $private_dir"
+              exit 1
+            fi
+          done
 
           patterns='-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9_-]{20,}'
           if grep -R -I -n -E "$patterns" mirror \

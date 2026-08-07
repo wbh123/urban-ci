@@ -90,10 +90,12 @@ export const initialTasks: InspectionTask[] = [
     taskCode: 'IT-20260714-0001',
     buildingId: BUILDING_ID,
     buildingName: '1号楼',
+    communityId: COMMUNITY_ID,
     inspectionType: 'ROUTINE',
     title: '现场安全巡检',
     status: 'PENDING',
     version: 0,
+    createdAt: now(),
   },
 ]
 

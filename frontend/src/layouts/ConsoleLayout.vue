@@ -35,5 +35,87 @@ async function logout(): Promise<void> { await authStore.logout(); await router.
   </el-container>
 </template>
 <style scoped lang="scss">
-.console-shell { min-height: 100vh; background: #f3f6f9; }.console-aside { position: sticky; top: 0; height: 100vh; background: #152b27; color: #fff; }.console-brand { display: grid; gap: 4px; padding: 24px 20px; cursor: pointer; }.console-brand strong { font-size: 22px; }.console-brand span { color: rgb(255 255 255 / 65%); font-size: 13px; }.console-menu { border-right: 0; background: transparent; }.console-menu :deep(.el-menu-item) { color: rgb(255 255 255 / 76%); }.console-menu :deep(.el-menu-item:hover), .console-menu :deep(.el-menu-item.is-active) { background: #1e4039; color: #fff; }.console-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; background: #fff; border-bottom: 1px solid #e4e9ee; }.console-header > div { display: flex; align-items: center; gap: 12px; }.console-user { color: #475467; }.console-main { width: 100%; max-width: 1500px; margin: 0 auto; }@media (max-width: 900px) { .console-aside { width: 76px !important; } .console-brand span, .console-menu :deep(.el-menu-item) { font-size: 0; } .console-brand { padding: 20px 10px; } }
+.console-shell {
+  min-height: 100vh;
+  background: var(--usp-color-bg);
+}
+
+.console-aside {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  background: var(--usp-color-aside);
+  color: var(--usp-color-inverse);
+}
+
+.console-brand {
+  display: grid;
+  gap: var(--usp-space-1);
+  padding: var(--usp-space-6) var(--usp-space-5);
+  cursor: pointer;
+}
+
+.console-brand strong {
+  font-size: 22px;
+}
+
+.console-brand span {
+  color: var(--usp-color-aside-text-muted);
+  font-size: var(--usp-font-size-sm);
+}
+
+.console-menu {
+  border-right: 0;
+  background: transparent;
+}
+
+.console-menu :deep(.el-menu-item) {
+  color: var(--usp-color-aside-text);
+}
+
+.console-menu :deep(.el-menu-item:hover),
+.console-menu :deep(.el-menu-item.is-active) {
+  background: var(--usp-color-aside-hover);
+  color: var(--usp-color-inverse);
+}
+
+.console-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--usp-space-5);
+  background: var(--usp-color-surface);
+  border-bottom: 1px solid var(--usp-color-border);
+}
+
+.console-header > div {
+  display: flex;
+  align-items: center;
+  gap: var(--usp-space-3);
+}
+
+.console-user {
+  color: var(--usp-color-text-secondary);
+}
+
+.console-main {
+  width: 100%;
+  max-width: var(--usp-content-max-width);
+  margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  .console-aside {
+    width: var(--usp-console-aside-collapsed-width) !important;
+  }
+
+  .console-brand span,
+  .console-menu :deep(.el-menu-item) {
+    font-size: 0;
+  }
+
+  .console-brand {
+    padding: var(--usp-space-5) var(--usp-space-2);
+  }
+}
 </style>

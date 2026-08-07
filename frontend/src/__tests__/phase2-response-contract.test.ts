@@ -27,20 +27,20 @@ function expectSchemaRef(path: string, schema: string): void {
 }
 
 describe('第二阶段正式响应契约', () => {
-  it('地图接口通过 schema 描述正式响应，而不是只保留 example', () => {
-    expectSchemaRef('/api/v1/map/runtime-config', 'MapRuntimeConfig')
-    expectSchemaRef('/api/v1/map/geocoding/preview', 'GeocodingResult')
-    expectSchemaRef('/api/v1/map/communities', 'CommunityPoint')
-    expectSchemaRef('/api/v1/communities/{communityId}/location', 'CommunityLocation')
+  it('地图接口通过成功响应 schema 描述统一外壳和 data', () => {
+    expectSchemaRef('/api/v1/map/runtime-config', 'MapRuntimeConfigSuccessResponse')
+    expectSchemaRef('/api/v1/map/geocoding/preview', 'GeocodingResultSuccessResponse')
+    expectSchemaRef('/api/v1/map/communities', 'CommunityPointListSuccessResponse')
+    expectSchemaRef('/api/v1/communities/{communityId}/location', 'CommunityLocationSuccessResponse')
   })
 
-  it('巡检任务与记录通过 schema 描述正式响应', () => {
-    expectSchemaRef('/api/v1/inspection-tasks', 'InspectionTask')
-    expectSchemaRef('/api/v1/inspection-tasks/{taskId}', 'InspectionTask')
-    expectSchemaRef('/api/v1/inspection-records', 'InspectionRecord')
+  it('巡检任务与记录通过成功响应 schema 描述统一外壳和 data', () => {
+    expectSchemaRef('/api/v1/inspection-tasks', 'InspectionTaskListSuccessResponse')
+    expectSchemaRef('/api/v1/inspection-tasks/{taskId}', 'InspectionTaskSuccessResponse')
+    expectSchemaRef('/api/v1/inspection-records', 'InspectionRecordListSuccessResponse')
   })
 
-  it('聚合 OpenAPI 导出所有长期使用的第二阶段响应类型', () => {
+  it('聚合 OpenAPI 导出所有长期使用的第二阶段 data 类型', () => {
     for (const schema of [
       'MapRuntimeConfig',
       'CommunityPoint',

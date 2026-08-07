@@ -1,0 +1,411 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe Priority 空间边界接口
+  version: 1.0.0
+servers:
+  - url: http://localhost:8888
+paths:
+  /api/v1/communities/{communityId}/boundary:
+    get:
+      tags: [Spatial]
+      operationId: getCommunityBoundary
+      summary: 查询小区空间边界
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CommunityId'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SpatialBoundarySuccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Spatial]
+      operationId: upsertCommunityBoundary
+      summary: 新增或更新小区空间边界
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CommunityId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SpatialBoundaryUpsertRequest' }
+      responses:
+        '200':
+          description: 保存成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SpatialBoundarySuccessResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/v1/communities/{communityId}/boundary/verify:
+    post:
+      tags: [Spatial]
+      operationId: verifyCommunityBoundary
+      summary: 确认小区空间边界
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CommunityId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SpatialBoundaryVerifyRequest' }
+      responses:
+        '200':
+          description: 确认成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SpatialBoundarySuccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/v1/communities/{communityId}/boundary/revisions:
+    get:
+      tags: [Spatial]
+      operationId: listCommunityBoundaryRevisions
+      summary: 查询小区边界版本历史
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CommunityId'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SpatialBoundaryRevisionListSuccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/buildings/{buildingId}/boundary:
+    get:
+      tags: [Spatial]
+      operationId: getBuildingBoundary
+      summary: 查询楼栋空间边界
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/BuildingId'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SpatialBoundarySuccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Spatial]
+      operationId: upsertBuildingBoundary
+      summary: 新增或更新楼栋空间边界
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/BuildingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SpatialBoundaryUpsertRequest' }
+      responses:
+        '200':
+          description: 保存成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SpatialBoundarySuccessResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/v1/buildings/{buildingId}/boundary/verify:
+    post:
+      tags: [Spatial]
+      operationId: verifyBuildingBoundary
+      summary: 确认楼栋空间边界
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/BuildingId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SpatialBoundaryVerifyRequest' }
+      responses:
+        '200':
+          description: 确认成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SpatialBoundarySuccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /api/v1/buildings/{buildingId}/boundary/revisions:
+    get:
+      tags: [Spatial]
+      operationId: listBuildingBoundaryRevisions
+      summary: 查询楼栋边界版本历史
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/BuildingId'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SpatialBoundaryRevisionListSuccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/spatial/communities:
+    get:
+      tags: [Spatial]
+      operationId: listCommunityFeatures
+      summary: 按地图视野查询已确认小区边界
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/West'
+        - $ref: '#/components/parameters/South'
+        - $ref: '#/components/parameters/East'
+        - $ref: '#/components/parameters/North'
+        - $ref: '#/components/parameters/Zoom'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SpatialFeatureCollectionSuccessResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/spatial/buildings:
+    get:
+      tags: [Spatial]
+      operationId: listBuildingFeatures
+      summary: 按地图视野查询已确认楼栋边界
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/West'
+        - $ref: '#/components/parameters/South'
+        - $ref: '#/components/parameters/East'
+        - $ref: '#/components/parameters/North'
+        - $ref: '#/components/parameters/Zoom'
+        - name: communityId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SpatialFeatureCollectionSuccessResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    CommunityId:
+      name: communityId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    BuildingId:
+      name: buildingId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    West:
+      name: west
+      in: query
+      required: true
+      schema: { type: number, format: double, minimum: -180, maximum: 180 }
+    South:
+      name: south
+      in: query
+      required: true
+      schema: { type: number, format: double, minimum: -90, maximum: 90 }
+    East:
+      name: east
+      in: query
+      required: true
+      schema: { type: number, format: double, minimum: -180, maximum: 180 }
+    North:
+      name: north
+      in: query
+      required: true
+      schema: { type: number, format: double, minimum: -90, maximum: 90 }
+    Zoom:
+      name: zoom
+      in: query
+      required: true
+      schema: { type: integer, minimum: 3, maximum: 22 }
+  responses:
+    BadRequest:
+      description: 参数错误
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Unauthorized:
+      description: 未认证
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Forbidden:
+      description: 无权限
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Conflict:
+      description: 版本冲突
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+  schemas:
+    ErrorDetail:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        fieldErrors:
+          type: object
+          additionalProperties: { type: string }
+    ErrorResponse:
+      type: object
+      required: [success, requestId, timestamp]
+      properties:
+        success: { type: boolean, example: false }
+        data: { nullable: true }
+        error: { $ref: '#/components/schemas/ErrorDetail' }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    SpatialGeometry:
+      type: object
+      required: [type, coordinates]
+      properties:
+        type:
+          type: string
+          enum: [Polygon, MultiPolygon]
+        coordinates:
+          type: array
+          items: {}
+    SpatialBoundaryUpsertRequest:
+      type: object
+      required: [sourceType, sourceCoordinateSystem, geometry]
+      properties:
+        sourceType:
+          type: string
+          enum: [AMAP_AOI, MANUAL_EDIT, MANUAL_DRAW, GEOJSON_IMPORT]
+        sourceProvider:
+          type: string
+          enum: [AMAP, INTERNAL, EXTERNAL_GIS]
+        sourceObjectId: { type: string, maxLength: 255 }
+        sourceCoordinateSystem:
+          type: string
+          enum: [GCJ02, WGS84]
+        geometry: { $ref: '#/components/schemas/SpatialGeometry' }
+        expectedVersion: { type: integer, minimum: 0 }
+        remark: { type: string, maxLength: 1000 }
+    SpatialBoundaryVerifyRequest:
+      type: object
+      required: [expectedVersion]
+      properties:
+        expectedVersion: { type: integer, minimum: 1 }
+        remark: { type: string, maxLength: 1000 }
+    SpatialBoundaryResponse:
+      type: object
+      required: [entityType, entityId, sourceType, sourceCoordinateSystem, displayCoordinateSystem, status, version, geometry, createdAt, updatedAt]
+      properties:
+        entityType: { type: string, enum: [COMMUNITY, BUILDING] }
+        entityId: { type: string, format: uuid }
+        sourceType: { type: string }
+        sourceProvider: { type: string }
+        sourceObjectId: { type: string }
+        sourceCoordinateSystem: { type: string }
+        displayCoordinateSystem: { type: string, enum: [GCJ02] }
+        status: { type: string, enum: [UNVERIFIED, VERIFIED, REJECTED] }
+        version: { type: integer }
+        geometry: { $ref: '#/components/schemas/SpatialGeometry' }
+        verifiedBy: { type: string, format: uuid }
+        verifiedAt: { type: string, format: date-time }
+        remark: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    SpatialBoundarySuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean, example: true }
+        data: { $ref: '#/components/schemas/SpatialBoundaryResponse' }
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    SpatialBoundaryRevisionResponse:
+      type: object
+      required: [revisionId, entityType, entityId, version, action, snapshot, createdAt]
+      properties:
+        revisionId: { type: string, format: uuid }
+        entityType: { type: string, enum: [COMMUNITY, BUILDING] }
+        entityId: { type: string, format: uuid }
+        version: { type: integer }
+        action: { type: string, enum: [CREATE, UPDATE, VERIFY, REJECT] }
+        snapshot: { type: object, additionalProperties: true }
+        changedBy: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+    SpatialBoundaryRevisionListSuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/SpatialBoundaryRevisionResponse' }
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    SpatialFeature:
+      type: object
+      required: [type, id, geometry, properties]
+      properties:
+        type: { type: string, enum: [Feature] }
+        id: { type: string, format: uuid }
+        geometry: { $ref: '#/components/schemas/SpatialGeometry' }
+        properties:
+          type: object
+          additionalProperties: true
+    SpatialFeatureCollection:
+      type: object
+      required: [type, features]
+      properties:
+        type: { type: string, enum: [FeatureCollection] }
+        features:
+          type: array
+          items: { $ref: '#/components/schemas/SpatialFeature' }
+    SpatialFeatureCollectionSuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean, example: true }
+        data: { $ref: '#/components/schemas/SpatialFeatureCollection' }
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }

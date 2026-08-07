@@ -1,0 +1,221 @@
+name: Sync Private Snapshot
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Exact urban-safe-priority commit SHA to mirror
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: private-snapshot-sync
+  cancel-in-progress: false
+
+jobs:
+  validate-and-publish:
+    name: Validate private snapshot and publish ci-base
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SOURCE_REF: ${{ inputs.source_ref }}
+    steps:
+      - name: Checkout public control files
+        uses: actions/checkout@v4
+        with:
+          path: control
+          ref: main
+          fetch-depth: 1
+
+      - name: Checkout exact private source commit
+        uses: actions/checkout@v4
+        with:
+          repository: wbh123/urban-safe-priority
+          ref: ${{ inputs.source_ref }}
+          token: ${{ secrets.URBAN_PRIVATE_REPO_TOKEN }}
+          path: private-source
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact private source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          requested="${SOURCE_REF,,}"
+          actual="$(git -C private-source rev-parse HEAD)"
+          if [[ "$actual" != "$requested" ]]; then
+            echo "Requested private commit $requested but checked out $actual"
+            exit 1
+          fi
+          echo "Validated private source commit: $actual"
+
+      - name: Build sanitized public mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p mirror
+
+          common_excludes=(
+            --exclude='.git/'
+            --exclude='node_modules/'
+            --exclude='dist/'
+            --exclude='target/'
+            --exclude='venv/'
+            --exclude='.venv/'
+            --exclude='__pycache__/'
+            --exclude='.pytest_cache/'
+            --exclude='.mypy_cache/'
+            --exclude='*.md'
+            --exclude='*.mdx'
+            --exclude='*.doc'
+            --exclude='*.docx'
+            --exclude='*.pdf'
+            --exclude='*.ppt'
+            --exclude='*.pptx'
+            --exclude='.env'
+            --exclude='.env.local'
+            --exclude='.env.*.local'
+            --exclude='*.log'
+            --exclude='*.pt'
+            --exclude='*.pth'
+            --exclude='*.onnx'
+            --exclude='*.ckpt'
+            --exclude='*.safetensors'
+            --exclude='*.pkl'
+            --exclude='*.joblib'
+          )
+
+          for dir in backend-java frontend ai-service-python docker scripts database; do
+            if [[ -d "private-source/$dir" ]]; then
+              mkdir -p "mirror/$dir"
+              rsync -a --prune-empty-dirs "${common_excludes[@]}" \
+                "private-source/$dir/" "mirror/$dir/"
+            fi
+          done
+
+          if [[ -f private-source/.env.example ]]; then
+            cp private-source/.env.example mirror/.env.example
+          fi
+
+          # Dify DSL is executable source. Keep only YAML resources required by tests;
+          # do not copy surrounding Markdown documentation.
+          dify_src='private-source/docs/10_开发阶段/07_第七阶段/resources'
+          dify_dst='mirror/docs/10_开发阶段/07_第七阶段/resources'
+          if [[ -d "$dify_src" ]]; then
+            mkdir -p "$dify_dst"
+            find "$dify_src" -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) \
+              -exec cp '{}' "$dify_dst/" \;
+          fi
+
+          mkdir -p mirror/.github/workflows
+          cp control/.github/workflows/public-guard.yml mirror/.github/workflows/public-guard.yml
+          cp control/.github/workflows/project-validation.yml mirror/.github/workflows/project-validation.yml
+          cp control/.gitignore mirror/.gitignore
+          printf '%s\n' "$SOURCE_REF" > mirror/.ci-source-sha
+
+      - name: Enforce public mirror file policy before tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          forbidden="$(find mirror -type f \( \
+            -name '*.md' -o -name '*.mdx' -o -name '*.doc' -o -name '*.docx' -o \
+            -name '*.pdf' -o -name '*.ppt' -o -name '*.pptx' -o -name 'AGENTS.md' -o \
+            -name '*.pem' -o -name '*.key' -o -name '*.p12' -o -name '*.pfx' -o \
+            -name '*.jks' -o -name '*.keystore' -o -name '*.pt' -o -name '*.pth' -o \
+            -name '*.onnx' -o -name '*.ckpt' -o -name '*.safetensors' \
+          \) -print)"
+          if [[ -n "$forbidden" ]]; then
+            echo "Forbidden files found in public mirror:"
+            printf '%s\n' "$forbidden"
+            exit 1
+          fi
+
+          if find mirror -type d \( -name records -o -name downloads -o -name data \) -print -quit | grep -q .; then
+            echo "Forbidden private/runtime directory found in public mirror."
+            exit 1
+          fi
+
+          patterns='-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9_-]{20,}'
+          if grep -R -I -n -E "$patterns" mirror \
+              --exclude='package-lock.json' --exclude='*.lock'; then
+            echo "Potential secret material detected in public mirror."
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: mirror/frontend/package-lock.json
+
+      - name: Validate frontend
+        working-directory: mirror/frontend
+        run: |
+          npm ci
+          npm run api:generate
+          npm run api:check
+          npm run type-check
+          npm run test
+          npm run build
+          npm run lint
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: mirror/backend-java/pom.xml
+
+      - name: Validate backend
+        working-directory: mirror/backend-java
+        shell: bash
+        run: |
+          mkdir -p .mvn
+          cat > .mvn/settings.xml <<'SETTINGS_EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd" />
+          SETTINGS_EOF
+          mvn -B -ntp test
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: mirror/ai-service-python/requirements.txt
+
+      - name: Validate Python AI service
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r mirror/ai-service-python/requirements.txt
+          cd mirror/ai-service-python
+          python -m compileall -q app modeling training tools
+          python -m tools.model_pipeline --help >/dev/null
+          pytest -q
+          cd ..
+          python -m unittest scripts/ai/tests/test_evaluate_phase7_validation.py
+          python -m unittest scripts/ai/tests/test_phase7_workflow_dsl.py
+
+      - name: Publish validated orphan snapshot to ci-base
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd mirror
+          git init
+          git config user.name 'urban-ci-bot'
+          git config user.email 'urban-ci-bot@users.noreply.github.com'
+          git checkout --orphan ci-base
+          git add -A
+          git commit -m "ci: validated snapshot ${SOURCE_REF:0:12}"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin HEAD:ci-base

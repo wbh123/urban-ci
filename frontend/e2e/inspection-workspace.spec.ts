@@ -5,6 +5,7 @@ async function login(page: Page, username: string, password: string) {
   await page.getByPlaceholder('请输入用户名').fill(username)
   await page.getByPlaceholder('请输入密码').fill(password)
   await page.getByRole('button', { name: '登录', exact: true }).click()
+  if (username !== 'wrong') await expect(page).not.toHaveURL(/\/console\/login/)
 }
 
 test.describe('巡检组织管理访问基线 (Mock 模式)', () => {

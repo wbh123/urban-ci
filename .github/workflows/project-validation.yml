@@ -91,3 +91,9 @@ jobs:
         run: python -m unittest scripts/ai/tests/test_evaluate_phase7_validation.py
       - name: Validate phase 7 Dify workflow DSL contracts
         run: python -m unittest scripts/ai/tests/test_phase7_workflow_dsl.py
+      - name: Validate no-CUDA Compose contract
+        shell: bash
+        run: |
+          python -m unittest scripts/dev/tests/test_no_cuda_compose_contract.py
+          bash -n scripts/dev/start-docker-no-cuda-compose.sh
+          docker compose --env-file .env.example -f docker/docker-compose.no-cuda.yml config >/dev/null

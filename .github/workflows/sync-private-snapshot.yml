@@ -7,6 +7,10 @@ on:
         description: Exact urban-safe-priority commit SHA to mirror
         required: true
         type: string
+  push:
+    branches: [main]
+    paths:
+      - '.ci-sync-source'
 
 permissions:
   contents: write
@@ -21,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      SOURCE_REF: ${{ inputs.source_ref }}
+      DISPATCH_SOURCE_REF: ${{ inputs.source_ref }}
     steps:
       - name: Checkout public control files
         uses: actions/checkout@v4
@@ -30,24 +34,41 @@ jobs:
           ref: main
           fetch-depth: 1
 
-      - name: Checkout exact private source commit
-        uses: actions/checkout@v4
-        with:
-          repository: wbh123/urban-safe-priority
-          ref: ${{ inputs.source_ref }}
-          token: ${{ secrets.URBAN_PRIVATE_REPO_TOKEN }}
-          path: private-source
-          fetch-depth: 1
-          persist-credentials: false
-
-      - name: Verify exact private source commit
+      - name: Resolve exact private source commit
         shell: bash
         run: |
           set -euo pipefail
-          requested="${SOURCE_REF,,}"
+          source_ref="${DISPATCH_SOURCE_REF:-}"
+          if [[ -z "$source_ref" ]]; then
+            source_ref="$(tr -d '[:space:]' < control/.ci-sync-source)"
+          fi
+          source_ref="${source_ref,,}"
+          if [[ ! "$source_ref" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "source_ref must be an exact 40-character commit SHA"
+            exit 1
+          fi
+          echo "SOURCE_REF=$source_ref" >> "$GITHUB_ENV"
+          echo "Validated requested source ref format: ${source_ref:0:12}"
+
+      - name: Checkout private source repository
+        uses: actions/checkout@v4
+        with:
+          repository: wbh123/urban-safe-priority
+          ref: main
+          token: ${{ secrets.URBAN_PRIVATE_REPO_TOKEN }}
+          path: private-source
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Checkout and verify exact private source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C private-source fetch --depth 1 origin "$SOURCE_REF"
+          git -C private-source checkout --detach FETCH_HEAD
           actual="$(git -C private-source rev-parse HEAD)"
-          if [[ "$actual" != "$requested" ]]; then
-            echo "Requested private commit $requested but checked out $actual"
+          if [[ "$actual" != "$SOURCE_REF" ]]; then
+            echo "Requested private commit $SOURCE_REF but checked out $actual"
             exit 1
           fi
           echo "Validated private source commit: $actual"
@@ -133,9 +154,9 @@ jobs:
             exit 1
           fi
 
-          for private_dir in mirror/records mirror/downloads mirror/data; do
-            if [[ -e "$private_dir" ]]; then
-              echo "Forbidden root private/runtime path found: $private_dir"
+          for root_dir in records downloads data; do
+            if [[ -e "mirror/$root_dir" ]]; then
+              echo "Forbidden private/runtime root path found: mirror/$root_dir"
               exit 1
             fi
           done

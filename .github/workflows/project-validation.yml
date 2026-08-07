@@ -34,12 +34,16 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-      - run: npm run api:generate
-      - run: npm run api:check
+      - name: Verify committed OpenAPI declaration
+        run: npm run api:check
       - run: npm run type-check
       - run: npm run test
       - run: npm run build
       - run: npm run lint
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run role and navigation E2E regression tests
+        run: npm run test:e2e
 
   backend:
     name: Backend compile and test

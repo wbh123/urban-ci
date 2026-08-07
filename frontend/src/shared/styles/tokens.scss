@@ -1,14 +1,84 @@
 :root {
+  /* Brand */
   --usp-color-primary: #287a6a;
+  --usp-color-primary-strong: #176354;
+  --usp-color-primary-dark: #124e43;
   --usp-color-primary-light: #eff9f6;
+  --usp-color-primary-soft: #e8f5f1;
+
+  /* Neutral surfaces and text */
   --usp-color-text: #172033;
   --usp-color-text-secondary: #667085;
+  --usp-color-text-tertiary: #98a2b3;
   --usp-color-border: #dfe5ec;
+  --usp-color-border-strong: #cfd8e3;
   --usp-color-bg: #f2f5f9;
   --usp-color-surface: #ffffff;
-  --usp-color-danger: #d92d20;
+  --usp-color-surface-muted: #f8fafc;
+  --usp-color-inverse: #ffffff;
+  --usp-color-aside: #152b27;
+  --usp-color-aside-hover: #1e4039;
+  --usp-color-aside-text: rgb(255 255 255 / 76%);
+  --usp-color-aside-text-muted: rgb(255 255 255 / 62%);
+
+  /* Semantic */
+  --usp-color-success: #067647;
   --usp-color-warning: #b54708;
-  --usp-radius: 14px;
-  --usp-shadow: 0 12px 36px rgba(35, 48, 70, 0.06);
-  --usp-header-height: 60px;
+  --usp-color-danger: #d92d20;
+  --usp-color-info: #175cd3;
+  --usp-color-risk-low: #12b76a;
+  --usp-color-risk-medium: #f79009;
+  --usp-color-risk-high: #f04438;
+  --usp-color-risk-unknown: #98a2b3;
+
+  /* Spacing: 4px base rhythm */
+  --usp-space-1: 4px;
+  --usp-space-2: 8px;
+  --usp-space-3: 12px;
+  --usp-space-4: 16px;
+  --usp-space-5: 20px;
+  --usp-space-6: 24px;
+  --usp-space-8: 32px;
+  --usp-space-10: 40px;
+
+  /* Radius */
+  --usp-radius-xs: 6px;
+  --usp-radius-sm: 8px;
+  --usp-radius-md: 12px;
+  --usp-radius-lg: 16px;
+  --usp-radius-xl: 20px;
+  --usp-radius: var(--usp-radius-lg);
+
+  /* Shadow */
+  --usp-shadow-sm: 0 1px 2px rgb(16 24 40 / 6%), 0 1px 3px rgb(16 24 40 / 8%);
+  --usp-shadow-md: 0 8px 24px rgb(16 24 40 / 8%);
+  --usp-shadow-lg: 0 18px 48px rgb(16 24 40 / 12%);
+  --usp-shadow: var(--usp-shadow-md);
+
+  /* Layout */
+  --usp-header-height: 64px;
+  --usp-console-aside-width: 248px;
+  --usp-console-aside-collapsed-width: 72px;
+  --usp-content-max-width: 1500px;
+  --usp-mobile-content-max-width: 720px;
+  --usp-transition-fast: 160ms ease;
+
+  /* Typography */
+  --usp-font-size-xs: 12px;
+  --usp-font-size-sm: 13px;
+  --usp-font-size-md: 14px;
+  --usp-font-size-lg: 16px;
+  --usp-font-size-title: 28px;
+  --usp-line-height-body: 1.6;
+
+  /* Element Plus bridge */
+  --el-color-primary: var(--usp-color-primary);
+  --el-color-success: var(--usp-color-success);
+  --el-color-warning: var(--usp-color-warning);
+  --el-color-danger: var(--usp-color-danger);
+  --el-color-info: var(--usp-color-info);
+  --el-border-radius-base: var(--usp-radius-sm);
+  --el-border-color: var(--usp-color-border);
+  --el-text-color-primary: var(--usp-color-text);
+  --el-text-color-regular: var(--usp-color-text-secondary);
 }

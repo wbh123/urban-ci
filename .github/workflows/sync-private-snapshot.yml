@@ -121,8 +121,6 @@ jobs:
             cp private-source/.env.example mirror/.env.example
           fi
 
-          # Dify DSL is executable source. Keep only YAML resources required by tests;
-          # do not copy surrounding Markdown documentation.
           dify_src='private-source/docs/10_开发阶段/07_第七阶段/resources'
           dify_dst='mirror/docs/10_开发阶段/07_第七阶段/resources'
           if [[ -d "$dify_src" ]]; then
@@ -242,3 +240,28 @@ jobs:
           git commit -m "ci: validated snapshot ${SOURCE_REF:0:12}"
           git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push --force origin HEAD:ci-base
+
+      - name: Record synchronization result
+        if: always()
+        shell: bash
+        env:
+          SYNC_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          cd control
+          git pull --rebase origin main
+          source_ref="${SOURCE_REF:-unknown}"
+          cat > .ci-sync-result <<EOF_RESULT
+          source_ref=$source_ref
+          status=$SYNC_STATUS
+          run_id=$GITHUB_RUN_ID
+          run_attempt=$GITHUB_RUN_ATTEMPT
+          trigger_commit=$GITHUB_SHA
+          EOF_RESULT
+          git config user.name 'urban-ci-bot'
+          git config user.email 'urban-ci-bot@users.noreply.github.com'
+          git add .ci-sync-result
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: record private snapshot sync $SYNC_STATUS"
+            git push origin HEAD:main
+          fi

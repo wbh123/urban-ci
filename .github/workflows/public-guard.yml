@@ -1,0 +1,67 @@
+name: Public Repository Guard
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: Public mirror safety guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Reject private documentation and binary assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          bad=0
+          while IFS= read -r file; do
+            case "$file" in
+              README.md|*/README.md|AGENTS.md|*/AGENTS.md|records/*|*/records/*)
+                echo "forbidden tracked project document: $file"
+                bad=1
+                ;;
+              *.md|*.mdx|*.doc|*.docx|*.pdf|*.ppt|*.pptx)
+                echo "forbidden tracked document: $file"
+                bad=1
+                ;;
+              .env|.env.local|.env.*.local|.env.backup-*|*/.env|*/.env.local|*/.env.*.local)
+                echo "forbidden runtime environment file: $file"
+                bad=1
+                ;;
+              downloads/*|*/downloads/*|data/*|*/data/*)
+                echo "forbidden runtime/data path: $file"
+                bad=1
+                ;;
+              *.pt|*.pth|*.onnx|*.ckpt|*.safetensors|*.pkl|*.joblib)
+                echo "forbidden model artifact: $file"
+                bad=1
+                ;;
+              *.pem|*.key|*.p12|*.pfx|*.jks|*.keystore)
+                echo "forbidden credential/certificate file: $file"
+                bad=1
+                ;;
+            esac
+          done < <(git ls-files)
+
+          if [[ "$bad" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Reject common secret patterns
+        shell: bash
+        run: |
+          set -euo pipefail
+          patterns='-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9_-]{20,}'
+          if git grep -I -n -E "$patterns" -- . ':!*.lock' ':!package-lock.json'; then
+            echo "Potential secret material detected in tracked files."
+            exit 1
+          fi
+          echo "No blocked secret pattern detected."

@@ -75,6 +75,22 @@ class AiImageQualityClientTest {
     }
 
     @Test
+    void analyzeImageQualityShouldMapStableImageError() {
+        wireMock.stubFor(post(urlEqualTo("/internal/api/v1/ai/image-quality"))
+                .willReturn(aResponse().withStatus(422)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("""
+                                {"requestId":"quality-1","status":"REJECTED",
+                                "errorCode":"AI_IMAGE_DECODE_FAILED","errorMessage":"图片解码失败"}
+                                """)));
+
+        AiFastApiException ex = assertThrows(AiFastApiException.class,
+                () -> client.analyzeImageQuality(new byte[]{1}, "quality-1"));
+
+        assertEquals("AI_IMAGE_DECODE_FAILED", ex.getErrorCode());
+    }
+
+    @Test
     void analyzeImageQualityShouldMapTimeout() {
         wireMock.stubFor(post(urlEqualTo("/internal/api/v1/ai/image-quality"))
                 .willReturn(aResponse().withStatus(200).withFixedDelay(1000)));

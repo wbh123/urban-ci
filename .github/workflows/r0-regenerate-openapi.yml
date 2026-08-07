@@ -1,0 +1,41 @@
+name: R0 OpenAPI Type Generation
+
+on:
+  push:
+    branches:
+      - work/r0-contract-guardrails
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/r0-contract-guardrails
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Generate OpenAPI TypeScript declarations
+        working-directory: frontend
+        run: npm run api:generate
+      - name: Commit generated declaration when changed
+        shell: bash
+        run: |
+          git add frontend/src/shared/api/generated/schema.d.ts
+          if git diff --cached --quiet; then
+            echo 'Generated declaration already up to date.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(frontend): regenerate phase2 OpenAPI types'
+          git push origin HEAD:work/r0-contract-guardrails

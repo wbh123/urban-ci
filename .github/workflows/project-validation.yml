@@ -43,7 +43,19 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
       - name: Run role and navigation E2E regression tests
-        run: npm run test:e2e
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:e2e 2>&1 | tee playwright-r1.log
+      - name: Export Playwright diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r1-playwright-diagnostic
+          path: |
+            frontend/playwright-r1.log
+            frontend/test-results
+          if-no-files-found: ignore
 
   backend:
     name: Backend compile and test

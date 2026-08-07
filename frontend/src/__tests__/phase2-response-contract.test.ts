@@ -35,7 +35,7 @@ describe('第二阶段正式响应契约', () => {
     expectSchemaRef('/api/v1/inspection-records', 'InspectionRecordListSuccessResponse')
   })
 
-  it('第二阶段声明长期使用的 data 类型', () => {
+  it('第二阶段声明长期使用的正式 data 类型', () => {
     for (const schema of [
       'MapRuntimeConfig',
       'CommunityPoint',

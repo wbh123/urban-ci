@@ -170,7 +170,10 @@ public class SpatialBoundaryRepository {
                 UPDATE %s
                 SET status=:targetStatus,
                     version=:nextVersion,
-                    verified_by=CASE WHEN :targetStatus='VERIFIED' THEN :actorId ELSE NULL END,
+                    verified_by=CASE
+                        WHEN :targetStatus='VERIFIED' THEN CAST(:actorId AS uuid)
+                        ELSE NULL::uuid
+                    END,
                     verified_at=CASE WHEN :targetStatus='VERIFIED' THEN CURRENT_TIMESTAMP ELSE NULL END,
                     remark=:remark,
                     updated_at=CURRENT_TIMESTAMP
@@ -244,7 +247,7 @@ public class SpatialBoundaryRepository {
                     :status,
                     :changeType,
                     :remark,
-                    :actorId,
+                    CAST(:actorId AS uuid),
                     CURRENT_TIMESTAMP)
                 """, new MapSqlParameterSource()
                 .addValue("entityType", snapshot.entityType().name())

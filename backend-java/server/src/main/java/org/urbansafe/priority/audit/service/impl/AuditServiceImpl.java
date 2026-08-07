@@ -65,7 +65,7 @@ public class AuditServiceImpl implements AuditService {
         entity.setResourceType(operation.resourceType());
         entity.setResourceId(operation.resourceId());
         entity.setRequestId(context.requestId());
-        entity.setClientIp(context.clientIp());
+        entity.setClientIp(normalizeClientIp(context.clientIp()));
         entity.setSuccess(true);
         entity.setOperationDetail(auditDataSanitizer.sanitize(
                 java.util.Map.of("summary", operation.summary() == null ? "" : operation.summary())));
@@ -94,7 +94,7 @@ public class AuditServiceImpl implements AuditService {
         entity.setResourceType(operation.resourceType());
         entity.setResourceId(operation.resourceId());
         entity.setRequestId(context.requestId());
-        entity.setClientIp(context.clientIp());
+        entity.setClientIp(normalizeClientIp(context.clientIp()));
         entity.setSuccess(false);
         entity.setErrorCode(errorCode);
         entity.setErrorMessage(errorMessage);
@@ -105,6 +105,20 @@ public class AuditServiceImpl implements AuditService {
         entity.setChangedFields(objectMapper.valueToTree(operation.changedFields()));
         entity.setOperatedAt(OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC));
         operationLogRepository.insert(entity);
+    }
+
+    /**
+     * 将审计客户端地址规范化为可安全写入 INET 列的值。
+     *
+     * <p>异步执行工作器等非 Web 线程没有请求上下文，{@link AuditContext#clientIp()} 返回空字符串；
+     * 直接把空字符串写入 {@code client_ip INET} 列会触发
+     * {@code invalid input syntax for type inet}，因此必须落为 NULL 而不是抛错。
+     *
+     * @param clientIp 请求过滤器规范化后的客户端地址，非 Web 线程可能为空字符串
+     * @return 有效地址原样返回，空字符串或 null 返回 null
+     */
+    private static String normalizeClientIp(String clientIp) {
+        return (clientIp == null || clientIp.isBlank()) ? null : clientIp;
     }
 
     @Override

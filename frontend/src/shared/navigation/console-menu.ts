@@ -57,6 +57,12 @@ const GROUPS: readonly ConsoleMenuGroup[] = [
         allowedRoles: ['COMMUNITY_MANAGER', 'GOVERNMENT_MANAGER', 'ADMIN'],
       },
       {
+        path: '/console/archive-management',
+        label: '小区与楼栋管理',
+        icon: '▤',
+        allowedRoles: SPATIAL_ARCHIVE_ROLES,
+      },
+      {
         path: '/console/spatial-archive',
         label: '空间档案',
         icon: '⬡',

@@ -61,7 +61,7 @@ class CommunityBoundaryCandidateServiceTest {
                 {"status":"1","pois":[{"id":"B012345","name":"示范小区","address":"示范路1号"}]}
                 """));
         when(gateway.fetchAoi("B012345")).thenReturn(json("""
-                {"status":"0","info":"ok","aois":[{"id":"B012345","name":"示范小区","address":"示范路1号","polyline":"113.100000,27.800000_113.110000,27.800000_113.110000,27.810000"}]}
+                {"status":"0","info":"ok","aois":{"id":"B012345","name":"示范小区","address":"示范路1号","polyline":"113.100000,27.800000_113.110000,27.800000_113.110000,27.810000"}}
                 """));
 
         Map<String, Object> result = service.preview("示范小区", "湖南省株洲市示范路1号", "株洲市");
@@ -108,7 +108,7 @@ class CommunityBoundaryCandidateServiceTest {
                 {"status":"1","pois":[{"id":"B012345","name":"示范小区"}]}
                 """));
         when(gateway.fetchAoi("B012345")).thenReturn(json("""
-                {"status":"0","info":"NO_AOI_PERMISSION","aois":[]}
+                {"status":"0","info":"NO_AOI_PERMISSION"}
                 """));
 
         Map<String, Object> result = service.preview("示范小区", null, "株洲市");

@@ -17,6 +17,8 @@ public class ArchiveLocationService {
 
     private static final Set<String> LOCATION_PROVIDERS =
             Set.of("AMAP", "MANUAL", "IMPORT", "MOCK");
+    private static final Set<String> LOCATION_COORDINATE_SYSTEMS =
+            Set.of("GCJ02", "WGS84", "BD09", "UNKNOWN");
 
     private final BusinessAccessService access;
     private final Phase2Repository repository;
@@ -43,12 +45,14 @@ public class ArchiveLocationService {
             throw new InvalidRequestException("MAP_COORDINATE_INVALID", "经纬度超出有效范围");
         }
         String provider = locationProvider(request.get("provider"));
+        String coordinateSystem = coordinateSystem(request.get("coordinateSystem"), provider);
         return repository.saveBuildingLocation(
                 buildingId,
                 longitude,
                 latitude,
                 text(request.get("formattedAddress")),
                 provider,
+                coordinateSystem,
                 text(request.get("matchLevel")),
                 repository.json(locationMetadata(request)));
     }
@@ -70,6 +74,24 @@ public class ArchiveLocationService {
                     "MAP_PROVIDER_INVALID", "provider 仅支持 AMAP、MANUAL、IMPORT 或 MOCK");
         }
         return provider;
+    }
+
+    private String coordinateSystem(Object value, String provider) {
+        String coordinateSystem = text(value);
+        if (coordinateSystem == null) {
+            return switch (provider) {
+                case "AMAP" -> "GCJ02";
+                case "MOCK", "MANUAL", "IMPORT" -> "UNKNOWN";
+                default -> "UNKNOWN";
+            };
+        }
+        coordinateSystem = coordinateSystem.toUpperCase(Locale.ROOT);
+        if (!LOCATION_COORDINATE_SYSTEMS.contains(coordinateSystem)) {
+            throw new InvalidRequestException(
+                    "MAP_COORDINATE_SYSTEM_INVALID",
+                    "coordinateSystem 仅支持 GCJ02、WGS84、BD09 或 UNKNOWN");
+        }
+        return coordinateSystem;
     }
 
     private Object locationMetadata(Map<String, Object> request) {

@@ -27,6 +27,7 @@ public class ArchiveLocationService {
     }
 
     public Map<String, Object> getBuildingLocation(UUID buildingId) {
+        requireBuilding(buildingId);
         access.assertCanReadBuilding(buildingId);
         return repository.findBuildingLocation(buildingId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -34,6 +35,7 @@ public class ArchiveLocationService {
     }
 
     public Map<String, Object> saveBuildingLocation(UUID buildingId, Map<String, Object> request) {
+        requireBuilding(buildingId);
         access.assertCanManageBuilding(buildingId);
         double longitude = number(request.get("longitude"), "longitude");
         double latitude = number(request.get("latitude"), "latitude");
@@ -49,6 +51,12 @@ public class ArchiveLocationService {
                 provider,
                 text(request.get("matchLevel")),
                 repository.json(locationMetadata(request)));
+    }
+
+    private void requireBuilding(UUID buildingId) {
+        if (buildingId == null || !repository.buildingExists(buildingId)) {
+            throw new ResourceNotFoundException("BUILDING_NOT_FOUND", "楼栋不存在");
+        }
     }
 
     private String locationProvider(Object value) {

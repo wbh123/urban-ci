@@ -28,11 +28,10 @@ public class CommunityBoundaryCandidateService {
 
     public CommunityBoundaryCandidateService(
             MapProperties map,
-            AmapProperties amap,
             AmapBoundaryCandidateGateway gateway
     ) {
         this.map = map;
-        this.amap = amap;
+        this.amap = map.getAmap();
         this.gateway = gateway;
     }
 

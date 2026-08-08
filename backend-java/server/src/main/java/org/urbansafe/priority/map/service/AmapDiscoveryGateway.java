@@ -1,6 +1,8 @@
 package org.urbansafe.priority.map.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Optional;
@@ -23,9 +25,11 @@ public class AmapDiscoveryGateway {
 
     private final AmapProperties amap;
     private final RestClient client;
+    private final ObjectMapper objectMapper;
 
     public AmapDiscoveryGateway(AmapProperties amap) {
         this.amap = amap;
+        this.objectMapper = new ObjectMapper();
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofMillis(Math.max(1, amap.getConnectTimeoutMs())));
         requestFactory.setReadTimeout(Duration.ofMillis(Math.max(1, amap.getReadTimeoutMs())));
@@ -66,7 +70,15 @@ public class AmapDiscoveryGateway {
 
     private JsonNode get(UriComponentsBuilder builder) {
         URI uri = builder.build().encode().toUri();
-        return client.get().uri(uri).retrieve().body(JsonNode.class);
+        String body = client.get().uri(uri).retrieve().body(String.class);
+        if (body == null || body.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readTree(body);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("高德地图服务返回了无法解析的 JSON", ex);
+        }
     }
 
     private String baseUrl() {

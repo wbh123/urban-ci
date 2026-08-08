@@ -36,8 +36,9 @@ class CommunityBoundaryCandidateServiceTest {
         amap = new AmapProperties();
         map = new MapProperties();
         map.setEnabled(true);
+        map.setAmap(amap);
         amap.setWebServiceKey("test-key");
-        service = new CommunityBoundaryCandidateService(map, amap, gateway);
+        service = new CommunityBoundaryCandidateService(map, gateway);
     }
 
     @Test

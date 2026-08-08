@@ -183,6 +183,9 @@ components:
           type: string
           enum: [AMAP, MANUAL, IMPORT, MOCK]
           default: MANUAL
+        coordinateSystem:
+          type: string
+          enum: [GCJ02, WGS84, BD09, UNKNOWN]
         matchLevel: { type: string, nullable: true, maxLength: 64 }
         mock: { type: boolean, nullable: true }
         metadata:

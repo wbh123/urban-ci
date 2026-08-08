@@ -1,14 +1,6 @@
 import { http } from 'msw'
-import { db } from '../fixtures/data'
+import { db, type MockCommunityWrite } from '../fixtures/data'
 import { errorResponse, okResponse, requireAuth } from './helpers'
-
-interface MockCommunityWrite {
-  communityCode?: string
-  communityName?: string
-  administrativeRegion?: string
-  address?: string
-  status?: 'ACTIVE' | 'INACTIVE'
-}
 
 interface MockBuildingWrite {
   communityId?: string
@@ -33,11 +25,8 @@ interface MockLocationWrite {
   metadata?: Record<string, unknown>
 }
 
-const communityMetadata = new Map<string, MockCommunityWrite>()
-const buildingLocations = new Map<string, Record<string, unknown>>()
-
 function communityRow(community: (typeof db.communities)[number]) {
-  const metadata = communityMetadata.get(community.communityId)
+  const metadata = db.communityMetadata.get(community.communityId)
   return {
     id: community.communityId,
     communityCode: metadata?.communityCode ?? `COM-${community.communityId.slice(0, 8)}`,
@@ -80,7 +69,7 @@ export const archiveHandlers = [
       communityName: body.communityName.trim(),
       address: body.address?.trim() ?? '',
     })
-    communityMetadata.set(id, { ...body })
+    db.communityMetadata.set(id, { ...body })
     return okResponse({
       id,
       communityCode: body.communityCode.trim(),
@@ -194,7 +183,7 @@ export const archiveHandlers = [
       metadata: body.metadata ?? {},
       updatedAt: new Date().toISOString(),
     }
-    buildingLocations.set(buildingId, stored)
+    db.buildingLocations.set(buildingId, stored)
     return okResponse(stored)
   }),
 
@@ -202,7 +191,7 @@ export const archiveHandlers = [
     const unauth = requireAuth(request)
     if (unauth) return unauth
     const buildingId = String(params.buildingId)
-    const stored = buildingLocations.get(buildingId)
+    const stored = db.buildingLocations.get(buildingId)
     if (!stored) return errorResponse('BUILDING_LOCATION_NOT_FOUND', '楼栋尚未保存地图位置。', 404)
     return okResponse(stored)
   }),

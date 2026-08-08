@@ -19,6 +19,7 @@ NEGATIVE_LABELS = {
 }
 LOW_QUALITY_CATEGORY = "low_quality"
 LOW_QUALITY_ERROR_CODE = "AI_IMAGE_LOW_QUALITY"
+NOT_APPLICABLE_ERROR_CODE = "AI_IMAGE_NOT_APPLICABLE"
 REQUIRED_STRUCTURED_FIELDS = {
     "summary", "detections", "riskSignals", "recommendations", "warnings", "confidence",
 }
@@ -117,6 +118,13 @@ def is_low_quality_precheck_rejection(row: dict[str, Any]) -> bool:
     )
 
 
+def is_not_applicable_rejection(row: dict[str, Any]) -> bool:
+    return (
+        str(row.get("status") or "").strip().upper() == "REJECTED"
+        and result_error_code(row) == NOT_APPLICABLE_ERROR_CODE
+    )
+
+
 def predicted_labels(row: dict[str, Any]) -> set[str]:
     payload = structured_payload(row) or {}
     labels: set[str] = set()
@@ -158,6 +166,7 @@ def evaluate(
     costs: list[float] = []
     valid_count = structured_required = succeeded = completed = 0
     expected_precheck_rows = correct_precheck_rejections = unexpected_precheck_rejections = 0
+    not_applicable_rejections = 0
     tp = fp = fn = tn = 0
     labeled = 0
     runs_by_sample: dict[str, list[set[str]]] = defaultdict(list)
@@ -180,6 +189,9 @@ def evaluate(
         if expects_precheck:
             expected_precheck_rows += 1
         precheck_rejected = is_low_quality_precheck_rejection(row)
+        not_applicable_rejected = is_not_applicable_rejection(row)
+        if not_applicable_rejected:
+            not_applicable_rejections += 1
         if precheck_rejected:
             if expects_precheck:
                 correct_precheck_rejections += 1
@@ -224,7 +236,7 @@ def evaluate(
 
         labels = predicted_labels(row)
         runs_by_sample[sample_id].append(labels)
-        if expected is None or status != "SUCCEEDED":
+        if expected is None or (status != "SUCCEEDED" and not not_applicable_rejected):
             continue
         labeled += 1
         predicted = bool(labels)
@@ -249,7 +261,7 @@ def evaluate(
     precision = tp / (tp + fp) if tp + fp else 0.0
     recall = tp / (tp + fn) if tp + fn else 0.0
     specificity = tn / (tn + fp) if tn + fp else 0.0
-    terminal_accepted = succeeded + correct_precheck_rejections
+    terminal_accepted = succeeded + correct_precheck_rejections + not_applicable_rejections
     metrics = {
         "providerFilter": provider_filter,
         "resultRows": total,
@@ -268,6 +280,7 @@ def evaluate(
             correct_precheck_rejections / expected_precheck_rows
             if expected_precheck_rows else None
         ),
+        "notApplicableRejections": not_applicable_rejections,
         "averageDurationMs": statistics.fmean(durations) if durations else 0.0,
         "p95DurationMs": percentile(durations, 0.95),
         "totalEstimatedCost": sum(costs),
@@ -312,6 +325,7 @@ def write_outputs(output_dir: Path, metrics: dict[str, Any], errors: list[dict[s
 - 正确低质量门禁拒绝数：{metrics['correctPrecheckRejections']}
 - 低质量门禁命中率：{_format_optional_rate(metrics['precheckRejectionRate'])}
 - 非预期低质量门禁拒绝数：{metrics['unexpectedPrecheckRejections']}
+- 不适用场景稳定拒绝数：{metrics['notApplicableRejections']}
 - 平均耗时：{metrics['averageDurationMs']:.2f} ms
 - 第 95 百分位耗时：{metrics['p95DurationMs']:.2f} ms
 - 总估算费用：{metrics['totalEstimatedCost']:.6f}
@@ -322,7 +336,7 @@ def write_outputs(output_dir: Path, metrics: dict[str, Any], errors: list[dict[s
 - 重复调用标签一致性：{metrics['repeatLabelJaccard']}
 - 结构或样本错误数：{metrics['errorCount']}
 
-> 本报告用于固定诊断集质量比较，不等同于法定房屋安全鉴定，也不能把模型自评置信度解释为房屋危险概率。低质量图片在 Dify 前被正确拒绝属于有效业务终态，不要求结构化 Dify 结果。
+> 本报告用于固定诊断集质量比较，不等同于法定房屋安全鉴定，也不能把模型自评置信度解释为房屋危险概率。低质量图片在 Dify 前被正确拒绝属于有效业务终态，不要求结构化 Dify 结果；带合法结构化结果的 `AI_IMAGE_NOT_APPLICABLE` 拒绝同样属于可评估的业务终态并参与正负样本统计。
 """
     (output_dir / "summary.md").write_text(summary, encoding="utf-8")
 

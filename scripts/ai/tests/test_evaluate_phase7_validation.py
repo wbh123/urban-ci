@@ -107,6 +107,45 @@ class EvaluatePhase7ValidationTest(unittest.TestCase):
         self.assertEqual(metrics["labeledRows"], 1)
         self.assertEqual(errors, [])
 
+    def test_expected_not_applicable_rejection_counts_as_true_negative(self):
+        manifest = {
+            "non-building": {
+                "sample_id": "non-building",
+                "primary_category": "not_applicable",
+                "secondary_label": "NOT_APPLICABLE",
+                "needs_manual_review": "false",
+            }
+        }
+        payload = {
+            "summary": "图片不适用于建筑表观病害分析",
+            "detections": [],
+            "riskSignals": [],
+            "recommendations": ["重新上传建筑或建筑构件图片"],
+            "warnings": [],
+            "confidence": 0.95,
+        }
+        metrics, errors = MODULE.evaluate(
+            manifest,
+            [{
+                "sampleId": "non-building",
+                "providerCode": "DIFY",
+                "status": "REJECTED",
+                "errorCode": "AI_IMAGE_NOT_APPLICABLE",
+                "durationMs": 1200,
+                "structuredResult": payload,
+            }],
+            "DIFY",
+        )
+
+        self.assertEqual(metrics["structuredRequiredRows"], 1)
+        self.assertEqual(metrics["structuredValidRows"], 1)
+        self.assertEqual(metrics["structuredValidRate"], 1.0)
+        self.assertEqual(metrics["confusionMatrix"]["trueNegative"], 1)
+        self.assertEqual(metrics["labeledRows"], 1)
+        self.assertEqual(metrics["terminalAcceptedRows"], 1)
+        self.assertEqual(metrics["terminalAcceptedRate"], 1.0)
+        self.assertEqual(errors, [])
+
     def test_invalid_structure_is_reported(self):
         manifest = {
             "sample": {

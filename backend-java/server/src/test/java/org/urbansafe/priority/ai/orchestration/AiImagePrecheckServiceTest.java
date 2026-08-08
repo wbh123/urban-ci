@@ -31,8 +31,8 @@ class AiImagePrecheckServiceTest {
     }
 
     @Test
-    void shouldRejectLowQualityBeforeOnlineWorkflow() {
-        AiOrchestrationRequest request = imageWorkflowRequest();
+    void shouldRejectLowQualityBeforeOnlineWorkflowForRegisteredModelCode() {
+        AiOrchestrationRequest request = imageModelRequest();
         when(client.analyzeImageQuality(request.imageBytes(), request.requestId()))
                 .thenReturn(quality(true, List.of("IMAGE_BLURRED")));
 
@@ -44,8 +44,8 @@ class AiImagePrecheckServiceTest {
     }
 
     @Test
-    void shouldAttachPrecheckJsonForAcceptableImage() {
-        AiOrchestrationRequest request = imageWorkflowRequest();
+    void shouldAttachPrecheckJsonForAcceptableRegisteredModelCode() {
+        AiOrchestrationRequest request = imageModelRequest();
         when(client.analyzeImageQuality(request.imageBytes(), request.requestId()))
                 .thenReturn(quality(false, List.of()));
 
@@ -55,6 +55,20 @@ class AiImagePrecheckServiceTest {
         assertTrue(json.contains("LOCAL-IMAGE-QUALITY-001"));
         assertTrue(json.contains("\"lowQuality\":false"));
         assertEquals("asset-1", result.inputs().get("assetId"));
+    }
+
+    @Test
+    void shouldAlsoAcceptWorkflowCodeAlias() {
+        AiOrchestrationRequest request = new AiOrchestrationRequest(
+                "request-1", AiCapabilityType.WORKFLOW, "DIFY", "DIFY-IMAGE-ANALYSIS-001",
+                "REAL", new byte[]{1, 2, 3}, "image/jpeg", "分析图片",
+                Map.of("assetId", "asset-1", "requestCode", "AI-1"));
+        when(client.analyzeImageQuality(request.imageBytes(), request.requestId()))
+                .thenReturn(quality(false, List.of()));
+
+        AiOrchestrationRequest result = service.precheck(request);
+
+        assertTrue(result.inputs().containsKey("precheckJson"));
     }
 
     @Test
@@ -70,7 +84,7 @@ class AiImagePrecheckServiceTest {
 
     @Test
     void shouldMapFastApiTimeoutToRetryableProviderTimeout() {
-        AiOrchestrationRequest request = imageWorkflowRequest();
+        AiOrchestrationRequest request = imageModelRequest();
         when(client.analyzeImageQuality(request.imageBytes(), request.requestId()))
                 .thenThrow(new AiFastApiException("AI_SERVICE_TIMEOUT", "timeout"));
 
@@ -80,9 +94,9 @@ class AiImagePrecheckServiceTest {
         assertEquals(AiErrorCodes.AI_PROVIDER_TIMEOUT, ex.getErrorCode());
     }
 
-    private static AiOrchestrationRequest imageWorkflowRequest() {
+    private static AiOrchestrationRequest imageModelRequest() {
         return new AiOrchestrationRequest(
-                "request-1", AiCapabilityType.WORKFLOW, "DIFY", "DIFY-IMAGE-ANALYSIS-001",
+                "request-1", AiCapabilityType.WORKFLOW, "DIFY", "AI-DIFY-WORKFLOW-001",
                 "REAL", new byte[]{1, 2, 3}, "image/jpeg", "分析图片",
                 Map.of("assetId", "asset-1", "requestCode", "AI-1"));
     }

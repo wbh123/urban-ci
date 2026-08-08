@@ -1,19 +1,17 @@
 package org.urbansafe.priority.map.config;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
-@ConfigurationProperties(prefix = "urban-safe.map.amap")
 public class AmapProperties {
 
-    private String jsApiKey = "";
-    private String securityJsCode = "";
+    private String jsApiKey;
+    private String securityJsCode;
     private String serviceHost = "/_AMapService";
-    private String webServiceKey = "";
+    private String webServiceKey;
     private String webServiceBaseUrl = "https://restapi.amap.com";
     private int connectTimeoutMs = 3000;
     private int readTimeoutMs = 5000;
-    private int cacheTtlSeconds = 86400;
+    private long cacheTtlSeconds = 86400;
     private boolean liveTestEnabled = false;
+    private boolean boundaryCandidateEnabled = false;
 
     public String getJsApiKey() {
         return jsApiKey;
@@ -71,11 +69,11 @@ public class AmapProperties {
         this.readTimeoutMs = readTimeoutMs;
     }
 
-    public int getCacheTtlSeconds() {
+    public long getCacheTtlSeconds() {
         return cacheTtlSeconds;
     }
 
-    public void setCacheTtlSeconds(int cacheTtlSeconds) {
+    public void setCacheTtlSeconds(long cacheTtlSeconds) {
         this.cacheTtlSeconds = cacheTtlSeconds;
     }
 
@@ -85,5 +83,13 @@ public class AmapProperties {
 
     public void setLiveTestEnabled(boolean liveTestEnabled) {
         this.liveTestEnabled = liveTestEnabled;
+    }
+
+    public boolean isBoundaryCandidateEnabled() {
+        return boundaryCandidateEnabled;
+    }
+
+    public void setBoundaryCandidateEnabled(boolean boundaryCandidateEnabled) {
+        this.boundaryCandidateEnabled = boundaryCandidateEnabled;
     }
 }

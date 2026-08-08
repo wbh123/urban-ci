@@ -20,6 +20,7 @@ interface MockLocationWrite {
   latitude?: number
   formattedAddress?: string
   provider?: 'AMAP' | 'MANUAL' | 'IMPORT' | 'MOCK'
+  coordinateSystem?: 'GCJ02' | 'WGS84' | 'BD09' | 'UNKNOWN'
   matchLevel?: string
   mock?: boolean
   metadata?: Record<string, unknown>
@@ -47,6 +48,11 @@ function page<T>(content: T[]) {
       totalPages: content.length > 0 ? 1 : 0,
     },
   }
+}
+
+function defaultCoordinateSystem(provider: MockLocationWrite['provider']) {
+  if (provider === 'AMAP') return 'GCJ02' as const
+  return 'UNKNOWN' as const
 }
 
 export const archiveHandlers = [
@@ -172,13 +178,14 @@ export const archiveHandlers = [
     if (typeof body.longitude !== 'number' || typeof body.latitude !== 'number') {
       return errorResponse('MAP_COORDINATE_INVALID', '经纬度不能为空。', 400)
     }
+    const provider = body.provider ?? 'MOCK'
     const stored = {
       buildingId,
       longitude: body.longitude,
       latitude: body.latitude,
       formattedAddress: body.formattedAddress ?? '',
-      provider: body.provider ?? 'MOCK',
-      coordinateSystem: body.provider === 'MOCK' ? 'UNKNOWN' : 'GCJ02',
+      provider,
+      coordinateSystem: body.coordinateSystem ?? defaultCoordinateSystem(provider),
       matchLevel: body.matchLevel ?? 'MOCK_PREVIEW',
       metadata: body.metadata ?? {},
       updatedAt: new Date().toISOString(),

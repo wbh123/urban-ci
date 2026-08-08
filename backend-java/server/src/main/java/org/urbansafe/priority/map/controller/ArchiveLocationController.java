@@ -49,6 +49,9 @@ public class ArchiveLocationController implements ArchiveLocationApi {
         if (request.getProvider() != null) {
             payload.put("provider", request.getProvider().getValue());
         }
+        if (request.getCoordinateSystem() != null) {
+            payload.put("coordinateSystem", request.getCoordinateSystem().getValue());
+        }
         putIfPresent(payload, "matchLevel", request.getMatchLevel());
         putIfPresent(payload, "mock", request.getMock());
         putIfPresent(payload, "metadata", request.getMetadata());

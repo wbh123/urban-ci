@@ -34,6 +34,7 @@ const userRoleLabel = computed(() => {
   const role = authStore.user?.roles[0]
   return role ? roleLabels[role] : '已登录'
 })
+const fullWidth = computed(() => route.meta.fullWidth === true)
 const breadcrumbs = computed(() => {
   const currentTitle = String(route.meta.title || '管理端')
   if (route.path === '/console') return [{ label: '工作台', path: '' }]
@@ -153,7 +154,7 @@ async function handleUserCommand(command: string): Promise<void> {
         </div>
       </el-header>
 
-      <el-main class="console-main">
+      <el-main class="console-main" :class="{ 'console-main--wide': fullWidth }">
         <RouterView />
       </el-main>
     </el-container>
@@ -428,6 +429,11 @@ async function handleUserCommand(command: string): Promise<void> {
   padding: var(--usp-space-6);
 }
 
+.console-main--wide {
+  max-width: none;
+  padding: var(--usp-space-4) var(--usp-space-5) var(--usp-space-5);
+}
+
 @media (max-width: 1080px) {
   .console-user-copy,
   .console-page-title {
@@ -444,7 +450,8 @@ async function handleUserCommand(command: string): Promise<void> {
     display: none;
   }
 
-  .console-main {
+  .console-main,
+  .console-main--wide {
     padding: var(--usp-space-4);
   }
 }

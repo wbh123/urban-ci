@@ -50,7 +50,7 @@ describe('spatial AMap driver', () => {
 
   it('renders community/building polygons, links clicks and emits viewport changes', async () => {
     const polygons: FakePolygon[] = []
-    let map!: FakeMap
+    const maps: FakeMap[] = []
 
     class FakePolygon {
       options: Record<string, unknown>
@@ -72,7 +72,7 @@ describe('spatial AMap driver', () => {
       handlers = new Map<string, () => void>()
       destroyed = false
 
-      constructor() { map = this }
+      constructor() { maps.push(this) }
       add() {}
       on(event: string, handler: () => void) { this.handlers.set(event, handler) }
       getZoom() { return 16 }
@@ -107,6 +107,7 @@ describe('spatial AMap driver', () => {
       onCommunityClick,
       onBuildingClick,
     })).toBe(true)
+    const map = maps[0]!
 
     const community = feature('c1', 'COMMUNITY', {
       type: 'Polygon',

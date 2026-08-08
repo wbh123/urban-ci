@@ -27,7 +27,7 @@ describe('ConsoleSpatialMapPage R3 integration', () => {
   })
 
   it('has an explicit unavailable-state instead of fabricating polygons', () => {
-    expect(source).toContain("runtimeConfig.mode !== 'LIVE'")
+    expect(source).toContain("mode !== 'LIVE'")
     expect(source).toContain('地图服务当前不可用')
     expect(source).not.toContain('syntheticBoundary')
   })

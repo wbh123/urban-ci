@@ -79,7 +79,7 @@ public class CommunityBoundaryCandidateService {
             result.put("name", firstText(aoi, "name", poi.path("name").asText(null), communityName));
             result.put("address", firstText(aoi, "address", poi.path("address").asText(null), address));
             result.put("geometry", geometry);
-            result.put("message", "候选边界仅用于预览，保存前请人工确认。\n");
+            result.put("message", "候选边界仅用于预览，保存前请人工确认。");
             return result;
         } catch (BusinessException exception) {
             throw exception;
@@ -97,7 +97,7 @@ public class CommunityBoundaryCandidateService {
         }
         if (StringUtils.hasText(communityName)) {
             for (JsonNode poi : pois) {
-                if (communityName.equalsIgnoreCase(poi.path("name").asText("" ).trim())) {
+                if (communityName.equalsIgnoreCase(poi.path("name").asText("").trim())) {
                     return poi;
                 }
             }
@@ -112,7 +112,7 @@ public class CommunityBoundaryCandidateService {
 
     private Map<String, Object> parseGeometry(String polyline) {
         String[] polygonTexts = polyline.split("\\|");
-        List<List<List<Double>>> polygons = new ArrayList<>();
+        List<List<List<List<Double>>>> polygons = new ArrayList<>();
         for (String polygonText : polygonTexts) {
             List<List<Double>> ring = parseRing(polygonText);
             if (ring.size() >= 4) {

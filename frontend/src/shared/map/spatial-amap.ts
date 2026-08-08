@@ -1,4 +1,3 @@
-import AMapLoader from '@amap/amap-jsapi-loader'
 import type { MapRuntimeConfig } from '@/shared/api/endpoints/map'
 import type { SpatialGeoJsonFeature, SpatialGeoJsonGeometry } from '@/shared/api/endpoints/spatial'
 import type { SpatialBboxQuery } from '@/shared/api/endpoints/spatial'
@@ -33,6 +32,12 @@ interface AmapPolygonLike {
 interface AmapNamespaceLike {
   Map: new (container: HTMLElement, options: Record<string, unknown>) => AmapMapLike
   Polygon: new (options: Record<string, unknown>) => AmapPolygonLike
+}
+
+interface AmapWindow extends Window {
+  AMap?: AmapNamespaceLike
+  _AMapSecurityConfig?: { serviceHost?: string }
+  [key: string]: unknown
 }
 
 export interface SpatialAmapLoadOptions {
@@ -72,10 +77,42 @@ type Ring = Coordinate[]
 type PolygonPath = Ring[]
 
 const DEFAULT_PLUGINS = ['AMap.PolygonEditor', 'AMap.MouseTool']
+let loaderPromise: Promise<AmapNamespaceLike> | null = null
 
 const defaultLoader: SpatialAmapLoader = async (options) => {
-  const namespace = await AMapLoader.load(options)
-  return namespace as unknown as AmapNamespaceLike
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    throw new Error('当前运行环境不支持高德地图')
+  }
+  const target = window as AmapWindow
+  if (target.AMap) return target.AMap
+  if (loaderPromise) return loaderPromise
+
+  loaderPromise = new Promise<AmapNamespaceLike>((resolve, reject) => {
+    const callbackName = `__urbanSafeSpatialAmapLoaded_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    target[callbackName] = () => {
+      delete target[callbackName]
+      if (target.AMap) resolve(target.AMap)
+      else reject(new Error('高德地图脚本已加载，但 AMap 对象不可用'))
+    }
+
+    const params = new URLSearchParams({
+      v: options.version,
+      key: options.key,
+      callback: callbackName,
+      plugin: options.plugins.join(','),
+    })
+    const script = document.createElement('script')
+    script.async = true
+    script.src = `https://webapi.amap.com/maps?${params.toString()}`
+    script.onerror = () => {
+      delete target[callbackName]
+      loaderPromise = null
+      reject(new Error('高德地图 JavaScript API 加载失败'))
+    }
+    document.head.appendChild(script)
+  })
+
+  return loaderPromise
 }
 
 export function geometryToAmapPolygons(geometry: SpatialGeoJsonGeometry): PolygonPath[] {
@@ -157,7 +194,7 @@ export function createSpatialAmapDriver(
     if (config.mode !== 'LIVE' || !config.jsApiKey) return false
 
     if (config.serviceHost && typeof window !== 'undefined') {
-      const target = window as typeof window & { _AMapSecurityConfig?: { serviceHost?: string } }
+      const target = window as AmapWindow
       target._AMapSecurityConfig = { serviceHost: config.serviceHost }
     }
 

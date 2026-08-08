@@ -14,11 +14,13 @@ import org.urbansafe.priority.ai.provider.AiProviderException;
  * Dify 图片分析前置质量门禁。
  *
  * <p>仅对固定图片分析工作流执行无需模型权重的本地质量预检；其他能力请求原样通过。
+ * 业务推理链路可能传入模型登记码，也可能由工作流入口传入工作流码，因此两种标识都必须识别。
  */
 @Service
 public class AiImagePrecheckService {
 
     static final String IMAGE_ANALYSIS_WORKFLOW = "DIFY-IMAGE-ANALYSIS-001";
+    static final String IMAGE_ANALYSIS_MODEL = "AI-DIFY-WORKFLOW-001";
 
     private final AiFastApiClient fastApiClient;
     private final ObjectMapper objectMapper;
@@ -75,10 +77,12 @@ public class AiImagePrecheckService {
     }
 
     private boolean requiresImagePrecheck(AiOrchestrationRequest request) {
-        return request != null
-                && IMAGE_ANALYSIS_WORKFLOW.equals(request.modelCode())
-                && request.imageBytes() != null
-                && request.imageBytes().length > 0;
+        if (request == null || request.imageBytes() == null || request.imageBytes().length == 0) {
+            return false;
+        }
+        String modelOrWorkflowCode = request.modelCode();
+        return IMAGE_ANALYSIS_WORKFLOW.equals(modelOrWorkflowCode)
+                || IMAGE_ANALYSIS_MODEL.equals(modelOrWorkflowCode);
     }
 
     private AiProviderException mapFastApiError(AiFastApiException ex) {

@@ -33,8 +33,10 @@ export const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, clientType: 'CONSOLE', allowedRoles: ['EXPERT', 'PROFESSIONAL_REVIEWER', 'COMMUNITY_MANAGER', 'GOVERNMENT_MANAGER', 'ADMIN'] },
     children: [
       { path: '', name: 'console-dashboard', component: () => import('@/pages/console/ConsoleDashboardPage.vue'), meta: { title: '管理总览' } },
+      { path: 'map', name: 'console-spatial-map', component: () => import('@/pages/console/ConsoleSpatialMapPage.vue'), meta: { title: '地图展示', allowedRoles: ['EXPERT', 'PROFESSIONAL_REVIEWER', 'COMMUNITY_MANAGER', 'GOVERNMENT_MANAGER', 'ADMIN'] } },
       { path: 'inspections', name: 'console-inspections', component: () => import('@/pages/console/ConsoleInspectionPage.vue'), meta: { title: '巡检组织管理', allowedRoles: ['COMMUNITY_MANAGER', 'ADMIN'], requiredPermissions: ['inspection:manage'] } },
       { path: 'feedback', name: 'console-feedback', component: () => import('@/pages/console/ConsoleFeedbackPage.vue'), meta: { title: '公众反馈管理', allowedRoles: ['COMMUNITY_MANAGER', 'GOVERNMENT_MANAGER', 'ADMIN'] } },
+      { path: 'spatial-archive', name: 'console-spatial-archive', component: () => import('@/pages/console/ConsoleSpatialArchivePage.vue'), meta: { title: '空间档案', allowedRoles: ['COMMUNITY_MANAGER', 'GOVERNMENT_MANAGER', 'ADMIN'] } },
       { path: 'review', name: 'console-review', component: () => import('@/pages/console/ConsoleReviewQueuePage.vue'), meta: { title: '专业复核队列', allowedRoles: ['EXPERT', 'PROFESSIONAL_REVIEWER', 'ADMIN'], requiredPermissions: ['inference:review'] } },
       { path: 'knowledge', name: 'console-knowledge', component: () => import('@/pages/console/ConsoleKnowledgePage.vue'), meta: { title: '内部知识问答', allowedRoles: ['EXPERT', 'ADMIN'] } },
       { path: 'review/:inferenceId', name: 'console-review-detail', component: () => import('@/pages/console/ConsoleReviewDetailPage.vue'), meta: { title: '人工智能结果复核', allowedRoles: ['EXPERT', 'PROFESSIONAL_REVIEWER', 'ADMIN'], requiredPermissions: ['inference:review'] } },

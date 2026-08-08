@@ -68,11 +68,44 @@ class EvaluatePhase7ValidationTest(unittest.TestCase):
             metrics, errors = MODULE.evaluate(manifest, results, "DIFY")
 
             self.assertEqual(metrics["resultRows"], 3)
+            self.assertEqual(metrics["structuredRequiredRows"], 3)
             self.assertEqual(metrics["structuredValidRows"], 3)
+            self.assertEqual(metrics["structuredValidRate"], 1.0)
             self.assertEqual(metrics["confusionMatrix"]["truePositive"], 2)
             self.assertEqual(metrics["confusionMatrix"]["trueNegative"], 1)
             self.assertEqual(metrics["repeatLabelJaccard"], 1.0)
             self.assertEqual(errors, [])
+
+    def test_expected_low_quality_rejection_is_valid_terminal_negative(self):
+        manifest = {
+            "low-quality": {
+                "sample_id": "low-quality",
+                "primary_category": "low_quality",
+                "secondary_label": "BLUR",
+                "needs_manual_review": "false",
+            }
+        }
+        metrics, errors = MODULE.evaluate(
+            manifest,
+            [{
+                "sampleId": "low-quality",
+                "providerCode": "DIFY",
+                "status": "REJECTED",
+                "errorCode": "AI_IMAGE_LOW_QUALITY",
+                "durationMs": 8,
+            }],
+            "DIFY",
+        )
+
+        self.assertEqual(metrics["structuredRequiredRows"], 0)
+        self.assertEqual(metrics["structuredValidRows"], 0)
+        self.assertEqual(metrics["structuredValidRate"], 1.0)
+        self.assertEqual(metrics["expectedPrecheckRows"], 1)
+        self.assertEqual(metrics["correctPrecheckRejections"], 1)
+        self.assertEqual(metrics["precheckRejectionRate"], 1.0)
+        self.assertEqual(metrics["confusionMatrix"]["trueNegative"], 1)
+        self.assertEqual(metrics["labeledRows"], 1)
+        self.assertEqual(errors, [])
 
     def test_invalid_structure_is_reported(self):
         manifest = {
@@ -87,6 +120,7 @@ class EvaluatePhase7ValidationTest(unittest.TestCase):
             manifest,
             [{"sampleId": "sample", "status": "SUCCEEDED", "structuredResult": {"summary": ""}}],
         )
+        self.assertEqual(metrics["structuredRequiredRows"], 1)
         self.assertEqual(metrics["structuredValidRows"], 0)
         self.assertGreater(len(errors), 0)
 

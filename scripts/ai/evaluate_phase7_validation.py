@@ -17,6 +17,8 @@ NEGATIVE_LABELS = {
     "", "NONE", "NORMAL", "UNKNOWN", "STAIN", "SHADOW", "BRICK_JOINT",
     "BLUR", "OVEREXPOSED", "UNDEREXPOSED", "OCCLUDED", "NOT_APPLICABLE",
 }
+LOW_QUALITY_CATEGORY = "low_quality"
+LOW_QUALITY_ERROR_CODE = "AI_IMAGE_LOW_QUALITY"
 REQUIRED_STRUCTURED_FIELDS = {
     "summary", "detections", "riskSignals", "recommendations", "warnings", "confidence",
 }
@@ -93,6 +95,28 @@ def expected_positive(manifest_row: dict[str, str]) -> bool | None:
     return None
 
 
+def expected_precheck_rejection(manifest_row: dict[str, str]) -> bool:
+    category = (manifest_row.get("primary_category") or "").strip().lower()
+    return category == LOW_QUALITY_CATEGORY
+
+
+def result_error_code(row: dict[str, Any]) -> str:
+    direct = str(row.get("errorCode") or "").strip().upper()
+    if direct:
+        return direct
+    error = row.get("error")
+    if isinstance(error, dict):
+        return str(error.get("errorCode") or error.get("code") or "").strip().upper()
+    return ""
+
+
+def is_low_quality_precheck_rejection(row: dict[str, Any]) -> bool:
+    return (
+        str(row.get("status") or "").strip().upper() == "REJECTED"
+        and result_error_code(row) == LOW_QUALITY_ERROR_CODE
+    )
+
+
 def predicted_labels(row: dict[str, Any]) -> set[str]:
     payload = structured_payload(row) or {}
     labels: set[str] = set()
@@ -132,7 +156,8 @@ def evaluate(
     errors: list[dict[str, str]] = []
     durations: list[float] = []
     costs: list[float] = []
-    valid_count = succeeded = completed = 0
+    valid_count = structured_required = succeeded = completed = 0
+    expected_precheck_rows = correct_precheck_rejections = unexpected_precheck_rejections = 0
     tp = fp = fn = tn = 0
     labeled = 0
     runs_by_sample: dict[str, list[set[str]]] = defaultdict(list)
@@ -145,19 +170,37 @@ def evaluate(
             continue
         completed += 1
         manifest_row = manifest[sample_id]
-        category_counts[(manifest_row.get("primary_category") or "unknown").strip()] += 1
+        category = (manifest_row.get("primary_category") or "unknown").strip()
+        category_counts[category] += 1
         status = str(row.get("status") or "").upper()
         if status == "SUCCEEDED":
             succeeded += 1
-        valid, validation_errors = validate_structured(row)
-        if valid:
-            valid_count += 1
+
+        expects_precheck = expected_precheck_rejection(manifest_row)
+        if expects_precheck:
+            expected_precheck_rows += 1
+        precheck_rejected = is_low_quality_precheck_rejection(row)
+        if precheck_rejected:
+            if expects_precheck:
+                correct_precheck_rejections += 1
+            else:
+                unexpected_precheck_rejections += 1
+                errors.append({
+                    "row": str(index),
+                    "sampleId": sample_id,
+                    "error": "unexpected AI_IMAGE_LOW_QUALITY rejection",
+                })
         else:
-            errors.append({
-                "row": str(index),
-                "sampleId": sample_id,
-                "error": "; ".join(validation_errors),
-            })
+            structured_required += 1
+            valid, validation_errors = validate_structured(row)
+            if valid:
+                valid_count += 1
+            else:
+                errors.append({
+                    "row": str(index),
+                    "sampleId": sample_id,
+                    "error": "; ".join(validation_errors),
+                })
 
         duration = row.get("durationMs")
         if isinstance(duration, (int, float)) and not isinstance(duration, bool) and duration >= 0:
@@ -166,9 +209,21 @@ def evaluate(
         if isinstance(cost, (int, float)) and not isinstance(cost, bool) and cost >= 0:
             costs.append(float(cost))
 
+        expected = expected_positive(manifest_row)
+        if precheck_rejected:
+            labels: set[str] = set()
+            runs_by_sample[sample_id].append(labels)
+            if expected is None:
+                continue
+            labeled += 1
+            if expected:
+                fn += 1
+            else:
+                tn += 1
+            continue
+
         labels = predicted_labels(row)
         runs_by_sample[sample_id].append(labels)
-        expected = expected_positive(manifest_row)
         if expected is None or status != "SUCCEEDED":
             continue
         labeled += 1
@@ -194,14 +249,25 @@ def evaluate(
     precision = tp / (tp + fp) if tp + fp else 0.0
     recall = tp / (tp + fn) if tp + fn else 0.0
     specificity = tn / (tn + fp) if tn + fp else 0.0
+    terminal_accepted = succeeded + correct_precheck_rejections
     metrics = {
         "providerFilter": provider_filter,
         "resultRows": total,
         "matchedRows": completed,
         "succeededRows": succeeded,
         "successRate": succeeded / total if total else 0.0,
+        "terminalAcceptedRows": terminal_accepted,
+        "terminalAcceptedRate": terminal_accepted / total if total else 0.0,
+        "structuredRequiredRows": structured_required,
         "structuredValidRows": valid_count,
-        "structuredValidRate": valid_count / total if total else 0.0,
+        "structuredValidRate": valid_count / structured_required if structured_required else 1.0,
+        "expectedPrecheckRows": expected_precheck_rows,
+        "correctPrecheckRejections": correct_precheck_rejections,
+        "unexpectedPrecheckRejections": unexpected_precheck_rejections,
+        "precheckRejectionRate": (
+            correct_precheck_rejections / expected_precheck_rows
+            if expected_precheck_rows else None
+        ),
         "averageDurationMs": statistics.fmean(durations) if durations else 0.0,
         "p95DurationMs": percentile(durations, 0.95),
         "totalEstimatedCost": sum(costs),
@@ -219,6 +285,12 @@ def evaluate(
     return metrics, errors
 
 
+def _format_optional_rate(value: Any) -> str:
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return f"{value:.2%}"
+    return "N/A"
+
+
 def write_outputs(output_dir: Path, metrics: dict[str, Any], errors: list[dict[str, str]]) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "metrics.json").write_text(
@@ -232,8 +304,14 @@ def write_outputs(output_dir: Path, metrics: dict[str, Any], errors: list[dict[s
 
 - 结果行数：{metrics['resultRows']}
 - 匹配样本数：{metrics['matchedRows']}
-- 调用成功率：{metrics['successRate']:.2%}
+- 模型调用成功率：{metrics['successRate']:.2%}
+- 业务可接受终态率：{metrics['terminalAcceptedRate']:.2%}
+- 需要结构化结果的行数：{metrics['structuredRequiredRows']}
 - 结构化输出通过率：{metrics['structuredValidRate']:.2%}
+- 预期低质量门禁样本数：{metrics['expectedPrecheckRows']}
+- 正确低质量门禁拒绝数：{metrics['correctPrecheckRejections']}
+- 低质量门禁命中率：{_format_optional_rate(metrics['precheckRejectionRate'])}
+- 非预期低质量门禁拒绝数：{metrics['unexpectedPrecheckRejections']}
 - 平均耗时：{metrics['averageDurationMs']:.2f} ms
 - 第 95 百分位耗时：{metrics['p95DurationMs']:.2f} ms
 - 总估算费用：{metrics['totalEstimatedCost']:.6f}
@@ -244,7 +322,7 @@ def write_outputs(output_dir: Path, metrics: dict[str, Any], errors: list[dict[s
 - 重复调用标签一致性：{metrics['repeatLabelJaccard']}
 - 结构或样本错误数：{metrics['errorCount']}
 
-> 本报告用于固定诊断集质量比较，不等同于法定房屋安全鉴定，也不能把模型自评置信度解释为房屋危险概率。
+> 本报告用于固定诊断集质量比较，不等同于法定房屋安全鉴定，也不能把模型自评置信度解释为房屋危险概率。低质量图片在 Dify 前被正确拒绝属于有效业务终态，不要求结构化 Dify 结果。
 """
     (output_dir / "summary.md").write_text(summary, encoding="utf-8")
 

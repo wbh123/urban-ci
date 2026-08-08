@@ -1,7 +1,5 @@
 package org.urbansafe.priority.map.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -9,8 +7,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.util.UriComponentsBuilder;
 import org.urbansafe.priority.common.exception.InvalidRequestException;
 import org.urbansafe.priority.common.exception.ResourceNotFoundException;
 import org.urbansafe.priority.map.config.AmapProperties;
@@ -26,7 +22,6 @@ public class Phase2MapService {
     private final MapProperties map;
     private final AmapProperties amap;
     private final Phase2Repository repository;
-    private final RestClient client = RestClient.create();
 
     public Phase2MapService(MapProperties map, AmapProperties amap, Phase2Repository repository) {
         this.map = map;
@@ -51,38 +46,6 @@ public class Phase2MapService {
 
     public List<Map<String, Object>> communityPoints() {
         return repository.listCommunityPoints();
-    }
-
-    public Map<String, Object> geocode(String address, String city) {
-        if (text(address) == null) {
-            throw new InvalidRequestException("MAP_ADDRESS_REQUIRED", "地址不能为空");
-        }
-        if (!map.isEnabled() || text(amap.getWebServiceKey()) == null) {
-            int hash = Math.abs(address.hashCode());
-            return Map.of("formattedAddress", address,
-                    "longitude", map.getDefaultCenterLongitude() + ((hash % 1000) - 500) / 100000.0,
-                    "latitude", map.getDefaultCenterLatitude() + (((hash / 1000) % 1000) - 500) / 100000.0,
-                    "provider", "MOCK", "matchLevel", "MOCK_PREVIEW", "mock", true);
-        }
-        URI uri = UriComponentsBuilder.fromUriString(amap.getWebServiceBaseUrl())
-                .path("/v3/geocode/geo").queryParam("key", amap.getWebServiceKey())
-                .queryParam("address", address).queryParamIfPresent("city", java.util.Optional.ofNullable(city))
-                .build(true).toUri();
-        JsonNode body = client.get().uri(uri).retrieve().body(JsonNode.class);
-        JsonNode item = body == null ? null : body.path("geocodes").path(0);
-        String location = item == null ? "" : item.path("location").asText();
-        String[] point = location.split(",");
-        if (point.length != 2) {
-            throw new InvalidRequestException("MAP_GEOCODE_NO_RESULT", "未找到可用坐标");
-        }
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("formattedAddress", item.path("formatted_address").asText(address));
-        result.put("longitude", Double.parseDouble(point[0]));
-        result.put("latitude", Double.parseDouble(point[1]));
-        result.put("provider", "AMAP");
-        result.put("matchLevel", item.path("level").asText("UNKNOWN"));
-        result.put("mock", false);
-        return result;
     }
 
     public Map<String, Object> saveLocation(UUID communityId, Map<String, Object> request) {

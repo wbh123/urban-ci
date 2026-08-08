@@ -27,7 +27,7 @@ describe('R3 空间地图路由', () => {
     expect(childPaths('/console')).toEqual(expect.arrayContaining(['map', 'spatial-archive']))
   })
 
-  it('正式地图继承管理端五类读取角色', () => {
+  it('正式地图继承管理端五类读取角色并使用全宽内容区', () => {
     const mapRoute = consoleChildren().find((route) => route.path === 'map')
     expect(mapRoute?.name).toBe('console-spatial-map')
     expect(mapRoute?.meta?.allowedRoles).toEqual([
@@ -37,6 +37,7 @@ describe('R3 空间地图路由', () => {
       'GOVERNMENT_MANAGER',
       'ADMIN',
     ])
+    expect(mapRoute?.meta?.fullWidth).toBe(true)
   })
 
   it('空间档案只允许具备档案管理权限的角色进入', () => {

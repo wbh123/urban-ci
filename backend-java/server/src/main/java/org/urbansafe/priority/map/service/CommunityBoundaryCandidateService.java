@@ -60,7 +60,7 @@ public class CommunityBoundaryCandidateService {
 
             String poiId = poi.path("id").asText().trim();
             JsonNode aoiResponse = gateway.fetchAoi(poiId);
-            JsonNode aoi = firstArrayItem(aoiResponse, "aois");
+            JsonNode aoi = firstObjectOrArrayItem(aoiResponse, "aois");
             String polyline = aoi == null ? null : trimToNull(aoi.path("polyline").asText(null));
             if (!StringUtils.hasText(polyline)) {
                 return unavailable("AOI_UNAVAILABLE", "高德 AOI 边界不可用或当前 Key 无权限，可继续手工绘制或导入 GeoJSON。");
@@ -104,9 +104,15 @@ public class CommunityBoundaryCandidateService {
         return pois.get(0);
     }
 
-    private JsonNode firstArrayItem(JsonNode response, String field) {
-        JsonNode values = response == null ? null : response.path(field);
-        return values != null && values.isArray() && !values.isEmpty() ? values.get(0) : null;
+    private JsonNode firstObjectOrArrayItem(JsonNode response, String field) {
+        JsonNode value = response == null ? null : response.path(field);
+        if (value == null || value.isMissingNode() || value.isNull()) {
+            return null;
+        }
+        if (value.isObject()) {
+            return value;
+        }
+        return value.isArray() && !value.isEmpty() ? value.get(0) : null;
     }
 
     private Map<String, Object> parseGeometry(String polyline) {

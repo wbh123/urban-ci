@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import type { UploadFile } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import {
@@ -10,10 +11,8 @@ import {
   type InspectionRecord,
   type InspectionType,
   type Severity,
-  type MapRuntimeConfig,
 } from '@/shared/api'
 import * as api from '@/shared/api'
-import { useAmap } from '@/shared/composables/useAmap'
 import AppLoading from '@/shared/components/AppLoading.vue'
 import AppEmpty from '@/shared/components/AppEmpty.vue'
 import AppError from '@/shared/components/AppError.vue'
@@ -22,7 +21,7 @@ import AiDetectionOverlay from '@/pages/AiDetectionOverlay.vue'
 import type { AssetImageRow, AiInferenceTask, AiModelCatalogItem } from '@/shared/api'
 
 const authStore = useAuthStore()
-const amap = useAmap()
+const router = useRouter()
 
 const loginUsername = ref('')
 const loginPassword = ref('')
@@ -31,7 +30,6 @@ const notice = ref('请先登录，然后加载数据。')
 const busy = ref(false)
 const loadError = ref<ReturnType<typeof toAppError> | null>(null)
 
-const mapConfig = ref<MapRuntimeConfig | null>(null)
 const communities = ref<CommunityPoint[]>([])
 const buildings = ref<BuildingListRow[]>([])
 const tasks = ref<InspectionTask[]>([])
@@ -262,17 +260,10 @@ async function loadTasks(): Promise<void> {
   await loadAiImages()
 }
 
-async function renderMap(): Promise<void> {
-  if (mapConfig.value) {
-    await amap.render(mapConfig.value, communities.value)
-  }
-}
-
 async function loadAll(): Promise<void> {
   loadError.value = null
   busy.value = true
   try {
-    mapConfig.value = await api.getMapRuntimeConfig()
     communities.value = await api.listCommunityPoints()
     await loadAiModels()
     if (!selectedCommunity.value && communities.value.length) {
@@ -280,9 +271,7 @@ async function loadAll(): Promise<void> {
     }
     await loadBuildings()
     await loadTasks()
-    notice.value = `数据加载完成，地图模式：${mapConfig.value.mode}`
-    await nextTick()
-    await renderMap()
+    notice.value = '数据加载完成；小区与楼栋空间展示请使用正式空间地图。'
   } catch (error) {
     loadError.value = toAppError(error)
     notice.value = loadError.value.message
@@ -310,7 +299,6 @@ async function handleLogin(): Promise<void> {
 
 async function handleLogout(): Promise<void> {
   await authStore.logout()
-  mapConfig.value = null
   communities.value = []
   buildings.value = []
   tasks.value = []
@@ -467,7 +455,7 @@ function onLoginKeydown(e: KeyboardEvent): void {
     <header class="workspace-head">
       <div>
         <p class="eyebrow">UrbanSafe Priority · Phase 2</p>
-        <h1>巡检地图与图片闭环工作台</h1>
+        <h1>巡检与图片闭环兼容工作台</h1>
       </div>
       <div v-if="!authStore.isAuthenticated" class="auth" @keydown="onLoginKeydown">
         <el-input v-model="loginUsername" placeholder="用户名" clearable />
@@ -486,10 +474,11 @@ function onLoginKeydown(e: KeyboardEvent): void {
     <template v-else>
       <section class="grid two">
         <article class="panel">
-          <div class="title"><h2>小区地图</h2><span>{{ mapConfig?.mode ?? '—' }}</span></div>
-          <div v-if="mapConfig?.mode === 'LIVE'" id="map" class="map" />
-          <div v-else class="map map--mock">
-            {{ mapConfig ? `地图模式：${mapConfig.mode}（演示环境不加载真实地图）` : '地图配置加载中…' }}
+          <div class="title"><h2>小区与空间地图</h2><span>兼容入口</span></div>
+          <div class="map map--mock formal-map-entry">
+            <strong>正式空间地图</strong>
+            <p>小区/楼栋 Polygon、风险展示与空间筛选已迁移至正式地图，本兼容工作台不再维护旧 Marker 地图。</p>
+            <el-button type="primary" @click="router.push('/console/map')">打开正式空间地图</el-button>
           </div>
           <div class="cards">
             <button
@@ -770,8 +759,11 @@ function onLoginKeydown(e: KeyboardEvent): void {
   h2 { margin: 0; font-size: 20px; }
   span { color: var(--usp-color-text-secondary); font-size: 13px; }
 }
-.map { height: 330px; border-radius: var(--usp-radius); overflow: hidden; background: #dfe9e7; margin-bottom: 12px; }
+.map { min-height: 210px; border-radius: var(--usp-radius); overflow: hidden; background: #dfe9e7; margin-bottom: 12px; }
 .map--mock { display: flex; align-items: center; justify-content: center; color: var(--usp-color-text-secondary); font-size: 14px; }
+.formal-map-entry { flex-direction: column; gap: 10px; padding: 24px; text-align: center; }
+.formal-map-entry strong { color: var(--usp-color-text-primary); font-size: 18px; }
+.formal-map-entry p { max-width: 560px; margin: 0; line-height: 1.65; }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
 .community, .task {
   text-align: left;

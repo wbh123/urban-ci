@@ -18,6 +18,7 @@ import {
 } from '@/shared/api/endpoints/spatial'
 import { toAppError } from '@/shared/api/error'
 import { createSpatialBoundaryEditor } from '@/shared/map/spatial-boundary-editor'
+import { parseSpatialGeoJson } from '@/shared/map/spatial-geojson'
 
 type EntityType = 'COMMUNITY' | 'BUILDING'
 
@@ -39,6 +40,8 @@ const errorMessage = ref('')
 const notice = ref('')
 const remark = ref('')
 const dirtyGeometry = ref<SpatialGeoJsonGeometry | null>(null)
+const geoJsonInput = ref('')
+const importedGeometry = ref(false)
 const editor = createSpatialBoundaryEditor()
 
 const selectedEntityId = computed(() => entityType.value === 'COMMUNITY' ? selectedCommunityId.value : selectedBuildingId.value)
@@ -99,12 +102,13 @@ async function handleEntityTypeChange(): Promise<void> { await loadCurrentBounda
 
 async function loadCurrentBoundary(): Promise<void> {
   boundaryLoading.value = true; notice.value = ''; currentBoundary.value = null; dirtyGeometry.value = null
+  geoJsonInput.value = ''; importedGeometry.value = false
   const id = selectedEntityId.value
   if (!id) { editor.clear(); boundaryLoading.value = false; return }
   try {
     currentBoundary.value = entityType.value === 'COMMUNITY' ? await getCommunityBoundary(id) : await getBuildingBoundary(id)
     remark.value = currentBoundary.value.remark ?? ''
-    editor.loadGeometry(currentBoundary.value.displayGeometry)
+    if (mapReady.value) editor.loadGeometry(currentBoundary.value.displayGeometry)
   } catch (error) {
     const appError = toAppError(error)
     if (appError.isNotFound) {
@@ -115,22 +119,59 @@ async function loadCurrentBoundary(): Promise<void> {
   } finally { boundaryLoading.value = false }
 }
 
-function startDraw(): void { notice.value = ''; editor.startDraw() }
+function startDraw(): void {
+  notice.value = ''; importedGeometry.value = false; geoJsonInput.value = ''; editor.startDraw()
+}
 function startEdit(): void {
   if (!currentBoundary.value) { notice.value = '当前对象尚无边界，请先绘制新边界。'; return }
-  notice.value = ''; editor.startEdit()
+  notice.value = ''; importedGeometry.value = false; geoJsonInput.value = ''; editor.startEdit()
+}
+
+function importGeoJsonText(): void {
+  notice.value = ''
+  try {
+    const geometry = parseSpatialGeoJson(geoJsonInput.value)
+    dirtyGeometry.value = geometry
+    importedGeometry.value = true
+    if (mapReady.value) editor.loadGeometry(geometry)
+    notice.value = 'GeoJSON 校验通过。保存后将作为 GCJ-02 边界进入待确认状态。'
+  } catch (error) {
+    notice.value = error instanceof Error ? error.message : String(error)
+  }
+}
+
+async function handleGeoJsonFile(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  try {
+    geoJsonInput.value = await file.text()
+    importGeoJsonText()
+  } catch (error) {
+    notice.value = error instanceof Error ? error.message : String(error)
+  } finally {
+    input.value = ''
+  }
+}
+
+async function cancelEdit(): Promise<void> {
+  notice.value = ''
+  geoJsonInput.value = ''
+  importedGeometry.value = false
+  await loadCurrentBoundary()
+  ElMessage.info('已取消本次修改，并恢复服务器当前版本。')
 }
 
 async function saveBoundary(): Promise<void> {
   const id = selectedEntityId.value
-  const geometry = editor.exportGeometry()
-  if (!id || !geometry) { notice.value = '请先选择对象并绘制有效的 Polygon 边界。'; return }
+  const geometry = dirtyGeometry.value ?? editor.exportGeometry()
+  if (!id || !geometry) { notice.value = '请先选择对象并绘制或导入有效的 Polygon 边界。'; return }
   saving.value = true; notice.value = ''
   const expectedVersion = currentBoundary.value?.version ?? 0
   const payload = {
     expectedVersion,
-    sourceType: currentBoundary.value ? 'MANUAL_EDIT' as const : 'MANUAL_DRAW' as const,
-    sourceProvider: 'INTERNAL_EDITOR',
+    sourceType: importedGeometry.value ? 'GEOJSON_IMPORT' as const : currentBoundary.value ? 'MANUAL_EDIT' as const : 'MANUAL_DRAW' as const,
+    sourceProvider: importedGeometry.value ? 'GEOJSON_IMPORT' : 'INTERNAL_EDITOR',
     sourceCoordinateSystem: 'GCJ02' as const,
     sourceGeometry: geometry,
     displayCoordinateSystem: 'GCJ02' as const,
@@ -142,7 +183,9 @@ async function saveBoundary(): Promise<void> {
       ? await upsertCommunityBoundary(id, payload)
       : await upsertBuildingBoundary(id, payload)
     dirtyGeometry.value = currentBoundary.value.displayGeometry
-    editor.loadGeometry(currentBoundary.value.displayGeometry)
+    importedGeometry.value = false
+    geoJsonInput.value = ''
+    if (mapReady.value) editor.loadGeometry(currentBoundary.value.displayGeometry)
     ElMessage.success('边界已保存并进入待确认状态。')
   } catch (error) {
     const appError = toAppError(error)
@@ -194,8 +237,27 @@ async function reviewBoundary(action: 'VERIFY' | 'REJECT'): Promise<void> {
         </el-form>
         <div class="boundary-state"><div><small>当前对象</small><strong>{{ selectedEntityName }}</strong></div><el-tag :type="statusType">{{ statusLabel }}</el-tag></div>
         <dl class="version-info"><div><dt>版本</dt><dd>{{ currentBoundary?.version ?? 0 }}</dd></div><div><dt>展示坐标</dt><dd>{{ currentBoundary?.displayCoordinateSystem ?? 'GCJ02' }}</dd></div><div><dt>来源</dt><dd>{{ currentBoundary?.sourceType ?? '待绘制' }}</dd></div></dl>
+
+        <el-divider>导入 GCJ-02 GeoJSON</el-divider>
+        <el-form-item label="GeoJSON 文本">
+          <el-input v-model="geoJsonInput" type="textarea" :rows="5" placeholder="粘贴 Polygon、MultiPolygon 或 Feature GeoJSON" />
+        </el-form-item>
+        <div class="import-actions">
+          <el-button :disabled="!geoJsonInput.trim()" @click="importGeoJsonText">校验并载入</el-button>
+          <label class="file-action">
+            从文件导入
+            <input type="file" accept=".json,.geojson,application/json,application/geo+json" @change="handleGeoJsonFile" />
+          </label>
+        </div>
+        <p class="hint">导入内容按 GCJ-02 保存；地图不可用时仍可通过 GeoJSON 建档，不会自动伪造或转换边界。</p>
+
         <el-form-item label="维护/审核说明"><el-input v-model="remark" type="textarea" :rows="4" maxlength="1000" show-word-limit /></el-form-item>
-        <div class="action-stack"><el-button :disabled="!mapReady" @click="startDraw">绘制新边界</el-button><el-button :disabled="!mapReady || !currentBoundary" @click="startEdit">编辑当前边界</el-button><el-button type="primary" :loading="saving" :disabled="!mapReady || boundaryLoading" @click="saveBoundary">保存为新版本</el-button></div>
+        <div class="action-stack">
+          <el-button :disabled="!mapReady" @click="startDraw">绘制新边界</el-button>
+          <el-button :disabled="!mapReady || !currentBoundary" @click="startEdit">编辑当前边界</el-button>
+          <el-button type="primary" :loading="saving" :disabled="boundaryLoading || !selectedEntityId" @click="saveBoundary">保存为新版本</el-button>
+          <el-button :disabled="boundaryLoading" @click="cancelEdit">取消本次修改</el-button>
+        </div>
         <el-divider>人工审核</el-divider>
         <div class="review-actions"><el-button type="success" :loading="reviewLoading" :disabled="!canReview" @click="reviewBoundary('VERIFY')">确认边界</el-button><el-button type="danger" plain :loading="reviewLoading" :disabled="!canReview" @click="reviewBoundary('REJECT')">驳回边界</el-button></div>
         <p class="hint">任何绘制或编辑保存后都会进入“待确认”；只有已确认边界会出现在正式地图。</p>
@@ -204,7 +266,7 @@ async function reviewBoundary(action: 'VERIFY' | 'REJECT'): Promise<void> {
       <el-card shadow="never" class="editor-card">
         <template #header><div class="editor-head"><strong>边界编辑器</strong><span v-if="dirtyGeometry">当前编辑：{{ dirtyGeometry.type }}</span></div></template>
         <div ref="mapContainer" class="editor-map" />
-        <div v-if="runtimeConfig && (!runtimeConfig.enabled || runtimeConfig.mode !== 'LIVE')" class="editor-unavailable"><strong>地图服务当前不可用</strong><span>空间档案不会使用模拟地图替代正式编辑环境。</span></div>
+        <div v-if="runtimeConfig && (!runtimeConfig.enabled || runtimeConfig.mode !== 'LIVE')" class="editor-unavailable"><strong>地图服务当前不可用</strong><span>可继续在左侧导入 GCJ-02 GeoJSON 并保存空间档案。</span></div>
         <div v-else-if="boundaryLoading" class="editor-busy">正在加载边界…</div>
       </el-card>
     </div>
@@ -212,5 +274,5 @@ async function reviewBoundary(action: 'VERIFY' | 'REJECT'): Promise<void> {
 </template>
 
 <style scoped lang="scss">
-.archive-page{display:grid;gap:var(--usp-space-4)}.page-head,.boundary-state,.editor-head,.review-actions{display:flex;align-items:center;justify-content:space-between;gap:var(--usp-space-3)}.page-head h1{margin:0}.page-head p,.hint{margin:4px 0 0;color:var(--usp-color-text-secondary)}.archive-grid{display:grid;grid-template-columns:minmax(320px,380px) minmax(0,1fr);gap:var(--usp-space-4)}.archive-controls{min-width:0}.boundary-state{padding:12px;border-radius:8px;background:var(--usp-color-bg)}.boundary-state div{display:grid;gap:3px}.boundary-state small,.version-info dt{color:var(--usp-color-text-secondary)}.version-info{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.version-info div{padding:10px;border:1px solid var(--usp-color-border);border-radius:8px}.version-info dt,.version-info dd{margin:0}.version-info dd{margin-top:4px;font-weight:700}.action-stack{display:grid;grid-template-columns:1fr 1fr;gap:8px}.action-stack .el-button{margin:0}.action-stack .el-button:last-child{grid-column:1/-1}.review-actions .el-button{flex:1;margin:0}.hint{font-size:12px;line-height:1.6}.editor-card{position:relative;min-width:0}.editor-map{height:680px}.editor-head span{color:var(--usp-color-text-secondary);font-size:12px}.editor-unavailable,.editor-busy{position:absolute;inset:58px 0 0;display:grid;place-content:center;justify-items:center;gap:8px;background:rgba(248,250,252,.94);text-align:center}@media(max-width:1100px){.archive-grid{grid-template-columns:1fr}.editor-map{height:560px}}@media(max-width:640px){.version-info{grid-template-columns:1fr}.action-stack{grid-template-columns:1fr}.action-stack .el-button:last-child{grid-column:auto}}
+.archive-page{display:grid;gap:var(--usp-space-4)}.page-head,.boundary-state,.editor-head,.review-actions{display:flex;align-items:center;justify-content:space-between;gap:var(--usp-space-3)}.page-head h1{margin:0}.page-head p,.hint{margin:4px 0 0;color:var(--usp-color-text-secondary)}.archive-grid{display:grid;grid-template-columns:minmax(340px,410px) minmax(0,1fr);gap:var(--usp-space-4)}.archive-controls{min-width:0}.boundary-state{padding:12px;border-radius:8px;background:var(--usp-color-bg)}.boundary-state div{display:grid;gap:3px}.boundary-state small,.version-info dt{color:var(--usp-color-text-secondary)}.version-info{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.version-info div{padding:10px;border:1px solid var(--usp-color-border);border-radius:8px}.version-info dt,.version-info dd{margin:0}.version-info dd{margin-top:4px;font-weight:700}.import-actions{display:flex;gap:8px;align-items:center;margin-bottom:8px}.file-action{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0 15px;border:1px solid var(--usp-color-border);border-radius:var(--usp-radius-sm);background:var(--usp-color-surface);cursor:pointer;font-size:14px}.file-action input{display:none}.action-stack{display:grid;grid-template-columns:1fr 1fr;gap:8px}.action-stack .el-button{margin:0}.review-actions .el-button{flex:1;margin:0}.hint{font-size:12px;line-height:1.6}.editor-card{position:relative;min-width:0}.editor-map{height:680px}.editor-head span{color:var(--usp-color-text-secondary);font-size:12px}.editor-unavailable,.editor-busy{position:absolute;inset:58px 0 0;display:grid;place-content:center;justify-items:center;gap:8px;padding:24px;background:rgba(248,250,252,.94);text-align:center}@media(max-width:1100px){.archive-grid{grid-template-columns:1fr}.editor-map{height:560px}}@media(max-width:640px){.version-info{grid-template-columns:1fr}.action-stack,.import-actions{grid-template-columns:1fr;flex-direction:column;align-items:stretch}}
 </style>

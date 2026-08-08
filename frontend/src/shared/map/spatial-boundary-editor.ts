@@ -27,6 +27,14 @@ export interface SpatialBoundaryEditor {
   destroy: () => void
 }
 
+const DRAFT_POLYGON_STYLE = {
+  strokeColor: '#155eef',
+  strokeWeight: 3,
+  strokeStyle: 'dashed',
+  fillColor: '#91caff',
+  fillOpacity: 0.22,
+} as const
+
 let editorLoaderPromise: Promise<EditorNamespace> | null = null
 
 const defaultEditorLoader: SpatialAmapLoader = async (options: SpatialAmapLoadOptions) => {
@@ -83,7 +91,7 @@ export function createSpatialBoundaryEditor(options: { loader?: SpatialAmapLoade
     clearPolygons()
     if (!geometry || !namespace || !map) { handlers.onChange?.(null); return }
     geometryToAmapPolygons(geometry).forEach((path) => {
-      const polygon = new namespace!.Polygon({ path, strokeColor: '#155eef', strokeWeight: 3, fillColor: '#91caff', fillOpacity: 0.22 })
+      const polygon = new namespace!.Polygon({ path, ...DRAFT_POLYGON_STYLE })
       map!.add(polygon); polygons.push(polygon); editors.push(new namespace!.PolygonEditor(map!, polygon))
     })
     if (polygons.length) map.setFitView(polygons as unknown[])
@@ -93,7 +101,7 @@ export function createSpatialBoundaryEditor(options: { loader?: SpatialAmapLoade
   function startEdit(): void { mouseTool?.close(true); editors.forEach((editor) => editor.open()) }
   function startDraw(): void {
     editors.forEach((editor) => editor.close())
-    mouseTool?.polygon({ strokeColor: '#155eef', strokeWeight: 3, fillColor: '#91caff', fillOpacity: 0.22 })
+    mouseTool?.polygon({ ...DRAFT_POLYGON_STYLE })
   }
   function exportGeometry(): SpatialGeoJsonGeometry | null {
     const coordinatePolygons = polygons.map((polygon) => polygonCoordinates(polygon)).filter((rings) => rings.length > 0)

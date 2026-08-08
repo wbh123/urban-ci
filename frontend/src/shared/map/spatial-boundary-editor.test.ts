@@ -15,7 +15,7 @@ const config = {
 } as MapRuntimeConfig
 
 describe('spatial boundary editor driver', () => {
-  it('loads an existing polygon, opens PolygonEditor and exports current GeoJSON', async () => {
+  it('loads an existing polygon as a dashed draft, opens PolygonEditor and exports current GeoJSON', async () => {
     const paths = [[[113, 27], [114, 27], [114, 28], [113, 27]]]
     const maps: FakeMap[] = []
     const polygons: FakePolygon[] = []
@@ -28,8 +28,12 @@ describe('spatial boundary editor driver', () => {
       constructor() { maps.push(this) }
     }
     class FakePolygon {
+      options: Record<string, unknown>
       setMap = vi.fn()
-      constructor() { polygons.push(this) }
+      constructor(options: Record<string, unknown>) {
+        this.options = options
+        polygons.push(this)
+      }
       getPath() {
         return paths[0]!.map(([lng, lat]) => ({ getLng: () => lng, getLat: () => lat }))
       }
@@ -57,6 +61,7 @@ describe('spatial boundary editor driver', () => {
     driver.loadGeometry({ type: 'Polygon', coordinates: paths })
     driver.startEdit()
 
+    expect(polygons[0]?.options.strokeStyle).toBe('dashed')
     expect(editors[0]?.open).toHaveBeenCalled()
     expect(driver.exportGeometry()).toEqual({
       type: 'Polygon',
@@ -68,7 +73,7 @@ describe('spatial boundary editor driver', () => {
     expect(maps[0]?.destroy).toHaveBeenCalled()
   })
 
-  it('replaces the existing polygon when MouseTool finishes a redraw', async () => {
+  it('replaces the existing polygon when MouseTool finishes a dashed redraw', async () => {
     let drawHandler: ((event: { obj: unknown }) => void) | undefined
     const mouseTools: FakeMouseTool[] = []
     const existingPolygons: FakePolygon[] = []
@@ -120,7 +125,7 @@ describe('spatial boundary editor driver', () => {
     driver.startDraw()
     drawHandler?.({ obj: drawnPolygon })
 
-    expect(mouseTools[0]?.polygon).toHaveBeenCalled()
+    expect(mouseTools[0]?.polygon).toHaveBeenCalledWith(expect.objectContaining({ strokeStyle: 'dashed' }))
     expect(existingPolygons[0]?.setMap).toHaveBeenCalledWith(null)
     expect(drawnPolygon.setMap).not.toHaveBeenCalledWith(null)
     expect(onChange).toHaveBeenCalled()

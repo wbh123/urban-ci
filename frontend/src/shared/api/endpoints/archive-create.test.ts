@@ -35,6 +35,9 @@ describe('archive create endpoint adapters', () => {
       buildingCode: 'B-01',
       buildingName: '1 栋',
       address: '建设南路 1 号',
+      hasElevator: false,
+      hasIllegalModification: false,
+      hasGroundFloorBusiness: false,
       status: 'ACTIVE' as const,
     }
 

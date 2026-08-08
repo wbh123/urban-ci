@@ -2,6 +2,7 @@ package org.urbansafe.priority.map.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.stereotype.Component;
+import org.urbansafe.priority.map.config.AmapProperties;
 
 /**
  * 高德地图发现只读网关。
@@ -10,6 +11,12 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class AmapDiscoveryGateway {
+
+    private final AmapProperties amap;
+
+    public AmapDiscoveryGateway(AmapProperties amap) {
+        this.amap = amap;
+    }
 
     public JsonNode geocode(String address, String city) {
         return null;

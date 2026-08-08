@@ -33,7 +33,7 @@ export const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, clientType: 'CONSOLE', allowedRoles: ['EXPERT', 'PROFESSIONAL_REVIEWER', 'COMMUNITY_MANAGER', 'GOVERNMENT_MANAGER', 'ADMIN'] },
     children: [
       { path: '', name: 'console-dashboard', component: () => import('@/pages/console/ConsoleDashboardPage.vue'), meta: { title: '管理总览' } },
-      { path: 'map', name: 'console-spatial-map', component: () => import('@/pages/console/ConsoleSpatialMapPage.vue'), meta: { title: '地图展示', allowedRoles: ['EXPERT', 'PROFESSIONAL_REVIEWER', 'COMMUNITY_MANAGER', 'GOVERNMENT_MANAGER', 'ADMIN'] } },
+      { path: 'map', name: 'console-spatial-map', component: () => import('@/pages/console/ConsoleSpatialMapPage.vue'), meta: { title: '地图展示', fullWidth: true, allowedRoles: ['EXPERT', 'PROFESSIONAL_REVIEWER', 'COMMUNITY_MANAGER', 'GOVERNMENT_MANAGER', 'ADMIN'] } },
       { path: 'inspections', name: 'console-inspections', component: () => import('@/pages/console/ConsoleInspectionPage.vue'), meta: { title: '巡检组织管理', allowedRoles: ['COMMUNITY_MANAGER', 'ADMIN'], requiredPermissions: ['inspection:manage'] } },
       { path: 'feedback', name: 'console-feedback', component: () => import('@/pages/console/ConsoleFeedbackPage.vue'), meta: { title: '公众反馈管理', allowedRoles: ['COMMUNITY_MANAGER', 'GOVERNMENT_MANAGER', 'ADMIN'] } },
       { path: 'spatial-archive', name: 'console-spatial-archive', component: () => import('@/pages/console/ConsoleSpatialArchivePage.vue'), meta: { title: '空间档案', allowedRoles: ['COMMUNITY_MANAGER', 'GOVERNMENT_MANAGER', 'ADMIN'] } },

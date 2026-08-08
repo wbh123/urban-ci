@@ -17,14 +17,39 @@ const config = {
 describe('spatial boundary editor driver', () => {
   it('loads an existing polygon, opens PolygonEditor and exports current GeoJSON', async () => {
     const paths = [[[113, 27], [114, 27], [114, 28], [113, 27]]]
-    const polygon = { getPath: vi.fn(() => paths[0]!.map(([lng, lat]) => ({ getLng: () => lng, getLat: () => lat }))), setMap: vi.fn() }
-    const editor = { open: vi.fn(), close: vi.fn() }
-    const map = { add: vi.fn(), setFitView: vi.fn(), destroy: vi.fn() }
+    const maps: FakeMap[] = []
+    const polygons: FakePolygon[] = []
+    const editors: FakeEditor[] = []
+
+    class FakeMap {
+      add = vi.fn()
+      setFitView = vi.fn()
+      destroy = vi.fn()
+      constructor() { maps.push(this) }
+    }
+    class FakePolygon {
+      setMap = vi.fn()
+      constructor() { polygons.push(this) }
+      getPath() {
+        return paths[0]!.map(([lng, lat]) => ({ getLng: () => lng, getLat: () => lat }))
+      }
+    }
+    class FakeEditor {
+      open = vi.fn()
+      close = vi.fn()
+      constructor() { editors.push(this) }
+    }
+    class FakeMouseTool {
+      polygon = vi.fn()
+      close = vi.fn()
+      on = vi.fn()
+    }
+
     const loader: SpatialAmapLoader = vi.fn().mockResolvedValue({
-      Map: vi.fn(() => map),
-      Polygon: vi.fn(() => polygon),
-      PolygonEditor: vi.fn(() => editor),
-      MouseTool: vi.fn(),
+      Map: FakeMap,
+      Polygon: FakePolygon,
+      PolygonEditor: FakeEditor,
+      MouseTool: FakeMouseTool,
     } as never)
     const driver = createSpatialBoundaryEditor({ loader })
 
@@ -32,19 +57,20 @@ describe('spatial boundary editor driver', () => {
     driver.loadGeometry({ type: 'Polygon', coordinates: paths })
     driver.startEdit()
 
-    expect(editor.open).toHaveBeenCalled()
+    expect(editors[0]?.open).toHaveBeenCalled()
     expect(driver.exportGeometry()).toEqual({
       type: 'Polygon',
       coordinates: [[[113, 27], [114, 27], [114, 28], [113, 27]]],
     })
     driver.destroy()
-    expect(editor.close).toHaveBeenCalled()
-    expect(polygon.setMap).toHaveBeenCalledWith(null)
-    expect(map.destroy).toHaveBeenCalled()
+    expect(editors[0]?.close).toHaveBeenCalled()
+    expect(polygons[0]?.setMap).toHaveBeenCalledWith(null)
+    expect(maps[0]?.destroy).toHaveBeenCalled()
   })
 
   it('accepts MouseTool polygon drawing as the new editable geometry', async () => {
     let drawHandler: ((event: { obj: unknown }) => void) | undefined
+    const mouseTools: FakeMouseTool[] = []
     const drawnPolygon = {
       getPath: () => [
         { getLng: () => 113, getLat: () => 27 },
@@ -53,15 +79,34 @@ describe('spatial boundary editor driver', () => {
       ],
       setMap: vi.fn(),
     }
-    const mouseTool = {
-      polygon: vi.fn(), close: vi.fn(),
-      on: vi.fn((event: string, handler: (value: { obj: unknown }) => void) => { if (event === 'draw') drawHandler = handler }),
+
+    class FakeMap {
+      add = vi.fn()
+      setFitView = vi.fn()
+      destroy = vi.fn()
     }
+    class FakePolygon {
+      getPath = vi.fn(() => [])
+      setMap = vi.fn()
+    }
+    class FakeEditor {
+      open = vi.fn()
+      close = vi.fn()
+    }
+    class FakeMouseTool {
+      polygon = vi.fn()
+      close = vi.fn()
+      constructor() { mouseTools.push(this) }
+      on = vi.fn((event: string, handler: (value: { obj: unknown }) => void) => {
+        if (event === 'draw') drawHandler = handler
+      })
+    }
+
     const loader: SpatialAmapLoader = vi.fn().mockResolvedValue({
-      Map: vi.fn(() => ({ add: vi.fn(), setFitView: vi.fn(), destroy: vi.fn() })),
-      Polygon: vi.fn(),
-      PolygonEditor: vi.fn(() => ({ open: vi.fn(), close: vi.fn() })),
-      MouseTool: vi.fn(() => mouseTool),
+      Map: FakeMap,
+      Polygon: FakePolygon,
+      PolygonEditor: FakeEditor,
+      MouseTool: FakeMouseTool,
     } as never)
     const onChange = vi.fn()
     const driver = createSpatialBoundaryEditor({ loader })
@@ -69,7 +114,7 @@ describe('spatial boundary editor driver', () => {
     driver.startDraw()
     drawHandler?.({ obj: drawnPolygon })
 
-    expect(mouseTool.polygon).toHaveBeenCalled()
+    expect(mouseTools[0]?.polygon).toHaveBeenCalled()
     expect(onChange).toHaveBeenCalled()
     expect(driver.exportGeometry()?.type).toBe('Polygon')
   })

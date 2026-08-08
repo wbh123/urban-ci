@@ -8,10 +8,11 @@ import {
   previewArchiveReverseGeocoding,
   saveArchiveBuildingLocation,
   searchArchivePlaces,
+  toAppError,
 } from '@/shared/api'
 import { configureInterceptors, resetInterceptors } from '@/shared/api/interceptors'
 import { ensureMockServer } from '@/tests/setup'
-import { MOCK_TOKEN, resetDb } from './fixtures/data'
+import { BUILDING_ID, MOCK_TOKEN, resetDb } from './fixtures/data'
 
 describe('Mock 模式可视化建档完整链路', () => {
   beforeAll(async () => {
@@ -84,7 +85,7 @@ describe('Mock 模式可视化建档完整链路', () => {
   })
 
   it('楼栋中心点可保存并重新读取', async () => {
-    const saved = await saveArchiveBuildingLocation('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', {
+    const saved = await saveArchiveBuildingLocation(BUILDING_ID, {
       longitude: 113.14,
       latitude: 27.83,
       formattedAddress: 'Mock 新位置',
@@ -92,12 +93,33 @@ describe('Mock 模式可视化建档完整链路', () => {
       matchLevel: 'MOCK_PREVIEW',
       mock: true,
     })
-    const read = await getArchiveBuildingLocation('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')
+    const read = await getArchiveBuildingLocation(BUILDING_ID)
 
     expect(saved).toMatchObject({ longitude: 113.14, latitude: 27.83, provider: 'MOCK' })
     expect(read).toMatchObject({
-      buildingId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      buildingId: BUILDING_ID,
       formattedAddress: 'Mock 新位置',
     })
+  })
+
+  it('resetDb 后不应保留上一次演示保存的楼栋位置', async () => {
+    await saveArchiveBuildingLocation(BUILDING_ID, {
+      longitude: 113.15,
+      latitude: 27.84,
+      formattedAddress: '应被重置的位置',
+      provider: 'MOCK',
+      mock: true,
+    })
+
+    resetDb()
+
+    let rejected = false
+    try {
+      await getArchiveBuildingLocation(BUILDING_ID)
+    } catch (error) {
+      rejected = true
+      expect(toAppError(error).code).toBe('BUILDING_LOCATION_NOT_FOUND')
+    }
+    expect(rejected).toBe(true)
   })
 })

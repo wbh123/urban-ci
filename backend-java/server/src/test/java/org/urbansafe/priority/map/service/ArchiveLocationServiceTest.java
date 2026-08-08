@@ -19,7 +19,7 @@ import org.urbansafe.priority.common.exception.ResourceNotFoundException;
 import org.urbansafe.priority.common.security.BusinessAccessService;
 import org.urbansafe.priority.phase2.repository.Phase2Repository;
 
-/** 楼栋中心点定位必须在服务层执行对象范围权限、存在性与输入校验。 */
+/** 楼栋中心点定位必须在服务层执行对象范围权限、存在性、坐标体系与输入校验。 */
 class ArchiveLocationServiceTest {
 
     @Test
@@ -109,6 +109,7 @@ class ArchiveLocationServiceTest {
                         "latitude", 27.88,
                         "formattedAddress", "示范路1号",
                         "provider", "MOCK",
+                        "coordinateSystem", "UNKNOWN",
                         "matchLevel", "MOCK_PREVIEW",
                         "mock", true,
                         "metadata", Map.of("sourceMode", "MAP_CLICK")));
@@ -122,12 +123,13 @@ class ArchiveLocationServiceTest {
                         27.88,
                         "示范路1号",
                         "MOCK",
+                        "UNKNOWN",
                         "MOCK_PREVIEW",
                         "{\"sourceMode\":\"MAP_CLICK\",\"mock\":true}");
     }
 
     @Test
-    void invalidCoordinatesAndProviderAreRejectedBeforePersistence() throws Exception {
+    void invalidCoordinatesProviderAndCoordinateSystemAreRejectedBeforePersistence() throws Exception {
         UUID buildingId = UUID.randomUUID();
         BusinessAccessService access = mock(BusinessAccessService.class);
         AtomicReference<String> repositoryMethod = new AtomicReference<>();
@@ -152,6 +154,15 @@ class ArchiveLocationServiceTest {
                 "provider", "UNKNOWN")))
                 .isInstanceOfSatisfying(InvalidRequestException.class,
                         ex -> assertThat(ex.getErrorCode()).isEqualTo("MAP_PROVIDER_INVALID"));
+        assertThat(repositoryMethod.get()).isNull();
+
+        assertThatThrownBy(() -> invokeSave(service, buildingId, Map.of(
+                "longitude", 113.12,
+                "latitude", 27.88,
+                "provider", "MANUAL",
+                "coordinateSystem", "INVALID")))
+                .isInstanceOfSatisfying(InvalidRequestException.class,
+                        ex -> assertThat(ex.getErrorCode()).isEqualTo("MAP_COORDINATE_SYSTEM_INVALID"));
         assertThat(repositoryMethod.get()).isNull();
     }
 

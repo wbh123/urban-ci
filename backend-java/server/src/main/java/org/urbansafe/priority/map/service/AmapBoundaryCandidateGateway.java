@@ -8,6 +8,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.urbansafe.priority.map.config.AmapProperties;
+import org.urbansafe.priority.map.config.MapProperties;
 
 /**
  * 高德候选边界只读网关。
@@ -20,8 +21,8 @@ public class AmapBoundaryCandidateGateway {
     private final AmapProperties amap;
     private final RestClient restClient;
 
-    public AmapBoundaryCandidateGateway(AmapProperties amap) {
-        this.amap = amap;
+    public AmapBoundaryCandidateGateway(MapProperties map) {
+        this.amap = map.getAmap();
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofMillis(Math.max(1, amap.getConnectTimeoutMs())));
         requestFactory.setReadTimeout(Duration.ofMillis(Math.max(1, amap.getReadTimeoutMs())));

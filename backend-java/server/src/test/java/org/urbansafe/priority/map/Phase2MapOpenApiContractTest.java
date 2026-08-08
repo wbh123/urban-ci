@@ -6,12 +6,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
-/** 可视化建档所需地图发现与楼栋定位接口必须先进入第二阶段 OpenAPI 契约。 */
+/** 可视化建档所需地图发现与楼栋定位接口使用独立 archive OpenAPI 子契约。 */
 class Phase2MapOpenApiContractTest {
 
     @Test
-    void phase2MapContractDefinesPlaceSearchReverseGeocodingAndBuildingLocation() throws IOException {
-        String yaml = read("/phase2/openapi-phase2.yaml");
+    void archiveContractDefinesPlaceSearchReverseGeocodingAndBuildingLocation() throws IOException {
+        String yaml = read("/archive/openapi-archive.yaml");
 
         assertThat(yaml)
                 .contains("/api/v1/map/places/search:")
@@ -30,9 +30,9 @@ class Phase2MapOpenApiContractTest {
 
     private String read(String resource) throws IOException {
         try (var stream = getClass().getResourceAsStream(resource)) {
-            if (stream == null) {
-                throw new IOException("OpenAPI resource not found: " + resource);
-            }
+            assertThat(stream)
+                    .as("OpenAPI resource %s should exist", resource)
+                    .isNotNull();
             return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         }
     }

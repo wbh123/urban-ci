@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import source from './ConsoleSpatialArchivePage.vue?raw'
 
-describe('ConsoleSpatialArchivePage R3 lifecycle', () => {
+describe('ConsoleSpatialArchivePage spatial lifecycle', () => {
   it('loads scoped community/building directories and current boundary', () => {
     expect(source).toContain('listCommunities')
     expect(source).toContain('listBuildings')
@@ -25,6 +25,22 @@ describe('ConsoleSpatialArchivePage R3 lifecycle', () => {
     expect(source).toContain('dirtyGeometry.value ?? editor.exportGeometry()')
     expect(source).toContain('导入 GCJ-02 GeoJSON')
     expect(source).toContain('地图不可用时仍可通过 GeoJSON 建档')
+  })
+
+  it('previews an AMap candidate but keeps persistence behind the existing save action', () => {
+    expect(source).toContain('previewCommunityBoundaryCandidate')
+    expect(source).toContain('previewAmapCandidate')
+    expect(source).toContain('高德候选边界')
+    expect(source).toContain('候选边界仅用于预览')
+    expect(source).toContain('dirtyGeometry.value = candidate.geometry')
+    expect(source).not.toContain('await upsertCommunityBoundary(id, candidate')
+  })
+
+  it('keeps manual and GeoJSON fallback available when AMap candidate is unavailable', () => {
+    expect(source).toContain('candidate.reasonCode')
+    expect(source).toContain('可继续手工绘制或导入 GeoJSON')
+    expect(source).toContain('startDraw')
+    expect(source).toContain('importGeoJsonText')
   })
 
   it('cancels local geometry changes by restoring the server boundary without saving', () => {

@@ -14,7 +14,7 @@ import org.urbansafe.priority.persistence.mapper.CommunityMapper;
 import org.urbansafe.priority.phase2.repository.Phase2Repository;
 import org.urbansafe.priority.support.PostgreSqlIntegrationTestBase;
 
-/** 楼栋中心点必须通过 Phase2Repository 以单活跃记录语义新增或更新。 */
+/** 楼栋中心点必须通过 Phase2Repository 以单活跃记录语义新增或更新，并保留真实来源坐标体系。 */
 class BuildingLocationRepositoryIntegrationTest extends PostgreSqlIntegrationTestBase {
 
     @Autowired
@@ -27,7 +27,7 @@ class BuildingLocationRepositoryIntegrationTest extends PostgreSqlIntegrationTes
     private Phase2Repository repository;
 
     @Test
-    void saveBuildingLocationUpsertsSingleActiveRecordAndCanReadItBack() throws Exception {
+    void saveBuildingLocationUpsertsSingleActiveRecordAndPreservesCoordinateSystem() throws Exception {
         UUID buildingId = createBuilding();
         Method save = Phase2Repository.class.getMethod(
                 "saveBuildingLocation",
@@ -37,11 +37,19 @@ class BuildingLocationRepositoryIntegrationTest extends PostgreSqlIntegrationTes
                 String.class,
                 String.class,
                 String.class,
+                String.class,
                 String.class);
         Method find = Phase2Repository.class.getMethod("findBuildingLocation", UUID.class);
 
-        save.invoke(repository, buildingId, 113.12, 27.88, "示范路1号", "MANUAL", "MANUAL", "{}");
-        save.invoke(repository, buildingId, 113.13, 27.89, "示范路2号", "AMAP", "门牌号", "{\"sourceMode\":\"POI_SEARCH\"}");
+        save.invoke(repository, buildingId, 113.12, 27.88, "示范路1号", "MANUAL", "WGS84", "MANUAL", "{}");
+        @SuppressWarnings("unchecked")
+        Optional<Map<String, Object>> manualStored = (Optional<Map<String, Object>>) find.invoke(repository, buildingId);
+        assertThat(manualStored).isPresent();
+        assertThat(manualStored.orElseThrow())
+                .containsEntry("provider", "MANUAL")
+                .containsEntry("coordinateSystem", "WGS84");
+
+        save.invoke(repository, buildingId, 113.13, 27.89, "示范路2号", "AMAP", "GCJ02", "门牌号", "{\"sourceMode\":\"POI_SEARCH\"}");
 
         @SuppressWarnings("unchecked")
         Optional<Map<String, Object>> stored = (Optional<Map<String, Object>>) find.invoke(repository, buildingId);

@@ -70,7 +70,7 @@ export function createSpatialBoundaryEditor(options: { loader?: SpatialAmapLoade
     mouseTool = new namespace.MouseTool(map)
     mouseTool.on('draw', (event) => {
       const polygon = event.obj as PolygonLike
-      clearPolygons(false)
+      clearPolygons()
       polygons = [polygon]
       editors = namespace && map ? [new namespace.PolygonEditor(map, polygon)] : []
       mouseTool?.close(true)

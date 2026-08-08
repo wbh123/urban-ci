@@ -14,6 +14,7 @@ public final class AiErrorCodes {
     public static final String AI_INVALID_RESPONSE = "AI_INVALID_RESPONSE";
     public static final String AI_OUTPUT_VALIDATION_FAILED = "AI_OUTPUT_VALIDATION_FAILED";
     public static final String AI_UNSUPPORTED_CAPABILITY = "AI_UNSUPPORTED_CAPABILITY";
+    public static final String AI_IMAGE_LOW_QUALITY = "AI_IMAGE_LOW_QUALITY";
 
     private AiErrorCodes() {
     }

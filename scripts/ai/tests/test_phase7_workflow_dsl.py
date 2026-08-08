@@ -65,6 +65,28 @@ class Phase7WorkflowDslTest(unittest.TestCase):
         ):
             self.assertIn(required, prompt_text)
 
+    def test_image_workflow_rejects_non_building_scene_before_defect_analysis(self):
+        payload = self._load("image")
+        vision_node = next(
+            node for node in self._nodes(payload)
+            if node["data"]["type"] == "llm"
+            and node["data"].get("vision", {}).get("enabled")
+        )
+        prompt_text = "\n".join(
+            item.get("text", "")
+            for item in vision_node["data"].get("prompt_template", [])
+        )
+        for required in (
+            "先判断图片主体是否属于建筑",
+            "非建筑",
+            "人物、宠物、车辆、桌面、普通生活用品",
+            "applicable=false",
+            "detections=[]",
+            "riskSignals=[]",
+            "不得臆造裂缝、剥落、渗水、露筋",
+        ):
+            self.assertIn(required, prompt_text)
+
     def test_review_workflow_only_produces_review_assistance(self):
         payload = self._load("review")
         content = WORKFLOWS["review"].read_text(encoding="utf-8")
@@ -89,7 +111,6 @@ class Phase7WorkflowDslTest(unittest.TestCase):
         self.assertIn("evidenceSufficient", content)
         self.assertIn("当前知识库中没有足够依据回答该问题", content)
         self.assertNotIn("knowledge-retrieval", [node["data"]["type"] for node in self._nodes(payload)])
-
 
     def test_all_graph_references_and_embedded_python_are_valid(self):
         for key in WORKFLOWS:

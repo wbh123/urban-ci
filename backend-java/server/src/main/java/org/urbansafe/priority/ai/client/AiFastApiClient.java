@@ -1,5 +1,6 @@
 package org.urbansafe.priority.ai.client;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
@@ -19,7 +20,7 @@ import org.springframework.web.client.RestClientResponseException;
 import org.urbansafe.priority.ai.config.AiInferenceProperties;
 
 /**
- * 调用 FastAPI 内部模型目录与推理接口的 HTTP 客户端。
+ * 调用 FastAPI 内部模型目录、图片质量预检与推理接口的 HTTP 客户端。
  *
  * <p>负责 Multipart 图片发送、真实模型 CUDA 就绪预检、超时与错误转换、
  * 请求编号、模式和模型身份一致性校验。不直接写业务数据库，也不直接访问 MinIO。
@@ -71,6 +72,31 @@ public class AiFastApiClient {
         return parseSuccess(body, requestId, metadata);
     }
 
+    /** 在调用在线视觉工作流前执行无需模型权重的本地图片质量预检。 */
+    public AiImageQualityResponse analyzeImageQuality(byte[] imageBytes, String requestId) {
+        MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
+        parts.add("file", new ImageResource(imageBytes));
+        parts.add("requestId", requestId);
+
+        String body;
+        try {
+            body = restClient.post()
+                    .uri("/internal/api/v1/ai/image-quality")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(parts)
+                    .retrieve()
+                    .body(String.class);
+        } catch (ResourceAccessException ex) {
+            throw mapNetworkError(ex);
+        } catch (RestClientResponseException ex) {
+            throw mapErrorResponse(ex);
+        } catch (RuntimeException ex) {
+            throw mapRuntimeError(ex);
+        }
+
+        return parseImageQuality(body, requestId);
+    }
+
     /**
      * 按模型编号查询 FastAPI 实际运行时身份。
      * REAL 模型必须已批准、就绪，并且实际执行后端只能是 CUDAExecutionProvider。
@@ -106,6 +132,43 @@ public class AiFastApiClient {
             }
         }
         return model;
+    }
+
+    private AiImageQualityResponse parseImageQuality(String body, String requestId) {
+        if (body == null || body.isBlank()) {
+            throw new AiFastApiException("AI_SERVICE_INVALID_RESPONSE", "FastAPI 返回空图片质量响应");
+        }
+        try {
+            AiImageQualityResponse response = objectMapper.readValue(body, AiImageQualityResponse.class);
+            if (response == null
+                    || response.requestId() == null
+                    || response.requestId().isBlank()
+                    || response.modelId() == null
+                    || response.modelId().isBlank()
+                    || response.modelVersion() == null
+                    || response.modelVersion().isBlank()
+                    || response.status() == null
+                    || response.status().isBlank()
+                    || response.decodeStatus() == null
+                    || response.decodeStatus().isBlank()
+                    || response.contentType() == null
+                    || response.contentType().isBlank()
+                    || response.width() <= 0
+                    || response.height() <= 0) {
+                throw new AiFastApiException(
+                        "AI_SERVICE_INVALID_RESPONSE", "FastAPI 图片质量响应缺少必要字段");
+            }
+            if (!requestId.equals(response.requestId())) {
+                throw new AiFastApiException(
+                        "AI_SERVICE_INVALID_RESPONSE", "FastAPI 图片质量请求编号不一致");
+            }
+            return response;
+        } catch (AiFastApiException ex) {
+            throw ex;
+        } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
+            throw new AiFastApiException(
+                    "AI_SERVICE_INVALID_RESPONSE", "FastAPI 返回非法图片质量响应", ex);
+        }
     }
 
     private AiRuntimeModelInfo parseModelInfo(String body) {
@@ -247,10 +310,16 @@ public class AiFastApiClient {
         try {
             String body = ex.getResponseBodyAsString();
             if (body != null && !body.isBlank()) {
-                AiInferenceErrorDetail detail = objectMapper.readValue(body, AiInferenceErrorDetail.class);
-                if (detail != null && detail.errorCode() != null) {
-                    errorCode = detail.errorCode();
-                    errorMessage = detail.errorMessage() != null ? detail.errorMessage() : errorMessage;
+                JsonNode detail = objectMapper.readTree(body);
+                if (detail != null && detail.isObject()) {
+                    String parsedCode = detail.path("errorCode").asText(null);
+                    String parsedMessage = detail.path("errorMessage").asText(null);
+                    if (parsedCode != null && !parsedCode.isBlank()) {
+                        errorCode = parsedCode;
+                    }
+                    if (parsedMessage != null && !parsedMessage.isBlank()) {
+                        errorMessage = parsedMessage;
+                    }
                 }
             }
         } catch (com.fasterxml.jackson.core.JsonProcessingException ignored) {

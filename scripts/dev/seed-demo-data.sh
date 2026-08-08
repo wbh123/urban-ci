@@ -5,6 +5,7 @@ repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 env_file="${1:-${repository_root}/.env}"
 compose_file="${repository_root}/docker/docker-compose.yml"
 base_sql_file="${repository_root}/scripts/dev/seed-demo-data.sql"
+spatial_boundary_sql_file="${repository_root}/scripts/dev/seed-spatial-boundary-demo.sql"
 feedback_sql_file="${repository_root}/scripts/dev/seed-feedback-demo-data.sql"
 assessment_input_sql_file="${repository_root}/scripts/dev/seed-assessment-input-data.sql"
 assessment_calculate_script="${repository_root}/scripts/dev/calculate-assessment-demo.sh"
@@ -14,6 +15,7 @@ for required_file in \
   "${env_file}" \
   "${compose_file}" \
   "${base_sql_file}" \
+  "${spatial_boundary_sql_file}" \
   "${feedback_sql_file}" \
   "${assessment_input_sql_file}" \
   "${assessment_calculate_script}" \
@@ -46,6 +48,7 @@ run_sql_file() {
 }
 
 run_sql_file "${base_sql_file}"
+run_sql_file "${spatial_boundary_sql_file}"
 run_sql_file "${feedback_sql_file}"
 run_sql_file "${assessment_input_sql_file}"
 "${assessment_calculate_script}" "${env_file}"
@@ -76,6 +79,11 @@ printf '%-12s %s\n' 'A-02' '低风险资料完整、稳定同分排序前项'
 printf '%-12s %s\n' 'A-01' '缺少专业检测、稳定同分排序后项'
 
 echo
+echo "空间边界演示："
+printf '%-28s %s\n' 'community_boundary' '2 个合成 VERIFIED 小区轮廓（仅开发演示）'
+printf '%-28s %s\n' 'building_boundary' '5 个合成 VERIFIED 楼栋轮廓（仅开发演示）'
+
+echo
 echo "数据汇总："
 "${compose[@]}" exec -T postgresql sh -eu -c \
   'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -P pager=off' <<'SQL'
@@ -90,6 +98,18 @@ UNION ALL
 SELECT 'demo_buildings', count(*)
 FROM core.building
 WHERE remark LIKE 'DEMO_DATA%' AND deleted_at IS NULL
+UNION ALL
+SELECT 'demo_community_boundaries', count(*)
+FROM geo.community_boundary cb
+JOIN core.community c ON c.id=cb.community_id
+WHERE c.community_code LIKE 'DEMO-COMMUNITY-%'
+  AND cb.deleted_at IS NULL AND cb.status='VERIFIED'
+UNION ALL
+SELECT 'demo_building_boundaries', count(*)
+FROM geo.building_boundary bb
+JOIN core.building b ON b.id=bb.building_id
+WHERE b.remark LIKE 'DEMO_DATA%'
+  AND bb.deleted_at IS NULL AND bb.status='VERIFIED'
 UNION ALL
 SELECT 'demo_tasks', count(*)
 FROM core.inspection_task

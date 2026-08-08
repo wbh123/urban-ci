@@ -68,14 +68,16 @@ describe('spatial boundary editor driver', () => {
     expect(maps[0]?.destroy).toHaveBeenCalled()
   })
 
-  it('accepts MouseTool polygon drawing as the new editable geometry', async () => {
+  it('replaces the existing polygon when MouseTool finishes a redraw', async () => {
     let drawHandler: ((event: { obj: unknown }) => void) | undefined
     const mouseTools: FakeMouseTool[] = []
+    const existingPolygons: FakePolygon[] = []
+    const existingPath = [[113, 27], [114, 27], [114, 28], [113, 27]]
     const drawnPolygon = {
       getPath: () => [
-        { getLng: () => 113, getLat: () => 27 },
-        { getLng: () => 114, getLat: () => 27 },
-        { getLng: () => 113, getLat: () => 27 },
+        { getLng: () => 113.2, getLat: () => 27.2 },
+        { getLng: () => 114.2, getLat: () => 27.2 },
+        { getLng: () => 113.2, getLat: () => 27.2 },
       ],
       setMap: vi.fn(),
     }
@@ -86,8 +88,11 @@ describe('spatial boundary editor driver', () => {
       destroy = vi.fn()
     }
     class FakePolygon {
-      getPath = vi.fn(() => [])
       setMap = vi.fn()
+      constructor() { existingPolygons.push(this) }
+      getPath() {
+        return existingPath.map(([lng, lat]) => ({ getLng: () => lng, getLat: () => lat }))
+      }
     }
     class FakeEditor {
       open = vi.fn()
@@ -111,11 +116,21 @@ describe('spatial boundary editor driver', () => {
     const onChange = vi.fn()
     const driver = createSpatialBoundaryEditor({ loader })
     await driver.mount(document.createElement('div'), config, { onChange })
+    driver.loadGeometry({ type: 'Polygon', coordinates: [existingPath] })
     driver.startDraw()
     drawHandler?.({ obj: drawnPolygon })
 
     expect(mouseTools[0]?.polygon).toHaveBeenCalled()
+    expect(existingPolygons[0]?.setMap).toHaveBeenCalledWith(null)
+    expect(drawnPolygon.setMap).not.toHaveBeenCalledWith(null)
     expect(onChange).toHaveBeenCalled()
-    expect(driver.exportGeometry()?.type).toBe('Polygon')
+    expect(driver.exportGeometry()).toEqual({
+      type: 'Polygon',
+      coordinates: [[
+        [113.2, 27.2],
+        [114.2, 27.2],
+        [113.2, 27.2],
+      ]],
+    })
   })
 })

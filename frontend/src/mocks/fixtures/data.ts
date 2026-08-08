@@ -20,6 +20,14 @@ export interface MockBuilding {
   createdAt: string
 }
 
+export interface MockCommunityWrite {
+  communityCode?: string
+  communityName?: string
+  administrativeRegion?: string
+  address?: string
+  status?: 'ACTIVE' | 'INACTIVE'
+}
+
 export const COMMUNITY_ID = '11111111-1111-1111-1111-111111111111'
 export const BUILDING_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
 export const TASK_ID = '22222222-2222-2222-2222-222222222222'
@@ -115,12 +123,14 @@ export const demoUser = {
   createdAt: now(),
 }
 
-/** 可变内存数据库，便于工作台创建/流转任务与记录。 */
+/** 可变内存数据库，便于工作台创建/流转任务、记录以及建档辅助状态。 */
 export interface MockDb {
   communities: CommunityPoint[]
   buildings: MockBuilding[]
   tasks: InspectionTask[]
   records: InspectionRecord[]
+  communityMetadata: Map<string, MockCommunityWrite>
+  buildingLocations: Map<string, Record<string, unknown>>
 }
 
 function createDb(): MockDb {
@@ -129,6 +139,8 @@ function createDb(): MockDb {
     buildings: [...initialBuildings],
     tasks: [...initialTasks],
     records: [...initialRecords],
+    communityMetadata: new Map(),
+    buildingLocations: new Map(),
   }
 }
 
@@ -139,4 +151,6 @@ export function resetDb(): void {
   db.buildings = [...initialBuildings]
   db.tasks = [...initialTasks]
   db.records = [...initialRecords]
+  db.communityMetadata.clear()
+  db.buildingLocations.clear()
 }

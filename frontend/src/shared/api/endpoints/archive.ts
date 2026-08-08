@@ -52,6 +52,7 @@ export interface BuildingLocationRequest {
   latitude: number
   formattedAddress?: string | null
   provider?: ArchiveProvider
+  coordinateSystem?: ArchiveCoordinateSystem
   matchLevel?: string | null
   mock?: boolean | null
   metadata?: Record<string, unknown> | null

@@ -34,7 +34,7 @@ class DatabasePlatformIntegrationTest extends PostgreSqlIntegrationTestBase {
     @Autowired
     private OperationLogRepository operationLogRepository;
 
-    /** 验证 V1 至当前最新 V34 均已成功执行。 */
+    /** 验证 V1 至当前最新 V33 均已成功执行。 */
     @Test
     void flywayShouldApplyThroughLatestVersion() {
         List<String> versions = jdbcTemplate.queryForList(
@@ -44,8 +44,8 @@ class DatabasePlatformIntegrationTest extends PostgreSqlIntegrationTestBase {
         assertThat(versions).contains(
                 "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
                 "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
-                "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34");
-        assertThat(versions.getLast()).isEqualTo("34");
+                "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33");
+        assertThat(versions.getLast()).isEqualTo("33");
     }
 
     @Test
@@ -61,6 +61,7 @@ class DatabasePlatformIntegrationTest extends PostgreSqlIntegrationTestBase {
         assertThat(model.get("formal_evidence_enabled")).isEqualTo(false);
     }
 
+
     @Test
     void difyWorkflowShouldBeRegisteredForBusinessUseButNotFormalEvidence() {
         Map<String, Object> model = jdbcTemplate.queryForMap("""
@@ -69,7 +70,7 @@ class DatabasePlatformIntegrationTest extends PostgreSqlIntegrationTestBase {
                 WHERE model_code='AI-DIFY-WORKFLOW-001'
                 """);
 
-        assertThat(model.get("model_version")).isEqualTo("image-analysis-v1.1.0");
+        assertThat(model.get("model_version")).isEqualTo("image-analysis-v1.0.1");
         assertThat(model.get("deployment_stage")).isEqualTo("VALIDATING");
         assertThat(model.get("quality_status")).isEqualTo("VALIDATING");
         assertThat(model.get("formal_evidence_enabled")).isEqualTo(false);

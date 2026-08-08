@@ -23,4 +23,11 @@ describe('InspectionWorkspacePage image and inference workflow', () => {
     expect(source).toContain('displayInferenceResult(result.assetId, automatic.inferenceId')
     expect(source).toContain('图片上传完成并已自动识别')
   })
+
+  it('does not render the legacy Marker map and points users to the formal spatial map', () => {
+    expect(source).not.toContain("useAmap from '@/shared/composables/useAmap'")
+    expect(source).not.toContain('amap.render(')
+    expect(source).toContain("router.push('/console/map')")
+    expect(source).toContain('正式空间地图')
+  })
 })

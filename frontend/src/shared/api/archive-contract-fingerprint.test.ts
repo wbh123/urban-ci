@@ -1,13 +1,13 @@
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const generateSource = readFileSync(
-  fileURLToPath(new URL('../../../scripts/generate-api.mjs', import.meta.url)),
+  resolve(process.cwd(), 'scripts/generate-api.mjs'),
   'utf8',
 )
 const checkSource = readFileSync(
-  fileURLToPath(new URL('../../../scripts/check-api-contract.mjs', import.meta.url)),
+  resolve(process.cwd(), 'scripts/check-api-contract.mjs'),
   'utf8',
 )
 

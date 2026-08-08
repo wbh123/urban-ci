@@ -24,6 +24,8 @@ class Phase2MapOpenApiContractTest {
                 .contains("nearestPoiId: { type: string, nullable: true }")
                 .contains("nearestPoiName: { type: string, nullable: true }")
                 .contains("BuildingLocationRequest:")
+                .contains("coordinateSystem:")
+                .contains("enum: [GCJ02, WGS84, BD09, UNKNOWN]")
                 .contains("BuildingLocation:")
                 .contains("BuildingLocationSuccessResponse:");
     }

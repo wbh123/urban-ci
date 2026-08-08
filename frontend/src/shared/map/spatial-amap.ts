@@ -37,7 +37,6 @@ interface AmapNamespaceLike {
 interface AmapWindow extends Window {
   AMap?: AmapNamespaceLike
   _AMapSecurityConfig?: { serviceHost?: string }
-  [key: string]: unknown
 }
 
 export interface SpatialAmapLoadOptions {
@@ -83,14 +82,15 @@ const defaultLoader: SpatialAmapLoader = async (options) => {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     throw new Error('当前运行环境不支持高德地图')
   }
-  const target = window as AmapWindow
+  const target = window as unknown as AmapWindow
+  const callbacks = target as unknown as Record<string, unknown>
   if (target.AMap) return target.AMap
   if (loaderPromise) return loaderPromise
 
   loaderPromise = new Promise<AmapNamespaceLike>((resolve, reject) => {
     const callbackName = `__urbanSafeSpatialAmapLoaded_${Date.now()}_${Math.random().toString(36).slice(2)}`
-    target[callbackName] = () => {
-      delete target[callbackName]
+    callbacks[callbackName] = () => {
+      delete callbacks[callbackName]
       if (target.AMap) resolve(target.AMap)
       else reject(new Error('高德地图脚本已加载，但 AMap 对象不可用'))
     }
@@ -105,7 +105,7 @@ const defaultLoader: SpatialAmapLoader = async (options) => {
     script.async = true
     script.src = `https://webapi.amap.com/maps?${params.toString()}`
     script.onerror = () => {
-      delete target[callbackName]
+      delete callbacks[callbackName]
       loaderPromise = null
       reject(new Error('高德地图 JavaScript API 加载失败'))
     }
@@ -194,13 +194,13 @@ export function createSpatialAmapDriver(
     if (config.mode !== 'LIVE' || !config.jsApiKey) return false
 
     if (config.serviceHost && typeof window !== 'undefined') {
-      const target = window as AmapWindow
+      const target = window as unknown as AmapWindow
       target._AMapSecurityConfig = { serviceHost: config.serviceHost }
     }
 
     namespace = await loader({
       key: config.jsApiKey,
-      version: config.jsApiVersion || '2.0',
+      version: '2.0',
       plugins: DEFAULT_PLUGINS,
     })
     map = new namespace.Map(container, {
@@ -211,8 +211,8 @@ export function createSpatialAmapDriver(
     })
 
     const emitViewport = () => {
-      const viewport = getViewport()
-      if (viewport) handlers.onViewportChange?.(viewport)
+      const nextViewport = getViewport()
+      if (nextViewport) handlers.onViewportChange?.(nextViewport)
     }
     map.on('moveend', emitViewport)
     map.on('zoomend', emitViewport)

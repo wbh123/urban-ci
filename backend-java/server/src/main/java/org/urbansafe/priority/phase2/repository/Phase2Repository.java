@@ -92,20 +92,18 @@ public class Phase2Repository {
     }
 
     public Map<String, Object> saveBuildingLocation(UUID buildingId, double longitude,
-            double latitude, String address, String provider, String level, String metadata) {
+            double latitude, String address, String provider, String coordinateSystem,
+            String level, String metadata) {
         MapSqlParameterSource p = new MapSqlParameterSource()
                 .addValue("buildingId", buildingId).addValue("longitude", longitude)
                 .addValue("latitude", latitude).addValue("address", address)
-                .addValue("provider", provider).addValue("level", level)
-                .addValue("metadata", metadata);
+                .addValue("provider", provider).addValue("coordinateSystem", coordinateSystem)
+                .addValue("level", level).addValue("metadata", metadata);
         int updated = jdbc.update("""
                 UPDATE geo.building_location
                 SET centroid=ST_SetSRID(ST_MakePoint(:longitude,:latitude),4326),
                     formatted_address=:address, source_provider=:provider,
-                    source_coordinate_system=CASE
-                        WHEN :provider='MOCK' THEN 'UNKNOWN'
-                        ELSE 'GCJ02'
-                    END,
+                    source_coordinate_system=:coordinateSystem,
                     match_level=:level,
                     metadata=CAST(:metadata AS jsonb), collected_at=CURRENT_TIMESTAMP,
                     updated_at=CURRENT_TIMESTAMP
@@ -118,8 +116,7 @@ public class Phase2Repository {
                        source_coordinate_system,match_level,metadata)
                     VALUES (:buildingId,
                       ST_SetSRID(ST_MakePoint(:longitude,:latitude),4326),
-                      :address,:provider,
-                      CASE WHEN :provider='MOCK' THEN 'UNKNOWN' ELSE 'GCJ02' END,
+                      :address,:provider,:coordinateSystem,
                       :level,CAST(:metadata AS jsonb))
                     """, p);
         }

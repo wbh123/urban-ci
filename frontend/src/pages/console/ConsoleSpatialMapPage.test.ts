@@ -10,11 +10,13 @@ describe('ConsoleSpatialMapPage R3 integration', () => {
     expect(source).toContain('driver.sync')
   })
 
-  it('keeps search, risk filters, community selection and multi-building selection connected to store actions', () => {
+  it('keeps search, risk filters, explicit community selection and multi-building selection connected to store actions', () => {
     expect(source).toContain('store.setSearchKeyword')
     expect(source).toContain('store.setRiskLevels')
     expect(source).toContain('store.selectCommunity')
     expect(source).toContain('store.toggleBuilding')
+    expect(source).toContain('community-filter')
+    expect(source).toContain('全部小区')
   })
 
   it('uses real assessment and feedback data in the selected-building drawer', () => {

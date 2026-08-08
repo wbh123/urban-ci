@@ -24,11 +24,11 @@ class SpatialOpenApiContractTest {
                 .contains("/api/v1/spatial/buildings/{buildingId}/boundary/reject:")
                 .contains("expectedVersion:")
                 .contains("displayCoordinateSystem:")
-                .contains("west:")
-                .contains("south:")
-                .contains("east:")
-                .contains("north:")
-                .contains("zoom:")
+                .contains("name: west")
+                .contains("name: south")
+                .contains("name: east")
+                .contains("name: north")
+                .contains("name: zoom")
                 .contains("FeatureCollection")
                 .contains("VERIFIED");
     }

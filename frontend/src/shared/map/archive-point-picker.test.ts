@@ -46,7 +46,7 @@ describe('archive point picker', () => {
     }
 
     class FakeMarker {
-      constructor(_options: Record<string, unknown>) {}
+      constructor() {}
       setPosition = markerSetPosition
       setMap = vi.fn()
     }

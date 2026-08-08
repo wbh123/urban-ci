@@ -1,0 +1,256 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe Priority 可视化建档接口
+  description: 小区与楼栋可视化建档所需的地图发现、逆地理编码和楼栋中心点定位接口。
+  version: 1.0.0
+
+paths:
+  /api/v1/map/places/search:
+    post:
+      operationId: searchArchivePlaces
+      summary: 搜索地图地点候选
+      description: 根据关键字搜索高德或模拟地点候选，仅用于预填，不能直接创建业务档案。
+      tags: [ArchiveMap]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlaceSearchRequest' }
+      responses:
+        '200':
+          description: 搜索成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MapPlaceCandidateListSuccessResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/map/reverse-geocoding/preview:
+    post:
+      operationId: previewArchiveReverseGeocoding
+      summary: 预览地图点击位置
+      description: 根据经纬度反查格式化地址和可选附近兴趣点，仅生成候选信息。
+      tags: [ArchiveMap]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReverseGeocodingRequest' }
+      responses:
+        '200':
+          description: 反查成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReverseGeocodingResultSuccessResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/buildings/{buildingId}/location:
+    parameters:
+      - name: buildingId
+        in: path
+        required: true
+        description: 楼栋唯一标识
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getArchiveBuildingLocation
+      summary: 查询楼栋中心点
+      tags: [ArchiveLocation]
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BuildingLocationSuccessResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      operationId: saveArchiveBuildingLocation
+      summary: 保存楼栋中心点
+      description: 新增或更新楼栋中心点；位置点与楼栋 Polygon/MultiPolygon 空间边界分开保存。
+      tags: [ArchiveLocation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BuildingLocationRequest' }
+      responses:
+        '200':
+          description: 保存成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BuildingLocationSuccessResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+components:
+  schemas:
+    ArchiveError:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        details:
+          type: object
+          nullable: true
+          additionalProperties: true
+
+    ArchiveSuccessBase:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean, enum: [true] }
+        error: { nullable: true }
+        requestId: { type: string, nullable: true }
+        timestamp: { type: string, format: date-time, nullable: true }
+
+    ArchiveErrorResponse:
+      type: object
+      required: [success, error]
+      properties:
+        success: { type: boolean, enum: [false] }
+        data: { nullable: true }
+        error: { $ref: '#/components/schemas/ArchiveError' }
+        requestId: { type: string, nullable: true }
+        timestamp: { type: string, format: date-time, nullable: true }
+
+    PlaceSearchRequest:
+      type: object
+      required: [keyword]
+      properties:
+        keyword: { type: string, minLength: 1, maxLength: 80 }
+        region: { type: string, nullable: true, maxLength: 64 }
+        cityLimit: { type: boolean, default: false }
+        pageSize: { type: integer, minimum: 1, maximum: 10, default: 8 }
+
+    MapPlaceCandidate:
+      type: object
+      required: [name, longitude, latitude, provider, coordinateSystem, mock]
+      properties:
+        providerObjectId: { type: string, nullable: true }
+        name: { type: string }
+        formattedAddress: { type: string, nullable: true }
+        province: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        district: { type: string, nullable: true }
+        adcode: { type: string, nullable: true }
+        citycode: { type: string, nullable: true }
+        longitude: { type: number, format: double, minimum: -180, maximum: 180 }
+        latitude: { type: number, format: double, minimum: -90, maximum: 90 }
+        provider: { type: string, enum: [AMAP, MOCK] }
+        coordinateSystem: { type: string, enum: [GCJ02, UNKNOWN] }
+        mock: { type: boolean }
+
+    ReverseGeocodingRequest:
+      type: object
+      required: [longitude, latitude]
+      properties:
+        longitude: { type: number, format: double, minimum: -180, maximum: 180 }
+        latitude: { type: number, format: double, minimum: -90, maximum: 90 }
+
+    ReverseGeocodingResult:
+      type: object
+      required: [longitude, latitude, provider, coordinateSystem, mock]
+      properties:
+        formattedAddress: { type: string, nullable: true }
+        province: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        district: { type: string, nullable: true }
+        adcode: { type: string, nullable: true }
+        citycode: { type: string, nullable: true }
+        longitude: { type: number, format: double, minimum: -180, maximum: 180 }
+        latitude: { type: number, format: double, minimum: -90, maximum: 90 }
+        provider: { type: string, enum: [AMAP, MOCK] }
+        coordinateSystem: { type: string, enum: [GCJ02, UNKNOWN] }
+        nearestPoiId: { type: string, nullable: true }
+        nearestPoiName: { type: string, nullable: true }
+        mock: { type: boolean }
+
+    BuildingLocationRequest:
+      type: object
+      required: [longitude, latitude]
+      properties:
+        longitude: { type: number, format: double, minimum: -180, maximum: 180 }
+        latitude: { type: number, format: double, minimum: -90, maximum: 90 }
+        formattedAddress: { type: string, nullable: true, maxLength: 255 }
+        provider:
+          type: string
+          enum: [AMAP, MANUAL, IMPORT, MOCK]
+          default: MANUAL
+        matchLevel: { type: string, nullable: true, maxLength: 64 }
+        mock: { type: boolean, nullable: true }
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+
+    BuildingLocation:
+      type: object
+      required: [buildingId, longitude, latitude, provider, coordinateSystem]
+      properties:
+        buildingId: { type: string, format: uuid }
+        longitude: { type: number, format: double }
+        latitude: { type: number, format: double }
+        formattedAddress: { type: string, nullable: true }
+        provider: { type: string, enum: [AMAP, MANUAL, IMPORT, MOCK] }
+        coordinateSystem: { type: string, enum: [GCJ02, WGS84, BD09, UNKNOWN] }
+        matchLevel: { type: string, nullable: true }
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+        updatedAt: { type: string, format: date-time, nullable: true }
+
+    MapPlaceCandidateListSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/ArchiveSuccessBase'
+        - type: object
+          required: [data]
+          properties:
+            data:
+              type: array
+              items: { $ref: '#/components/schemas/MapPlaceCandidate' }
+
+    ReverseGeocodingResultSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/ArchiveSuccessBase'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/ReverseGeocodingResult' }
+
+    BuildingLocationSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/ArchiveSuccessBase'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/BuildingLocation' }
+
+  responses:
+    BadRequest:
+      description: 请求参数不合法
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ArchiveErrorResponse' }
+    Unauthorized:
+      description: 未登录或令牌无效
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ArchiveErrorResponse' }
+    Forbidden:
+      description: 无权访问当前业务对象
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ArchiveErrorResponse' }
+    NotFound:
+      description: 业务对象或定位记录不存在
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ArchiveErrorResponse' }

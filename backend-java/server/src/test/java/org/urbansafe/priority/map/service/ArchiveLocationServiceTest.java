@@ -132,6 +132,7 @@ class ArchiveLocationServiceTest {
         BusinessAccessService access = mock(BusinessAccessService.class);
         AtomicReference<String> repositoryMethod = new AtomicReference<>();
         Phase2Repository repository = repositoryAnswer(invocation -> {
+            if ("buildingExists".equals(invocation.method())) return true;
             repositoryMethod.set(invocation.method());
             return null;
         });

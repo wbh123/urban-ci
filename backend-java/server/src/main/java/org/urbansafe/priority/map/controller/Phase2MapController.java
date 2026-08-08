@@ -5,13 +5,19 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
-import org.urbansafe.priority.common.exception.InvalidRequestException;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.urbansafe.priority.common.security.BusinessAccessService;
 import org.urbansafe.priority.map.service.MapDiscoveryService;
 import org.urbansafe.priority.map.service.Phase2MapService;
 import org.urbansafe.priority.phase2.common.Phase2ResponseFactory;
 
+/** 第二阶段旧地图兼容入口。新增建档发现接口由 ArchiveMapController 承担。 */
 @Controller
 @ResponseBody
 @RequestMapping("/api/v1")
@@ -36,24 +42,6 @@ public class Phase2MapController {
                 stringValue(body.get("address")), stringValue(body.get("city")))));
     }
 
-    @PostMapping("/map/places/search")
-    @PreAuthorize(BusinessAccessService.DIRECTORY_READ_ROLES)
-    public ResponseEntity<Map<String,Object>> searchPlaces(@RequestBody Map<String,Object> body) {
-        return ResponseEntity.ok(Phase2ResponseFactory.success(discovery.searchPlaces(
-                stringValue(body.get("keyword")),
-                stringValue(body.get("region")),
-                booleanValue(body.get("cityLimit"), false, "cityLimit"),
-                intValue(body.get("pageSize"), 8, "pageSize"))));
-    }
-
-    @PostMapping("/map/reverse-geocoding/preview")
-    @PreAuthorize(BusinessAccessService.DIRECTORY_READ_ROLES)
-    public ResponseEntity<Map<String,Object>> reverseGeocode(@RequestBody Map<String,Object> body) {
-        return ResponseEntity.ok(Phase2ResponseFactory.success(discovery.reverseGeocode(
-                doubleValue(body.get("longitude"), "longitude"),
-                doubleValue(body.get("latitude"), "latitude"))));
-    }
-
     @GetMapping("/map/communities")
     public ResponseEntity<Map<String,Object>> communities() {
         return ResponseEntity.ok(Phase2ResponseFactory.success(service.communityPoints()));
@@ -72,48 +60,5 @@ public class Phase2MapController {
 
     private String stringValue(Object value) {
         return value == null ? null : String.valueOf(value);
-    }
-
-    private boolean booleanValue(Object value, boolean defaultValue, String field) {
-        if (value == null) {
-            return defaultValue;
-        }
-        if (value instanceof Boolean booleanValue) {
-            return booleanValue;
-        }
-        String normalized = String.valueOf(value).trim();
-        if ("true".equalsIgnoreCase(normalized)) {
-            return true;
-        }
-        if ("false".equalsIgnoreCase(normalized)) {
-            return false;
-        }
-        throw new InvalidRequestException("MAP_FIELD_INVALID", field + " 必须为布尔值");
-    }
-
-    private int intValue(Object value, int defaultValue, String field) {
-        if (value == null) {
-            return defaultValue;
-        }
-        try {
-            return value instanceof Number number
-                    ? number.intValue()
-                    : Integer.parseInt(String.valueOf(value).trim());
-        } catch (RuntimeException ex) {
-            throw new InvalidRequestException("MAP_FIELD_INVALID", field + " 必须为整数");
-        }
-    }
-
-    private double doubleValue(Object value, String field) {
-        if (value == null) {
-            throw new InvalidRequestException("MAP_FIELD_INVALID", field + " 不能为空");
-        }
-        try {
-            return value instanceof Number number
-                    ? number.doubleValue()
-                    : Double.parseDouble(String.valueOf(value).trim());
-        } catch (RuntimeException ex) {
-            throw new InvalidRequestException("MAP_FIELD_INVALID", field + " 必须为数字");
-        }
     }
 }

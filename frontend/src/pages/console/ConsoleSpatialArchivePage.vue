@@ -3,7 +3,12 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listCommunities, type CommunityListRow } from '@/shared/api/endpoints/communities'
 import { listBuildings, type BuildingListRow } from '@/shared/api/endpoints/buildings'
-import { getMapRuntimeConfig, type MapRuntimeConfig } from '@/shared/api/endpoints/map'
+import {
+  getMapRuntimeConfig,
+  previewCommunityBoundaryCandidate,
+  type BoundaryCandidateReason,
+  type MapRuntimeConfig,
+} from '@/shared/api/endpoints/map'
 import {
   getBuildingBoundary,
   getCommunityBoundary,
@@ -33,6 +38,7 @@ const mapContainer = ref<HTMLElement | null>(null)
 const loading = ref(false)
 const buildingLoading = ref(false)
 const boundaryLoading = ref(false)
+const candidateLoading = ref(false)
 const saving = ref(false)
 const reviewLoading = ref(false)
 const mapReady = ref(false)
@@ -42,11 +48,15 @@ const remark = ref('')
 const dirtyGeometry = ref<SpatialGeoJsonGeometry | null>(null)
 const geoJsonInput = ref('')
 const importedGeometry = ref(false)
+const candidatePreview = ref(false)
+const candidateSourceId = ref<string | null>(null)
+const candidateReasonCode = ref<BoundaryCandidateReason | null>(null)
 const editor = createSpatialBoundaryEditor()
 
 const selectedEntityId = computed(() => entityType.value === 'COMMUNITY' ? selectedCommunityId.value : selectedBuildingId.value)
+const selectedCommunity = computed(() => communities.value.find((item) => item.id === selectedCommunityId.value) ?? null)
 const selectedEntityName = computed(() => entityType.value === 'COMMUNITY'
-  ? communities.value.find((item) => item.id === selectedCommunityId.value)?.communityName ?? '未选择小区'
+  ? selectedCommunity.value?.communityName ?? '未选择小区'
   : buildings.value.find((item) => item.id === selectedBuildingId.value)?.buildingName ?? '未选择楼栋')
 const statusLabel = computed(() => ({ UNVERIFIED: '待确认', VERIFIED: '已确认', REJECTED: '已驳回' } as Record<string, string>)[currentBoundary.value?.status ?? ''] ?? '暂无边界')
 const statusType = computed<'success' | 'warning' | 'danger' | 'info'>(() => {
@@ -100,9 +110,15 @@ async function handleCommunityChange(): Promise<void> {
 async function handleBuildingChange(): Promise<void> { if (entityType.value === 'BUILDING') await loadCurrentBoundary() }
 async function handleEntityTypeChange(): Promise<void> { await loadCurrentBoundary() }
 
+function clearCandidateState(): void {
+  candidatePreview.value = false
+  candidateSourceId.value = null
+  candidateReasonCode.value = null
+}
+
 async function loadCurrentBoundary(): Promise<void> {
   boundaryLoading.value = true; notice.value = ''; currentBoundary.value = null; dirtyGeometry.value = null
-  geoJsonInput.value = ''; importedGeometry.value = false
+  geoJsonInput.value = ''; importedGeometry.value = false; clearCandidateState()
   const id = selectedEntityId.value
   if (!id) { editor.clear(); boundaryLoading.value = false; return }
   try {
@@ -120,11 +136,41 @@ async function loadCurrentBoundary(): Promise<void> {
 }
 
 function startDraw(): void {
-  notice.value = ''; importedGeometry.value = false; geoJsonInput.value = ''; editor.startDraw()
+  notice.value = ''; importedGeometry.value = false; geoJsonInput.value = ''; clearCandidateState(); editor.startDraw()
 }
 function startEdit(): void {
   if (!currentBoundary.value) { notice.value = '当前对象尚无边界，请先绘制新边界。'; return }
-  notice.value = ''; importedGeometry.value = false; geoJsonInput.value = ''; editor.startEdit()
+  notice.value = ''; importedGeometry.value = false; geoJsonInput.value = ''; clearCandidateState(); editor.startEdit()
+}
+
+async function previewAmapCandidate(): Promise<void> {
+  if (entityType.value !== 'COMMUNITY' || !selectedCommunity.value) return
+  candidateLoading.value = true; notice.value = ''; candidateReasonCode.value = null
+  try {
+    const candidate = await previewCommunityBoundaryCandidate({
+      communityName: selectedCommunity.value.communityName,
+    })
+    candidateReasonCode.value = candidate.reasonCode ?? null
+    if (!candidate.available || !candidate.geometry) {
+      clearCandidateState()
+      candidateReasonCode.value = candidate.reasonCode ?? null
+      notice.value = `${candidate.message || '高德未返回可用候选边界'} 可继续手工绘制或导入 GeoJSON。`
+      return
+    }
+
+    dirtyGeometry.value = candidate.geometry
+    importedGeometry.value = false
+    candidatePreview.value = true
+    candidateSourceId.value = candidate.sourceId ?? null
+    geoJsonInput.value = ''
+    if (mapReady.value) editor.loadGeometry(candidate.geometry)
+    notice.value = '候选边界仅用于预览。请人工核对后点击“保存为新版本”，否则不会写入空间档案。'
+  } catch (error) {
+    clearCandidateState()
+    notice.value = `${toAppError(error).message} 可继续手工绘制或导入 GeoJSON。`
+  } finally {
+    candidateLoading.value = false
+  }
 }
 
 function importGeoJsonText(): void {
@@ -133,6 +179,7 @@ function importGeoJsonText(): void {
     const geometry = parseSpatialGeoJson(geoJsonInput.value)
     dirtyGeometry.value = geometry
     importedGeometry.value = true
+    clearCandidateState()
     if (mapReady.value) editor.loadGeometry(geometry)
     notice.value = 'GeoJSON 校验通过。保存后将作为 GCJ-02 边界进入待确认状态。'
   } catch (error) {
@@ -158,6 +205,7 @@ async function cancelEdit(): Promise<void> {
   notice.value = ''
   geoJsonInput.value = ''
   importedGeometry.value = false
+  clearCandidateState()
   await loadCurrentBoundary()
   ElMessage.info('已取消本次修改，并恢复服务器当前版本。')
 }
@@ -170,8 +218,9 @@ async function saveBoundary(): Promise<void> {
   const expectedVersion = currentBoundary.value?.version ?? 0
   const payload = {
     expectedVersion,
-    sourceType: importedGeometry.value ? 'GEOJSON_IMPORT' as const : currentBoundary.value ? 'MANUAL_EDIT' as const : 'MANUAL_DRAW' as const,
-    sourceProvider: importedGeometry.value ? 'GEOJSON_IMPORT' : 'INTERNAL_EDITOR',
+    sourceType: candidatePreview.value ? 'AMAP_AOI' as const : importedGeometry.value ? 'GEOJSON_IMPORT' as const : currentBoundary.value ? 'MANUAL_EDIT' as const : 'MANUAL_DRAW' as const,
+    sourceProvider: candidatePreview.value ? 'AMAP' : importedGeometry.value ? 'GEOJSON_IMPORT' : 'INTERNAL_EDITOR',
+    sourceObjectId: candidatePreview.value ? candidateSourceId.value : null,
     sourceCoordinateSystem: 'GCJ02' as const,
     sourceGeometry: geometry,
     displayCoordinateSystem: 'GCJ02' as const,
@@ -185,6 +234,7 @@ async function saveBoundary(): Promise<void> {
     dirtyGeometry.value = currentBoundary.value.displayGeometry
     importedGeometry.value = false
     geoJsonInput.value = ''
+    clearCandidateState()
     if (mapReady.value) editor.loadGeometry(currentBoundary.value.displayGeometry)
     ElMessage.success('边界已保存并进入待确认状态。')
   } catch (error) {
@@ -236,7 +286,14 @@ async function reviewBoundary(action: 'VERIFY' | 'REJECT'): Promise<void> {
           <el-form-item v-if="entityType === 'BUILDING'" label="楼栋"><el-select v-model="selectedBuildingId" filterable :loading="buildingLoading" style="width:100%" @change="handleBuildingChange"><el-option v-for="item in buildings" :key="item.id" :label="`${item.buildingCode} · ${item.buildingName}`" :value="item.id" /></el-select></el-form-item>
         </el-form>
         <div class="boundary-state"><div><small>当前对象</small><strong>{{ selectedEntityName }}</strong></div><el-tag :type="statusType">{{ statusLabel }}</el-tag></div>
-        <dl class="version-info"><div><dt>版本</dt><dd>{{ currentBoundary?.version ?? 0 }}</dd></div><div><dt>展示坐标</dt><dd>{{ currentBoundary?.displayCoordinateSystem ?? 'GCJ02' }}</dd></div><div><dt>来源</dt><dd>{{ currentBoundary?.sourceType ?? '待绘制' }}</dd></div></dl>
+        <dl class="version-info"><div><dt>版本</dt><dd>{{ currentBoundary?.version ?? 0 }}</dd></div><div><dt>展示坐标</dt><dd>{{ currentBoundary?.displayCoordinateSystem ?? 'GCJ02' }}</dd></div><div><dt>来源</dt><dd>{{ candidatePreview ? 'AMAP_AOI 候选' : currentBoundary?.sourceType ?? '待绘制' }}</dd></div></dl>
+
+        <template v-if="entityType === 'COMMUNITY'">
+          <el-divider>高德候选边界</el-divider>
+          <el-button :loading="candidateLoading" :disabled="!selectedCommunityId" @click="previewAmapCandidate">查询并预览高德候选边界</el-button>
+          <p class="hint">候选边界仅用于预览，不会自动落库。无权限、无结果或超时时，可继续手工绘制或导入 GeoJSON。</p>
+          <el-tag v-if="candidateReasonCode" type="info" effect="plain">{{ candidateReasonCode }}</el-tag>
+        </template>
 
         <el-divider>导入 GCJ-02 GeoJSON</el-divider>
         <el-form-item label="GeoJSON 文本">

@@ -1,7 +1,8 @@
 """UrbanSafe AI Service 运行时配置。
 
 配置优先通过环境变量注入；本地直接运行时读取项目根目录 ``.env``。
-真实模型只能来自本地运行时目录与显式模型目录清单，运行时不得访问公网。
+真实病害模型只能来自本地运行时目录与显式模型目录清单，运行时不得访问公网。
+本地图片语义适用性门禁属于辅助预检能力，允许使用 ONNX Runtime CPU，不改变真实病害模型 CUDA-only 边界。
 """
 
 from __future__ import annotations
@@ -41,8 +42,28 @@ def _non_negative_int(primary: str, project_name: str, default: int) -> int:
     return value
 
 
+def _boolean(primary: str, project_name: str, default: bool) -> bool:
+    raw_value = _env(primary, project_name, "true" if default else "false").strip().lower()
+    if raw_value in {"1", "true", "yes", "on"}:
+        return True
+    if raw_value in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"环境变量 {project_name} 必须是布尔值")
+
+
+def _unit_float(primary: str, project_name: str, default: float) -> float:
+    raw_value = _env(primary, project_name, str(default)).strip()
+    try:
+        value = float(raw_value)
+    except ValueError as ex:
+        raise ValueError(f"环境变量 {project_name} 必须是 0 到 1 之间的小数") from ex
+    if value < 0.0 or value > 1.0:
+        raise ValueError(f"环境变量 {project_name} 必须位于 0 到 1 之间")
+    return value
+
+
 class Settings:
-    """进程级运行参数。真实模型统一采用 CUDA，不提供 CPU 推理配置。"""
+    """进程级运行参数；病害真实模型 CUDA-only，辅助语义门禁允许 CPU ONNX。"""
 
     def __init__(self) -> None:
         self.service_name: str = _env(
@@ -111,6 +132,53 @@ class Settings:
                 "32",
             )
         )
+
+        # 本地语义适用性门禁只负责“是否适合进入建筑病害分析”，不判断病害类别。
+        self.applicability_enabled: bool = _boolean(
+            "AI_APPLICABILITY_ENABLED",
+            "URBAN_SAFE_AI_APPLICABILITY_ENABLED",
+            True,
+        )
+        self.applicability_model_id: str = _env(
+            "AI_APPLICABILITY_MODEL_ID",
+            "URBAN_SAFE_AI_APPLICABILITY_MODEL_ID",
+            "LOCAL-IMAGE-APPLICABILITY-001",
+        ).strip() or "LOCAL-IMAGE-APPLICABILITY-001"
+        self.applicability_model_version: str = _env(
+            "AI_APPLICABILITY_MODEL_VERSION",
+            "URBAN_SAFE_AI_APPLICABILITY_MODEL_VERSION",
+            "1.0.0",
+        ).strip() or "1.0.0"
+        self.applicability_model_path: Path = _project_path(
+            _env(
+                "AI_APPLICABILITY_MODEL_PATH",
+                "URBAN_SAFE_AI_APPLICABILITY_MODEL_PATH",
+                "data/ai-service/models/image-applicability/model.onnx",
+            )
+        )
+        self.applicability_metadata_path: Path = _project_path(
+            _env(
+                "AI_APPLICABILITY_METADATA_PATH",
+                "URBAN_SAFE_AI_APPLICABILITY_METADATA_PATH",
+                "data/ai-service/models/image-applicability/model.json",
+            )
+        )
+        self.applicability_reject_threshold: float = _unit_float(
+            "AI_APPLICABILITY_REJECT_THRESHOLD",
+            "URBAN_SAFE_AI_APPLICABILITY_REJECT_THRESHOLD",
+            0.90,
+        )
+        self.applicability_applicable_threshold: float = _unit_float(
+            "AI_APPLICABILITY_APPLICABLE_THRESHOLD",
+            "URBAN_SAFE_AI_APPLICABILITY_APPLICABLE_THRESHOLD",
+            0.60,
+        )
+        if self.applicability_reject_threshold < self.applicability_applicable_threshold:
+            raise ValueError(
+                "环境变量 URBAN_SAFE_AI_APPLICABILITY_REJECT_THRESHOLD "
+                "不能小于 URBAN_SAFE_AI_APPLICABILITY_APPLICABLE_THRESHOLD"
+            )
+
         self.supported_content_types = ("image/jpeg", "image/png", "image/webp")
 
 

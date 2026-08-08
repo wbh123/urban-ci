@@ -10,7 +10,7 @@ import math
 import statistics
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 NEGATIVE_CATEGORIES = {"hard_negative", "low_quality", "not_applicable"}
 NEGATIVE_LABELS = {
@@ -18,6 +18,7 @@ NEGATIVE_LABELS = {
     "BLUR", "OVEREXPOSED", "UNDEREXPOSED", "OCCLUDED", "NOT_APPLICABLE",
 }
 LOW_QUALITY_CATEGORY = "low_quality"
+NOT_APPLICABLE_CATEGORY = "not_applicable"
 LOW_QUALITY_ERROR_CODE = "AI_IMAGE_LOW_QUALITY"
 NOT_APPLICABLE_ERROR_CODE = "AI_IMAGE_NOT_APPLICABLE"
 REQUIRED_STRUCTURED_FIELDS = {
@@ -101,6 +102,31 @@ def expected_precheck_rejection(manifest_row: dict[str, str]) -> bool:
     return category == LOW_QUALITY_CATEGORY
 
 
+def expected_semantic_rejection(manifest_row: dict[str, str]) -> bool | None:
+    """返回本地语义门禁真值；UNKNOWN/待人工复核样本不强行作为语义门禁真值。"""
+
+    explicit = str(
+        manifest_row.get("expected_applicability")
+        or manifest_row.get("expectedApplicability")
+        or ""
+    ).strip().upper()
+    if explicit == "NOT_APPLICABLE":
+        return True
+    if explicit in {"APPLICABLE", "UNCERTAIN"}:
+        return False
+
+    category = (manifest_row.get("primary_category") or "").strip().lower()
+    label = (manifest_row.get("secondary_label") or "").strip().upper()
+    review = (manifest_row.get("needs_manual_review") or "").strip().lower()
+    if review in {"true", "1", "yes"} or label == "UNKNOWN":
+        return None
+    if category == NOT_APPLICABLE_CATEGORY or label == "NOT_APPLICABLE":
+        return True
+    if category in {"obvious_defect", "difficult_defect", "hard_negative"}:
+        return False
+    return None
+
+
 def result_error_code(row: dict[str, Any]) -> str:
     direct = str(row.get("errorCode") or "").strip().upper()
     if direct:
@@ -123,6 +149,31 @@ def is_not_applicable_rejection(row: dict[str, Any]) -> bool:
         str(row.get("status") or "").strip().upper() == "REJECTED"
         and result_error_code(row) == NOT_APPLICABLE_ERROR_CODE
     )
+
+
+def did_call_dify(row: dict[str, Any]) -> bool | None:
+    explicit = row.get("difyActuallyCalled")
+    if isinstance(explicit, bool):
+        return explicit
+    raw_reference = str(row.get("rawResponseReference") or "").strip().lower()
+    if raw_reference:
+        return raw_reference.startswith("dify:")
+    return None
+
+
+def is_semantic_precheck_rejection(row: dict[str, Any]) -> bool:
+    """识别 Dify 前由本地语义门禁产生的 AI_IMAGE_NOT_APPLICABLE。"""
+
+    if not is_not_applicable_rejection(row):
+        return False
+    dify_called = did_call_dify(row)
+    if dify_called is False:
+        return True
+    # 兼容本地采集器旧格式：明确执行过 precheck 且没有 Dify 原始响应引用。
+    if dify_called is None and row.get("precheckCalled") is True:
+        raw_reference = str(row.get("rawResponseReference") or "").strip()
+        return not raw_reference
+    return False
 
 
 def predicted_labels(row: dict[str, Any]) -> set[str]:
@@ -166,6 +217,9 @@ def evaluate(
     costs: list[float] = []
     valid_count = structured_required = succeeded = completed = 0
     expected_precheck_rows = correct_precheck_rejections = unexpected_precheck_rejections = 0
+    expected_semantic_rows = semantic_precheck_rejections = 0
+    correct_semantic_rejections = unexpected_semantic_rejections = 0
+    expected_semantic_entered_dify = 0
     not_applicable_rejections = 0
     tp = fp = fn = tn = 0
     labeled = 0
@@ -188,11 +242,30 @@ def evaluate(
         expects_precheck = expected_precheck_rejection(manifest_row)
         if expects_precheck:
             expected_precheck_rows += 1
-        precheck_rejected = is_low_quality_precheck_rejection(row)
+        expected_semantic = expected_semantic_rejection(manifest_row)
+        if expected_semantic is True:
+            expected_semantic_rows += 1
+            if did_call_dify(row) is True:
+                expected_semantic_entered_dify += 1
+
+        low_quality_rejected = is_low_quality_precheck_rejection(row)
         not_applicable_rejected = is_not_applicable_rejection(row)
+        semantic_rejected = is_semantic_precheck_rejection(row)
         if not_applicable_rejected:
             not_applicable_rejections += 1
-        if precheck_rejected:
+        if semantic_rejected:
+            semantic_precheck_rejections += 1
+            if expected_semantic is True:
+                correct_semantic_rejections += 1
+            elif expected_semantic is False:
+                unexpected_semantic_rejections += 1
+                errors.append({
+                    "row": str(index),
+                    "sampleId": sample_id,
+                    "error": "unexpected local semantic AI_IMAGE_NOT_APPLICABLE rejection",
+                })
+
+        if low_quality_rejected:
             if expects_precheck:
                 correct_precheck_rejections += 1
             else:
@@ -202,7 +275,9 @@ def evaluate(
                     "sampleId": sample_id,
                     "error": "unexpected AI_IMAGE_LOW_QUALITY rejection",
                 })
-        else:
+
+        local_rejection = low_quality_rejected or semantic_rejected
+        if not local_rejection:
             structured_required += 1
             valid, validation_errors = validate_structured(row)
             if valid:
@@ -222,7 +297,7 @@ def evaluate(
             costs.append(float(cost))
 
         expected = expected_positive(manifest_row)
-        if precheck_rejected:
+        if local_rejection:
             labels: set[str] = set()
             runs_by_sample[sample_id].append(labels)
             if expected is None:
@@ -280,13 +355,27 @@ def evaluate(
             correct_precheck_rejections / expected_precheck_rows
             if expected_precheck_rows else None
         ),
+        "expectedSemanticPrecheckRows": expected_semantic_rows,
+        "semanticPrecheckRejections": semantic_precheck_rejections,
+        "correctSemanticPrecheckRejections": correct_semantic_rejections,
+        "unexpectedSemanticPrecheckRejections": unexpected_semantic_rejections,
+        "semanticPrecheckRejectionRate": (
+            correct_semantic_rejections / expected_semantic_rows
+            if expected_semantic_rows else None
+        ),
+        "expectedSemanticRowsEnteredDify": expected_semantic_entered_dify,
         "notApplicableRejections": not_applicable_rejections,
         "averageDurationMs": statistics.fmean(durations) if durations else 0.0,
         "p95DurationMs": percentile(durations, 0.95),
         "totalEstimatedCost": sum(costs),
         "averageEstimatedCost": statistics.fmean(costs) if costs else 0.0,
         "labeledRows": labeled,
-        "confusionMatrix": {"truePositive": tp, "falsePositive": fp, "falseNegative": fn, "trueNegative": tn},
+        "confusionMatrix": {
+            "truePositive": tp,
+            "falsePositive": fp,
+            "falseNegative": fn,
+            "trueNegative": tn,
+        },
         "precision": precision,
         "recall": recall,
         "specificity": specificity,
@@ -325,7 +414,13 @@ def write_outputs(output_dir: Path, metrics: dict[str, Any], errors: list[dict[s
 - 正确低质量门禁拒绝数：{metrics['correctPrecheckRejections']}
 - 低质量门禁命中率：{_format_optional_rate(metrics['precheckRejectionRate'])}
 - 非预期低质量门禁拒绝数：{metrics['unexpectedPrecheckRejections']}
-- 不适用场景稳定拒绝数：{metrics['notApplicableRejections']}
+- 预期语义门禁拒绝样本数：{metrics['expectedSemanticPrecheckRows']}
+- 本地语义门禁拒绝数：{metrics['semanticPrecheckRejections']}
+- 正确本地语义门禁拒绝数：{metrics['correctSemanticPrecheckRejections']}
+- 非预期本地语义门禁拒绝数：{metrics['unexpectedSemanticPrecheckRejections']}
+- 本地语义门禁命中率：{_format_optional_rate(metrics['semanticPrecheckRejectionRate'])}
+- 应被本地语义门禁拒绝但仍进入 Dify 的结果数：{metrics['expectedSemanticRowsEnteredDify']}
+- 全链路不适用场景稳定拒绝数：{metrics['notApplicableRejections']}
 - 平均耗时：{metrics['averageDurationMs']:.2f} ms
 - 第 95 百分位耗时：{metrics['p95DurationMs']:.2f} ms
 - 总估算费用：{metrics['totalEstimatedCost']:.6f}
@@ -336,7 +431,7 @@ def write_outputs(output_dir: Path, metrics: dict[str, Any], errors: list[dict[s
 - 重复调用标签一致性：{metrics['repeatLabelJaccard']}
 - 结构或样本错误数：{metrics['errorCount']}
 
-> 本报告用于固定诊断集质量比较，不等同于法定房屋安全鉴定，也不能把模型自评置信度解释为房屋危险概率。低质量图片在 Dify 前被正确拒绝属于有效业务终态，不要求结构化 Dify 结果；带合法结构化结果的 `AI_IMAGE_NOT_APPLICABLE` 拒绝同样属于可评估的业务终态并参与正负样本统计。
+> 本报告用于固定诊断集质量比较，不等同于法定房屋安全鉴定。低质量或本地语义门禁在 Dify 前正确拒绝属于有效业务终态，不要求结构化 Dify 结果；由 Dify 返回的 `AI_IMAGE_NOT_APPLICABLE` 仍必须具有合法结构化结果。没有人工确认适用性标签的 UNKNOWN 样本不强行作为本地语义门禁真值。
 """
     (output_dir / "summary.md").write_text(summary, encoding="utf-8")
 

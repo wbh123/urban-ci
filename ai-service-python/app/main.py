@@ -1,4 +1,4 @@
-"""UrbanSafe CUDA-only 人工智能推理服务入口。"""
+"""UrbanSafe 人工智能推理与本地预检服务入口。"""
 
 from __future__ import annotations
 
@@ -11,18 +11,21 @@ from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import JSONResponse
 
 from .adapters.mock import MOCK_WARNINGS
+from .applicability import build_image_applicability_provider
 from .config import get_settings
 from .errors import InferenceServiceError
 from .inference import InferenceOrchestrator
 from .quality import analyze_image_quality
 from .schemas import (
+    ImageApplicabilityErrorResponse,
+    ImageApplicabilityResponse,
+    ImageQualityErrorResponse,
+    ImageQualityResponse,
     InferenceErrorDetail,
     InferenceMetadata,
     InferenceMode,
     InferenceResponse,
     InferenceStatus,
-    ImageQualityErrorResponse,
-    ImageQualityResponse,
     ModelCatalogResponse,
     ModelInfo,
     RuntimeReadiness,
@@ -31,15 +34,17 @@ from .schemas import (
 
 @asynccontextmanager
 async def _lifespan(_: FastAPI):
-    # 显式目录中的全部真实模型在服务接收请求前完成 CUDA 装载与热身。
+    # 显式目录中的全部真实病害模型在服务接收请求前完成 CUDA 装载与热身。
     _orchestrator()
+    # 语义适用性门禁属于 CPU 辅助能力；模型缺失或加载失败时稳定降为 UNCERTAIN 放行。
+    _applicability_provider()
     yield
 
 
 app = FastAPI(
     title="UrbanSafe AI Service",
-    description="城安智序 CUDA-only 多模型推理与结果标准化服务",
-    version="0.5.0",
+    description="城安智序 CUDA-only 病害推理与无 CUDA 本地图片预检服务",
+    version="0.6.0",
     lifespan=_lifespan,
 )
 
@@ -49,6 +54,13 @@ def _orchestrator() -> InferenceOrchestrator:
     """创建进程级模型注册表；目录或权重变化后必须重启服务。"""
 
     return InferenceOrchestrator(get_settings())
+
+
+@lru_cache(maxsize=1)
+def _applicability_provider():
+    """创建进程级本地图片语义适用性 Provider；权重变化后必须重启服务。"""
+
+    return build_image_applicability_provider(get_settings())
 
 
 @app.get("/api/ai/health", tags=["Health"])
@@ -73,7 +85,7 @@ async def internal_health_check():
     response_model=RuntimeReadiness,
 )
 async def runtime_readiness():
-    """验证显式目录中的全部模型已经完成 CUDA 装载与热身。"""
+    """验证显式目录中的全部真实病害模型已经完成 CUDA 装载与热身。"""
 
     try:
         return _orchestrator().readiness()
@@ -87,7 +99,7 @@ async def runtime_readiness():
     response_model=ModelCatalogResponse,
 )
 async def list_models():
-    """列出当前进程实际装载的模拟模型和真实模型。"""
+    """列出当前进程实际装载的模拟模型和真实病害模型。"""
 
     try:
         return _orchestrator().model_catalog()
@@ -144,6 +156,36 @@ async def analyze_uploaded_image_quality(
     except InferenceServiceError as ex:
         detail = ImageQualityErrorResponse(
             requestId=requestId.strip() or "QUALITY",
+            errorCode=ex.error_code,
+            errorMessage=ex.message,
+        )
+        return JSONResponse(status_code=ex.status_code, content=detail.model_dump(mode="json"))
+
+
+@app.post(
+    "/internal/api/v1/ai/image-applicability",
+    tags=["Internal Image Applicability"],
+    response_model=ImageApplicabilityResponse,
+    responses={
+        400: {"model": ImageApplicabilityErrorResponse, "description": "图片为空"},
+        413: {"model": ImageApplicabilityErrorResponse, "description": "图片超过大小限制"},
+        415: {"model": ImageApplicabilityErrorResponse, "description": "不支持的图片格式"},
+        422: {"model": ImageApplicabilityErrorResponse, "description": "图片解码失败"},
+    },
+)
+async def analyze_uploaded_image_applicability(
+    file: UploadFile = File(..., description="待判断语义适用性的图片"),
+    requestId: str = Form("APPLICABILITY", description="调用方请求编号"),
+):
+    """执行本地整图语义适用性分类；模型不可用时以 UNCERTAIN 放行。"""
+
+    normalized_request_id = requestId.strip() or "APPLICABILITY"
+    try:
+        image_bytes = await file.read()
+        return _applicability_provider().classify(image_bytes, normalized_request_id)
+    except InferenceServiceError as ex:
+        detail = ImageApplicabilityErrorResponse(
+            requestId=normalized_request_id,
             errorCode=ex.error_code,
             errorMessage=ex.message,
         )

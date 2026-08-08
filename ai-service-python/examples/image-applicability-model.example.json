@@ -1,0 +1,13 @@
+{
+  "modelId": "LOCAL-IMAGE-APPLICABILITY-001",
+  "modelVersion": "1.0.0",
+  "weightSha256": "替换为64位小写SHA256",
+  "inputSize": [224, 224],
+  "classes": ["APPLICABLE", "NOT_APPLICABLE"],
+  "mean": [0.0, 0.0, 0.0],
+  "std": [1.0, 1.0, 1.0],
+  "outputType": "LOGITS",
+  "inputName": "images",
+  "trainingSource": "受控建筑巡检适用性二分类数据集；不得直接使用UNKNOWN标签作为负样本真值",
+  "notes": "正式元数据与model.onnx一起放入本地image-applicability目录；权重文件不得提交Git。"
+}

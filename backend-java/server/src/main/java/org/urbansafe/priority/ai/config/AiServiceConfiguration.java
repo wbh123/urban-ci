@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.urbansafe.priority.ai.client.AiFastApiClient;
+import org.urbansafe.priority.ai.client.AiImageApplicabilityClient;
 import org.urbansafe.priority.ai.client.DefaultSpringAiChatGateway;
 import org.urbansafe.priority.ai.client.DifyApiClient;
 import org.urbansafe.priority.ai.client.DifyWorkflowClient;
@@ -59,6 +60,14 @@ public class AiServiceConfiguration {
             ObjectMapper objectMapper,
             AiInferenceProperties properties) {
         return new AiFastApiClient(restClient, objectMapper, properties);
+    }
+
+    /** 复用同一 FastAPI RestClient 的轻量图片语义适用性客户端。 */
+    @Bean
+    public AiImageApplicabilityClient aiImageApplicabilityClient(
+            @Qualifier("aiFastApiRestClient") RestClient restClient,
+            ObjectMapper objectMapper) {
+        return new AiImageApplicabilityClient(restClient, objectMapper);
     }
 
     @Bean

@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class InferenceMode(str, Enum):
@@ -30,6 +30,14 @@ class Applicability(str, Enum):
     LOW_QUALITY = "LOW_QUALITY"
     NOT_APPLICABLE = "NOT_APPLICABLE"
     INVALID_IMAGE = "INVALID_IMAGE"
+
+
+class ImageApplicabilityDecision(str, Enum):
+    """本地图片语义适用性门禁的稳定三态决策。"""
+
+    APPLICABLE = "APPLICABLE"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    UNCERTAIN = "UNCERTAIN"
 
 
 class CoordinateType(str, Enum):
@@ -158,6 +166,37 @@ class ImageQualityResponse(BaseModel):
 
 class ImageQualityErrorResponse(BaseModel):
     """图片质量接口稳定错误结构。"""
+
+    requestId: str
+    status: str = "REJECTED"
+    errorCode: str
+    errorMessage: str
+
+
+class ImageApplicabilityResponse(BaseModel):
+    """本地语义适用性分类结果；只有 NOT_APPLICABLE 才允许阻断 Dify。"""
+
+    requestId: str
+    modelId: str
+    modelVersion: str
+    status: str = "SUCCEEDED"
+    decision: ImageApplicabilityDecision
+    confidence: float = Field(ge=0.0, le=1.0)
+    scores: dict[str, float] = Field(default_factory=dict)
+    allowDify: bool
+    reason: str
+
+    @model_validator(mode="after")
+    def validate_dify_gate(self) -> "ImageApplicabilityResponse":
+        if self.decision == ImageApplicabilityDecision.NOT_APPLICABLE and self.allowDify:
+            raise ValueError("NOT_APPLICABLE 不得继续调用 Dify")
+        if self.decision != ImageApplicabilityDecision.NOT_APPLICABLE and not self.allowDify:
+            raise ValueError("APPLICABLE/UNCERTAIN 必须继续调用 Dify")
+        return self
+
+
+class ImageApplicabilityErrorResponse(BaseModel):
+    """图片语义适用性接口稳定输入错误结构。"""
 
     requestId: str
     status: str = "REJECTED"

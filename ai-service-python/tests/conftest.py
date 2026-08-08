@@ -11,7 +11,7 @@ import pytest
 from PIL import Image
 
 from app.config import get_settings
-from app.main import _orchestrator, app
+from app.main import _applicability_provider, _orchestrator, app
 
 
 MODEL_VERSION = "0.1.0"
@@ -55,16 +55,21 @@ def client(monkeypatch):
 
     monkeypatch.setenv("URBAN_SAFE_AI_REAL_MODEL_STATUS", "UNAVAILABLE")
     monkeypatch.setenv("URBAN_SAFE_AI_MODEL_CATALOG_PATH", "test-missing-catalog.json")
+    # 接口测试默认关闭本地语义模型，稳定验证 UNCERTAIN fail-open，不读取开发机权重。
+    monkeypatch.setenv("URBAN_SAFE_AI_APPLICABILITY_ENABLED", "false")
     # 单元测试只需覆盖大小超限分支；固定较小阈值可以避免 ASGI multipart 测试栈写入大临时文件。
     monkeypatch.setenv("URBAN_SAFE_AI_MAX_IMAGE_SIZE_BYTES", "4096")
     monkeypatch.delenv("AI_REAL_MODEL_STATUS", raising=False)
     monkeypatch.delenv("AI_MODEL_CATALOG_PATH", raising=False)
+    monkeypatch.delenv("AI_APPLICABILITY_ENABLED", raising=False)
     monkeypatch.delenv("AI_MAX_IMAGE_SIZE_BYTES", raising=False)
     get_settings.cache_clear()
     _orchestrator.cache_clear()
+    _applicability_provider.cache_clear()
     # 显式初始化一次编排器，替代 TestClient lifespan 对启动门禁的触发。
     _orchestrator()
     yield AsgiTestClient()
+    _applicability_provider.cache_clear()
     _orchestrator.cache_clear()
     get_settings.cache_clear()
 

@@ -1,0 +1,5 @@
+-r requirements.txt
+
+# 无 CUDA 本地图片语义适用性门禁使用 CPU ONNX Runtime。
+# 2026-08-08 公开稳定版锁定为 1.27.0；不安装 GPU 包或 Ultralytics 运行时。
+onnxruntime==1.27.0

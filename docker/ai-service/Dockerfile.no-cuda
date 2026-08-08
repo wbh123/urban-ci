@@ -11,8 +11,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY ai-service-python/requirements.txt ./requirements.txt
+COPY ai-service-python/requirements-no-cuda.txt ./requirements-no-cuda.txt
 RUN python -m pip install --no-cache-dir --index-url "${PIP_INDEX_URL}" \
-    -r requirements.txt
+    -r requirements-no-cuda.txt
 
 COPY ai-service-python/app ./app
 

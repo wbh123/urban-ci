@@ -1,4 +1,4 @@
-# AI Service Python 基础依赖（不包含真实模型运行时）
+# AI Service Python 基础依赖（不包含 ONNX Runtime 具体执行后端）
 # FastAPI、Starlette 和 TestClient 必须作为一组升级；urban 环境中较新的
 # FastAPI/Starlette 组合会卡在 TestClient 生命周期入口，因此先锁定已验证稳定线。
 fastapi>=0.115.6,<0.116.0
@@ -6,7 +6,7 @@ starlette>=0.41.3,<0.42.0
 uvicorn[standard]>=0.24.0
 pydantic>=2.5.2
 
-# 图像处理与模型输入
+# 图像处理
 pillow>=10.0.0
 numpy>=1.26,<3
 

@@ -18,8 +18,10 @@ describe('电脑管理端分组导航', () => {
     ])
     expect(pathsFor('ADMIN')).toEqual([
       '/console',
+      '/console/map',
       '/console/inspections',
       '/console/feedback',
+      '/console/spatial-archive',
       '/console/review',
       '/console/renewal-priorities',
       '/console/assessment-rules',
@@ -29,30 +31,35 @@ describe('电脑管理端分组导航', () => {
     ])
   })
 
-  it('社区管理员只得到巡检、公众反馈和评分规则相关入口', () => {
+  it('社区管理员得到正式地图、巡检、公众反馈、空间档案和评分规则入口', () => {
     const paths = pathsFor('COMMUNITY_MANAGER')
     expect(paths).toEqual([
       '/console',
+      '/console/map',
       '/console/inspections',
       '/console/feedback',
+      '/console/spatial-archive',
       '/console/assessment-rules',
     ])
     expect(paths).not.toContain('/console/system-status')
   })
 
-  it('专家得到专业复核、评分规则和知识问答入口', () => {
+  it('专家得到正式地图、专业复核、评分规则和知识问答入口', () => {
     expect(pathsFor('EXPERT')).toEqual([
       '/console',
+      '/console/map',
       '/console/review',
       '/console/assessment-rules',
       '/console/knowledge',
     ])
   })
 
-  it('住建管理人员得到公众反馈、风险总览和评分规则入口', () => {
+  it('住建管理人员得到正式地图、公众反馈、空间档案、风险总览和评分规则入口', () => {
     expect(pathsFor('GOVERNMENT_MANAGER')).toEqual([
       '/console',
+      '/console/map',
       '/console/feedback',
+      '/console/spatial-archive',
       '/console/renewal-priorities',
       '/console/assessment-rules',
     ])
@@ -63,5 +70,7 @@ describe('电脑管理端分组导航', () => {
     expect(resolveActiveConsoleMenuPath('/console/review/abc', groups)).toBe('/console/review')
     expect(resolveActiveConsoleMenuPath('/console/buildings/1/assessment', groups)).toBe('/console')
     expect(resolveActiveConsoleMenuPath('/console/renewal-priorities', groups)).toBe('/console/renewal-priorities')
+    expect(resolveActiveConsoleMenuPath('/console/map', groups)).toBe('/console/map')
+    expect(resolveActiveConsoleMenuPath('/console/spatial-archive', groups)).toBe('/console/spatial-archive')
   })
 })

@@ -13,11 +13,32 @@ export interface ConsoleMenuGroup {
   items: ConsoleMenuItem[]
 }
 
+const MAP_READ_ROLES: readonly RoleCode[] = [
+  'EXPERT',
+  'PROFESSIONAL_REVIEWER',
+  'COMMUNITY_MANAGER',
+  'GOVERNMENT_MANAGER',
+  'ADMIN',
+]
+const SPATIAL_ARCHIVE_ROLES: readonly RoleCode[] = [
+  'COMMUNITY_MANAGER',
+  'GOVERNMENT_MANAGER',
+  'ADMIN',
+]
+
 const GROUPS: readonly ConsoleMenuGroup[] = [
   {
     key: 'workspace',
     label: '工作台',
-    items: [{ path: '/console', label: '管理总览', icon: '▦' }],
+    items: [
+      { path: '/console', label: '管理总览', icon: '▦' },
+      {
+        path: '/console/map',
+        label: '地图展示',
+        icon: '⌖',
+        allowedRoles: MAP_READ_ROLES,
+      },
+    ],
   },
   {
     key: 'housing',
@@ -34,6 +55,12 @@ const GROUPS: readonly ConsoleMenuGroup[] = [
         label: '公众反馈',
         icon: '◇',
         allowedRoles: ['COMMUNITY_MANAGER', 'GOVERNMENT_MANAGER', 'ADMIN'],
+      },
+      {
+        path: '/console/spatial-archive',
+        label: '空间档案',
+        icon: '⬡',
+        allowedRoles: SPATIAL_ARCHIVE_ROLES,
       },
     ],
   },

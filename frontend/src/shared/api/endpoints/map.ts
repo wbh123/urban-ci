@@ -2,7 +2,10 @@ import type { Schema } from '../schema'
 import { apiGet, apiPost, apiPut } from '../client'
 
 export type GeocodingRequest = Schema<'GeocodingRequest'>
-export type CommunityLocationRequest = Schema<'CommunityLocationRequest'>
+type GeneratedCommunityLocationRequest = Schema<'CommunityLocationRequest'>
+export type CommunityLocationRequest = GeneratedCommunityLocationRequest & {
+  coordinateSystem?: 'GCJ02' | 'WGS84' | 'BD09' | 'UNKNOWN'
+}
 export type MapRuntimeConfig = Schema<'MapRuntimeConfig'>
 export type CommunityPoint = Schema<'CommunityPoint'>
 export type GeocodingResult = Schema<'GeocodingResult'>

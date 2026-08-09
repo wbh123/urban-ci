@@ -29,6 +29,11 @@ describe('ConsoleSpatialArchivePage R3/R4 lifecycle', () => {
     expect(source).toContain('保存后只会进入“待确认”')
   })
 
+  it('does not allow clearing candidate provenance after adoption', () => {
+    expect(source).toContain('v-if="!candidateAdopted" @click="cancelAmapCandidate"')
+    expect(source).toContain('采用后如需撤销，请使用“取消本次修改”')
+  })
+
   it('keeps manual drawing and GeoJSON available when AMap candidates fail', () => {
     expect(source).toContain('人工绘制和 GeoJSON 导入仍可继续使用')
     expect(source).toContain('绘制新边界')

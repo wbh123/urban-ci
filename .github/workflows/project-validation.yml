@@ -40,6 +40,10 @@ jobs:
       - run: npm run test
       - run: npm run build
       - run: npm run lint
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run browser E2E tests
+        run: npm run test:e2e
 
   backend:
     name: Backend compile and test

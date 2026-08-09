@@ -1,6 +1,5 @@
 import {
   getBuilding,
-  getBuildingBoundary,
   getCommunity,
   getCurrentBuildingAssessment,
   listAiInferences,
@@ -11,6 +10,7 @@ import {
   type InspectionTask,
   type RiskReportRow,
 } from '@/shared/api'
+import { getBuildingBoundary } from '@/shared/api/endpoints/spatial'
 import {
   buildBuildingLifecycle,
   type BuildingLifecycleNode,

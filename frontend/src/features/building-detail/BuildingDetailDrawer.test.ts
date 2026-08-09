@@ -5,7 +5,15 @@ import BuildingDetailDrawer from './BuildingDetailDrawer.vue'
 import drawerSource from './BuildingDetailDrawer.vue?raw'
 import type { BuildingDetailModel } from './building-detail-loader'
 
-const global = { plugins: [ElementPlus], stubs: { teleport: true } }
+const global = {
+  plugins: [ElementPlus],
+  stubs: {
+    ElDrawer: {
+      props: ['modelValue'],
+      template: '<section class="drawer-stub"><slot /></section>',
+    },
+  },
+}
 
 const model: BuildingDetailModel = {
   summary: {

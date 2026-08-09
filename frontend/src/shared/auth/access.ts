@@ -131,10 +131,6 @@ export function resolveDefaultEntry(
 
   if (preferredClient === 'CONSOLE') {
     if (!canEnterClient(principal, 'CONSOLE')) return '/client-mismatch?expected=CONSOLE'
-    if (hasAnyRole(principal, ['EXPERT', 'PROFESSIONAL_REVIEWER']) && !hasAnyRole(principal, ['ADMIN', 'COMMUNITY_MANAGER'])) {
-      return '/console/review'
-    }
-    if (hasRole(principal, 'COMMUNITY_MANAGER')) return '/console/inspections'
     return '/console'
   }
 

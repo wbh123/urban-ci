@@ -1,5 +1,6 @@
 import type { MapRuntimeConfig } from '@/shared/api/endpoints/map'
 import type { SpatialGeoJsonGeometry } from '@/shared/api/endpoints/spatial'
+import { loadAmap } from './amap-loader'
 import { geometryToAmapPolygons, type SpatialAmapLoadOptions, type SpatialAmapLoader } from './spatial-amap'
 
 type LngLat = { getLng?: () => number; getLat?: () => number; lng?: number; lat?: number }
@@ -13,8 +14,6 @@ type EditorNamespace = {
   PolygonEditor: new (map: MapLike, polygon: PolygonLike) => EditorLike
   MouseTool: new (map: MapLike) => MouseToolLike
 }
-
-interface EditorWindow extends Window { AMap?: EditorNamespace; _AMapSecurityConfig?: { serviceHost?: string } }
 
 export interface BoundaryEditorHandlers { onChange?: (geometry: SpatialGeoJsonGeometry | null) => void }
 export interface SpatialBoundaryEditor {
@@ -35,30 +34,9 @@ const DRAFT_POLYGON_STYLE = {
   fillOpacity: 0.22,
 } as const
 
-let editorLoaderPromise: Promise<EditorNamespace> | null = null
-
-const defaultEditorLoader: SpatialAmapLoader = async (options: SpatialAmapLoadOptions) => {
-  if (typeof window === 'undefined' || typeof document === 'undefined') throw new Error('当前运行环境不支持高德地图')
-  const target = window as unknown as EditorWindow
-  const callbacks = target as unknown as Record<string, unknown>
-  if (target.AMap) return target.AMap as never
-  if (editorLoaderPromise) return editorLoaderPromise as never
-  editorLoaderPromise = new Promise<EditorNamespace>((resolve, reject) => {
-    const callbackName = `__urbanSafeBoundaryAmapLoaded_${Date.now()}_${Math.random().toString(36).slice(2)}`
-    callbacks[callbackName] = () => {
-      delete callbacks[callbackName]
-      if (target.AMap) resolve(target.AMap)
-      else reject(new Error('高德地图脚本已加载，但 AMap 对象不可用'))
-    }
-    const params = new URLSearchParams({ v: options.version, key: options.key, callback: callbackName, plugin: options.plugins.join(',') })
-    const script = document.createElement('script')
-    script.async = true
-    script.src = `https://webapi.amap.com/maps?${params.toString()}`
-    script.onerror = () => { delete callbacks[callbackName]; editorLoaderPromise = null; reject(new Error('高德地图 JavaScript API 加载失败')) }
-    document.head.appendChild(script)
-  })
-  return editorLoaderPromise as never
-}
+const defaultEditorLoader: SpatialAmapLoader = async (options: SpatialAmapLoadOptions) => (
+  await loadAmap(options) as unknown as EditorNamespace as never
+)
 
 export function createSpatialBoundaryEditor(options: { loader?: SpatialAmapLoader } = {}): SpatialBoundaryEditor {
   const loader = options.loader ?? defaultEditorLoader
@@ -72,8 +50,12 @@ export function createSpatialBoundaryEditor(options: { loader?: SpatialAmapLoade
   async function mount(container: HTMLElement, config: MapRuntimeConfig, nextHandlers: BoundaryEditorHandlers = {}): Promise<boolean> {
     destroy(); handlers = nextHandlers
     if (!config.enabled || config.mode !== 'LIVE' || !config.jsApiKey) return false
-    if (config.serviceHost && typeof window !== 'undefined') (window as unknown as EditorWindow)._AMapSecurityConfig = { serviceHost: config.serviceHost }
-    namespace = await loader({ key: config.jsApiKey, version: '2.0', plugins: ['AMap.PolygonEditor', 'AMap.MouseTool'] }) as unknown as EditorNamespace
+    namespace = await loader({
+      key: config.jsApiKey,
+      version: '2.0',
+      plugins: ['AMap.PolygonEditor', 'AMap.MouseTool'],
+      serviceHost: config.serviceHost || undefined,
+    }) as unknown as EditorNamespace
     map = new namespace.Map(container, { viewMode: '2D', resizeEnable: true, zoom: config.defaultZoom, center: [config.defaultCenter.longitude, config.defaultCenter.latitude] })
     mouseTool = new namespace.MouseTool(map)
     mouseTool.on('draw', (event) => {

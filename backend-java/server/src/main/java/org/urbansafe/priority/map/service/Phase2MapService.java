@@ -9,8 +9,10 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.urbansafe.priority.common.exception.InvalidRequestException;
 import org.urbansafe.priority.common.exception.ResourceNotFoundException;
+import org.urbansafe.priority.common.security.BusinessAccessService;
 import org.urbansafe.priority.map.config.AmapProperties;
 import org.urbansafe.priority.map.config.MapProperties;
+import org.urbansafe.priority.map.repository.CommunityLocationRepository;
 import org.urbansafe.priority.phase2.repository.Phase2Repository;
 
 @Service
@@ -18,15 +20,22 @@ public class Phase2MapService {
 
     private static final Set<String> LOCATION_PROVIDERS =
             Set.of("AMAP", "MANUAL", "IMPORT", "MOCK");
+    private static final Set<String> LOCATION_COORDINATE_SYSTEMS =
+            Set.of("GCJ02", "WGS84", "BD09", "UNKNOWN");
 
     private final MapProperties map;
     private final AmapProperties amap;
     private final Phase2Repository repository;
+    private final CommunityLocationRepository locationRepository;
+    private final BusinessAccessService access;
 
-    public Phase2MapService(MapProperties map, AmapProperties amap, Phase2Repository repository) {
+    public Phase2MapService(MapProperties map, AmapProperties amap, Phase2Repository repository,
+            CommunityLocationRepository locationRepository, BusinessAccessService access) {
         this.map = map;
         this.amap = amap;
         this.repository = repository;
+        this.locationRepository = locationRepository;
+        this.access = access;
     }
 
     public Map<String, Object> runtimeConfig() {
@@ -52,14 +61,16 @@ public class Phase2MapService {
         if (!repository.communityExists(communityId)) {
             throw new ResourceNotFoundException("COMMUNITY_NOT_FOUND", "小区不存在");
         }
+        access.assertCanManageCommunity(communityId);
         double longitude = number(request.get("longitude"), "longitude");
         double latitude = number(request.get("latitude"), "latitude");
         if (longitude < -180 || longitude > 180 || latitude < -90 || latitude > 90) {
             throw new InvalidRequestException("MAP_COORDINATE_INVALID", "经纬度超出有效范围");
         }
         String provider = locationProvider(request.get("provider"));
-        return repository.saveCommunityLocation(communityId, longitude, latitude,
-                text(request.get("formattedAddress")), provider,
+        String coordinateSystem = locationCoordinateSystem(request.get("coordinateSystem"), provider);
+        return locationRepository.save(communityId, longitude, latitude,
+                text(request.get("formattedAddress")), provider, coordinateSystem,
                 text(request.get("matchLevel")), repository.json(locationMetadata(request)));
     }
 
@@ -67,6 +78,7 @@ public class Phase2MapService {
         if (!repository.communityExists(communityId)) {
             throw new ResourceNotFoundException("COMMUNITY_NOT_FOUND", "小区不存在");
         }
+        access.assertCanReadCommunity(communityId);
         return repository.findCommunityLocation(communityId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "COMMUNITY_LOCATION_NOT_FOUND", "小区尚未保存地图位置"));
@@ -83,6 +95,20 @@ public class Phase2MapService {
                     "MAP_PROVIDER_INVALID", "provider 仅支持 AMAP、MANUAL、IMPORT 或 MOCK");
         }
         return provider;
+    }
+
+    private String locationCoordinateSystem(Object value, String provider) {
+        String coordinateSystem = text(value);
+        if (coordinateSystem == null) {
+            return "AMAP".equals(provider) ? "GCJ02" : "UNKNOWN";
+        }
+        coordinateSystem = coordinateSystem.toUpperCase(Locale.ROOT);
+        if (!LOCATION_COORDINATE_SYSTEMS.contains(coordinateSystem)) {
+            throw new InvalidRequestException(
+                    "MAP_COORDINATE_SYSTEM_INVALID",
+                    "coordinateSystem 仅支持 GCJ02、WGS84、BD09 或 UNKNOWN");
+        }
+        return coordinateSystem;
     }
 
     private Object locationMetadata(Map<String, Object> request) {

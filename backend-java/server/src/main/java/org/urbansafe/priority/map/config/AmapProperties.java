@@ -14,6 +14,7 @@ public class AmapProperties {
     private int readTimeoutMs = 5000;
     private int cacheTtlSeconds = 86400;
     private boolean liveTestEnabled = false;
+    private boolean boundaryCandidateEnabled = false;
 
     public String getJsApiKey() {
         return jsApiKey;
@@ -85,5 +86,13 @@ public class AmapProperties {
 
     public void setLiveTestEnabled(boolean liveTestEnabled) {
         this.liveTestEnabled = liveTestEnabled;
+    }
+
+    public boolean isBoundaryCandidateEnabled() {
+        return boundaryCandidateEnabled;
+    }
+
+    public void setBoundaryCandidateEnabled(boolean boundaryCandidateEnabled) {
+        this.boundaryCandidateEnabled = boundaryCandidateEnabled;
     }
 }

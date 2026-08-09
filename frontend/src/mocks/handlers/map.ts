@@ -48,6 +48,8 @@ export const mapHandlers = [
     if (!community) return errorResponse('COMMUNITY_NOT_FOUND', '小区不存在。', 404)
     const longitude = body.longitude ?? 0
     const latitude = body.latitude ?? 0
+    const provider = body.provider ?? 'MOCK'
+    const coordinateSystem = body.coordinateSystem ?? (provider === 'AMAP' ? 'GCJ02' : 'UNKNOWN')
     community.longitude = longitude
     community.latitude = latitude
     if (body.formattedAddress) community.formattedAddress = body.formattedAddress
@@ -56,8 +58,8 @@ export const mapHandlers = [
       longitude,
       latitude,
       formattedAddress: body.formattedAddress ?? community.formattedAddress ?? '',
-      provider: body.provider ?? 'MOCK',
-      coordinateSystem: 'GCJ02',
+      provider,
+      coordinateSystem,
       matchLevel: body.matchLevel ?? 'MOCK_PREVIEW',
     })
   }),

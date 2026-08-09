@@ -5,7 +5,7 @@ import BuildingDetailDrawer from './BuildingDetailDrawer.vue'
 import drawerSource from './BuildingDetailDrawer.vue?raw'
 import type { BuildingDetailModel } from './building-detail-loader'
 
-const global = { plugins: [ElementPlus] }
+const global = { plugins: [ElementPlus], stubs: { teleport: true } }
 
 const model: BuildingDetailModel = {
   summary: {

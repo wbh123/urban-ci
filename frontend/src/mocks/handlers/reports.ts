@@ -1,9 +1,8 @@
 import { http } from 'msw'
-import { okResponse, errorResponse, requireAuth } from './helpers'
+import { okResponse, requireAuth } from './helpers'
 import { BUILDING_ID, COMMUNITY_ID } from '../fixtures/data'
 
 const now = (): string => new Date().toISOString()
-const disclaimer = '系统结果仅用于风险筛查与辅助决策，不作为正式房屋安全鉴定结论。'
 
 const reportRows = [
   {

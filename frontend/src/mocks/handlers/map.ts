@@ -10,6 +10,20 @@ export const mapHandlers = [
     const sc = scenarioOf(request)
     if (sc === 'server-error') return errorResponse('INTERNAL_ERROR', '服务器内部错误。', 500)
     if (sc === 'unavailable') return errorResponse('SERVICE_UNAVAILABLE', '服务暂不可用。', 503)
+    // E2E 测试通过 localStorage 启用地图实时模式
+    try {
+      if (typeof localStorage !== 'undefined' && localStorage.getItem('e2e-map-live') === '1') {
+        return okResponse({
+          ...mapRuntimeConfig,
+          enabled: true,
+          mode: 'LIVE',
+          jsApiKey: 'playwright-map-key',
+          defaultZoom: 16,
+        })
+      }
+    } catch {
+      // localStorage 不可用时降级为默认 MOCK 配置
+    }
     return okResponse(mapRuntimeConfig)
   }),
 

@@ -23,6 +23,8 @@ test.describe('R4-1 高德候选边界', () => {
     await expect(page.getByText('已采用为草稿', { exact: true })).toBeVisible()
     await expect(page.getByText('AMAP_AOI 草稿', { exact: true })).toBeVisible()
     await expect(page.getByText(/尚未保存/)).toBeVisible()
+    await expect(page.getByRole('button', { name: '取消候选预览' })).toHaveCount(0)
+    await expect(page.getByText(/采用后如需撤销，请使用“取消本次修改”/)).toBeVisible()
 
     await page.getByRole('button', { name: '保存为新版本' }).click()
     await expect(page.getByText('边界已保存并进入待确认状态。')).toBeVisible()

@@ -47,6 +47,28 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /api/v1/map/community-boundary-candidates/preview:
+    post:
+      operationId: previewCommunityBoundaryCandidate
+      summary: 预览小区高德候选边界
+      description: 只读查询高德兴趣点和区域边界，返回人工确认用候选。该接口不得自动写入正式空间档案，也不得自动确认边界。
+      tags: [ArchiveMap]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommunityBoundaryCandidateRequest' }
+      responses:
+        '200':
+          description: 返回候选可用性和可选 GeoJSON 几何
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommunityBoundaryCandidatePreviewSuccessResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /api/v1/buildings/{buildingId}/location:
     parameters:
       - name: buildingId
@@ -172,6 +194,43 @@ components:
         nearestPoiName: { type: string, nullable: true }
         mock: { type: boolean }
 
+    CommunityBoundaryCandidateRequest:
+      type: object
+      required: [communityId, communityName]
+      properties:
+        communityId: { type: string, format: uuid }
+        communityName: { type: string, minLength: 1, maxLength: 100 }
+        address: { type: string, nullable: true, maxLength: 255 }
+        region: { type: string, nullable: true, maxLength: 100 }
+
+    CommunityBoundaryCandidatePreview:
+      type: object
+      required: [available, provider, message]
+      properties:
+        available: { type: boolean }
+        provider: { type: string, enum: [AMAP] }
+        reasonCode:
+          type: string
+          nullable: true
+          enum: [DISABLED, NOT_CONFIGURED, NO_RESULT, AOI_UNAVAILABLE, UPSTREAM_UNAVAILABLE, INVALID_GEOMETRY]
+        message: { type: string }
+        coordinateSystem:
+          type: string
+          nullable: true
+          enum: [GCJ02]
+        sourceType:
+          type: string
+          nullable: true
+          enum: [AMAP_AOI]
+        sourceId: { type: string, nullable: true }
+        name: { type: string, nullable: true }
+        address: { type: string, nullable: true }
+        geometry:
+          type: object
+          nullable: true
+          description: GeoJSON Polygon 或 MultiPolygon 候选，仅用于人工预览。
+          additionalProperties: true
+
     BuildingLocationRequest:
       type: object
       required: [longitude, latitude]
@@ -227,6 +286,14 @@ components:
           required: [data]
           properties:
             data: { $ref: '#/components/schemas/ReverseGeocodingResult' }
+
+    CommunityBoundaryCandidatePreviewSuccessResponse:
+      allOf:
+        - $ref: '#/components/schemas/ArchiveSuccessBase'
+        - type: object
+          required: [data]
+          properties:
+            data: { $ref: '#/components/schemas/CommunityBoundaryCandidatePreview' }
 
     BuildingLocationSuccessResponse:
       allOf:

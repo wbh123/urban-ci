@@ -96,6 +96,7 @@ urban-safe:
       read-timeout-ms: ${URBAN_SAFE_AMAP_READ_TIMEOUT_MS}
       cache-ttl-seconds: ${URBAN_SAFE_AMAP_CACHE_TTL_SECONDS}
       live-test-enabled: ${URBAN_SAFE_AMAP_LIVE_TEST_ENABLED}
+      boundary-candidate-enabled: ${URBAN_SAFE_AMAP_BOUNDARY_CANDIDATE_ENABLED:false}
   storage:
     provider: ${URBAN_SAFE_STORAGE_PROVIDER}
     endpoint: http://${URBAN_SAFE_MINIO_HOST}:${URBAN_SAFE_MINIO_API_PORT}

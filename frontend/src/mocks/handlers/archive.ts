@@ -167,6 +167,36 @@ export const archiveHandlers = [
     })
   }),
 
+  http.post('/api/v1/map/community-boundary-candidates/preview', async ({ request }) => {
+    const unauth = requireAuth(request)
+    if (unauth) return unauth
+    const body = (await request.json().catch(() => ({}))) as { communityId?: string; communityName?: string }
+    if (!body.communityId || !body.communityName?.trim()) {
+      return errorResponse('VALIDATION_ERROR', '小区标识和名称不能为空。', 400)
+    }
+    return okResponse({
+      available: true,
+      provider: 'AMAP',
+      reasonCode: null,
+      message: 'Mock 高德候选边界，仅用于人工预览。',
+      coordinateSystem: 'GCJ02',
+      sourceType: 'AMAP_AOI',
+      sourceId: `mock-aoi-${body.communityId}`,
+      name: body.communityName.trim(),
+      address: `湖南省株洲市${body.communityName.trim()}`,
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [113.128, 27.824],
+          [113.139, 27.824],
+          [113.139, 27.833],
+          [113.128, 27.833],
+          [113.128, 27.824],
+        ]],
+      },
+    })
+  }),
+
   http.put('/api/v1/buildings/:buildingId/location', async ({ request, params }) => {
     const unauth = requireAuth(request)
     if (unauth) return unauth

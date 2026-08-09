@@ -8,8 +8,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.urbansafe.priority.common.response.ResponseMetadata;
 import org.urbansafe.priority.common.response.ResponseMetadataFactory;
 import org.urbansafe.priority.common.security.BusinessAccessService;
+import org.urbansafe.priority.map.service.CommunityBoundaryCandidateService;
 import org.urbansafe.priority.map.service.MapDiscoveryService;
 import org.urbansafe.priority.model.api.ArchiveMapApi;
+import org.urbansafe.priority.model.dto.CommunityBoundaryCandidatePreview;
+import org.urbansafe.priority.model.dto.CommunityBoundaryCandidatePreviewSuccessResponse;
+import org.urbansafe.priority.model.dto.CommunityBoundaryCandidateRequest;
 import org.urbansafe.priority.model.dto.MapPlaceCandidate;
 import org.urbansafe.priority.model.dto.MapPlaceCandidateListSuccessResponse;
 import org.urbansafe.priority.model.dto.PlaceSearchRequest;
@@ -22,9 +26,16 @@ import org.urbansafe.priority.model.dto.ReverseGeocodingResultSuccessResponse;
 public class ArchiveMapController implements ArchiveMapApi {
 
     private final MapDiscoveryService discovery;
+    private final BusinessAccessService businessAccessService;
+    private final CommunityBoundaryCandidateService boundaryCandidateService;
 
-    public ArchiveMapController(MapDiscoveryService discovery) {
+    public ArchiveMapController(
+            MapDiscoveryService discovery,
+            BusinessAccessService businessAccessService,
+            CommunityBoundaryCandidateService boundaryCandidateService) {
         this.discovery = discovery;
+        this.businessAccessService = businessAccessService;
+        this.boundaryCandidateService = boundaryCandidateService;
     }
 
     @Override
@@ -60,6 +71,54 @@ public class ArchiveMapController implements ArchiveMapApi {
         response.setTimestamp(metadata.timestamp());
         response.setData(toReverseResult(result));
         return ResponseEntity.ok(response);
+    }
+
+    @Override
+    @PreAuthorize(BusinessAccessService.DIRECTORY_READ_ROLES)
+    public ResponseEntity<CommunityBoundaryCandidatePreviewSuccessResponse> previewCommunityBoundaryCandidate(
+            CommunityBoundaryCandidateRequest request) {
+        businessAccessService.assertCanReadCommunity(request.getCommunityId());
+        Map<String, Object> result = boundaryCandidateService.preview(
+                request.getCommunityName(), request.getAddress(), request.getRegion());
+
+        ResponseMetadata metadata = ResponseMetadataFactory.success();
+        CommunityBoundaryCandidatePreviewSuccessResponse response =
+                new CommunityBoundaryCandidatePreviewSuccessResponse();
+        response.setSuccess(metadata.success());
+        response.setRequestId(metadata.requestId());
+        response.setTimestamp(metadata.timestamp());
+        response.setData(toBoundaryCandidatePreview(result));
+        return ResponseEntity.ok(response);
+    }
+
+    private CommunityBoundaryCandidatePreview toBoundaryCandidatePreview(Map<String, Object> source) {
+        CommunityBoundaryCandidatePreview preview = new CommunityBoundaryCandidatePreview();
+        preview.setAvailable(Boolean.TRUE.equals(source.get("available")));
+        preview.setProvider(CommunityBoundaryCandidatePreview.ProviderEnum.AMAP);
+        String reasonCode = text(source.get("reasonCode"));
+        if (reasonCode != null) {
+            preview.setReasonCode(CommunityBoundaryCandidatePreview.ReasonCodeEnum.fromValue(reasonCode));
+        }
+        preview.setMessage(text(source.get("message")));
+        String coordinateSystem = text(source.get("coordinateSystem"));
+        if (coordinateSystem != null) {
+            preview.setCoordinateSystem(
+                    CommunityBoundaryCandidatePreview.CoordinateSystemEnum.fromValue(coordinateSystem));
+        }
+        String sourceType = text(source.get("sourceType"));
+        if (sourceType != null) {
+            preview.setSourceType(CommunityBoundaryCandidatePreview.SourceTypeEnum.fromValue(sourceType));
+        }
+        preview.setSourceId(text(source.get("sourceId")));
+        preview.setName(text(source.get("name")));
+        preview.setAddress(text(source.get("address")));
+        Object geometry = source.get("geometry");
+        if (geometry instanceof Map<?, ?> mapGeometry) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> typedGeometry = (Map<String, Object>) mapGeometry;
+            preview.setGeometry(typedGeometry);
+        }
+        return preview;
     }
 
     private MapPlaceCandidate toPlaceCandidate(Map<String, Object> source) {

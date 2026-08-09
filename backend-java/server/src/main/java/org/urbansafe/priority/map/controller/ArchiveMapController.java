@@ -10,6 +10,9 @@ import org.urbansafe.priority.common.response.ResponseMetadataFactory;
 import org.urbansafe.priority.common.security.BusinessAccessService;
 import org.urbansafe.priority.map.service.MapDiscoveryService;
 import org.urbansafe.priority.model.api.ArchiveMapApi;
+import org.urbansafe.priority.model.dto.CommunityBoundaryCandidatePreview;
+import org.urbansafe.priority.model.dto.CommunityBoundaryCandidatePreviewSuccessResponse;
+import org.urbansafe.priority.model.dto.CommunityBoundaryCandidateRequest;
 import org.urbansafe.priority.model.dto.MapPlaceCandidate;
 import org.urbansafe.priority.model.dto.MapPlaceCandidateListSuccessResponse;
 import org.urbansafe.priority.model.dto.PlaceSearchRequest;
@@ -22,9 +25,13 @@ import org.urbansafe.priority.model.dto.ReverseGeocodingResultSuccessResponse;
 public class ArchiveMapController implements ArchiveMapApi {
 
     private final MapDiscoveryService discovery;
+    private final BusinessAccessService businessAccessService;
 
-    public ArchiveMapController(MapDiscoveryService discovery) {
+    public ArchiveMapController(
+            MapDiscoveryService discovery,
+            BusinessAccessService businessAccessService) {
         this.discovery = discovery;
+        this.businessAccessService = businessAccessService;
     }
 
     @Override
@@ -59,6 +66,28 @@ public class ArchiveMapController implements ArchiveMapApi {
         response.setRequestId(metadata.requestId());
         response.setTimestamp(metadata.timestamp());
         response.setData(toReverseResult(result));
+        return ResponseEntity.ok(response);
+    }
+
+    @Override
+    @PreAuthorize(BusinessAccessService.DIRECTORY_READ_ROLES)
+    public ResponseEntity<CommunityBoundaryCandidatePreviewSuccessResponse> previewCommunityBoundaryCandidate(
+            CommunityBoundaryCandidateRequest request) {
+        businessAccessService.assertCanReadCommunity(request.getCommunityId());
+
+        CommunityBoundaryCandidatePreview preview = new CommunityBoundaryCandidatePreview();
+        preview.setAvailable(false);
+        preview.setProvider(CommunityBoundaryCandidatePreview.ProviderEnum.AMAP);
+        preview.setReasonCode(CommunityBoundaryCandidatePreview.ReasonCodeEnum.DISABLED);
+        preview.setMessage("高德候选边界功能当前未启用，可继续使用手工绘制或 GeoJSON 导入。");
+
+        ResponseMetadata metadata = ResponseMetadataFactory.success();
+        CommunityBoundaryCandidatePreviewSuccessResponse response =
+                new CommunityBoundaryCandidatePreviewSuccessResponse();
+        response.setSuccess(metadata.success());
+        response.setRequestId(metadata.requestId());
+        response.setTimestamp(metadata.timestamp());
+        response.setData(preview);
         return ResponseEntity.ok(response);
     }
 

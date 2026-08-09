@@ -5,6 +5,12 @@ import { useRouter } from 'vue-router'
 import { getMapRuntimeConfig, type MapRuntimeConfig } from '@/shared/api/endpoints/map'
 import { getCurrentBuildingAssessment, type BuildingCurrentAssessment } from '@/shared/api/endpoints/assessment'
 import { listFeedbackReports, type FeedbackManagementRow } from '@/shared/api/endpoints/feedback'
+import {
+  BuildingSummaryCard,
+  RiskSummaryPanel,
+  type BuildingRiskSummaryView,
+  type BuildingSummaryView,
+} from '@/shared/components/business'
 import { createSpatialAmapDriver } from '@/shared/map/spatial-amap'
 import { useSpatialMapStore, type MapRiskLevel, type SpatialBuildingProjection } from '@/stores/spatial-map'
 
@@ -44,6 +50,35 @@ const selectedProjection = computed<SpatialBuildingProjection | null>(() => {
 const selectedCommunityName = computed(() => selectedCommunityId.value
   ? (communityFeatures.value.find((item) => item.id === selectedCommunityId.value)?.properties.name ?? '已选小区')
   : '全部小区')
+const drawerSummary = computed<BuildingSummaryView | null>(() => {
+  const projection = selectedProjection.value
+  if (!projection) return null
+  return {
+    buildingId: projection.feature.id,
+    buildingCode: projection.feature.properties.entityCode,
+    buildingName: projection.feature.properties.name,
+    communityName: projection.risk?.communityName || selectedCommunityName.value,
+    spatialStatus: 'VERIFIED',
+  }
+})
+const drawerRisk = computed<BuildingRiskSummaryView>(() => {
+  const assessment = detailAssessment.value
+  const mapRisk = selectedProjection.value?.risk
+  const priority = assessment?.renewalPriorities?.[0]
+  if (!assessment && !mapRisk) return { freshness: 'NO_RESULT' }
+  return {
+    freshness: assessment?.freshness ?? mapRisk?.freshness ?? 'NO_RESULT',
+    riskScore: assessment?.risk?.riskScore ?? mapRisk?.riskScore,
+    riskLevel: assessment?.risk?.riskLevel ?? mapRisk?.riskLevel,
+    confidenceScore: assessment?.risk?.confidenceScore ?? mapRisk?.confidenceScore,
+    completenessScore: assessment?.completeness?.completenessScore ?? mapRisk?.completenessScore,
+    priorityScore: priority?.priorityScore ?? mapRisk?.priorityScore,
+    priorityLevel: priority?.priorityLevel ?? mapRisk?.priorityLevel,
+    needManualReview: assessment?.risk?.needManualReview ?? mapRisk?.needManualReview,
+    recommendations: assessment?.risk?.recommendations,
+    assessedAt: assessment?.risk?.assessedAt,
+  }
+})
 
 watch(searchInput, (value) => store.setSearchKeyword(value))
 watch(selectedRiskLevels, (value) => store.setRiskLevels(value), { deep: true })
@@ -152,15 +187,13 @@ function riskTagType(level?: string): 'danger' | 'warning' | 'success' | 'info' 
       </main>
     </div>
 
-    <el-drawer v-model="detailVisible" size="520px" title="楼栋空间详情">
+    <el-drawer v-model="detailVisible" size="560px" title="楼栋空间详情">
       <div v-if="detailLoading">正在读取楼栋业务数据…</div>
       <template v-else-if="selectedProjection">
-        <div class="row-between detail-title"><div><h2>{{ selectedProjection.feature.properties.name }}</h2><small>{{ selectedProjection.feature.properties.entityCode }}</small></div><el-tag :type="riskTagType(selectedProjection.risk?.riskLevel)">{{ riskLabel(selectedProjection.risk?.riskLevel) }}风险</el-tag></div>
-        <el-tabs v-model="activeDetailTab">
+        <BuildingSummaryCard v-if="drawerSummary" :summary="drawerSummary" compact />
+        <el-tabs v-model="activeDetailTab" class="drawer-tabs">
           <el-tab-pane label="概览" name="overview">
-            <div class="metric-grid"><article><span>风险评分</span><strong>{{ selectedProjection.risk?.riskScore ?? '—' }}</strong></article><article><span>资料完整度</span><strong>{{ selectedProjection.risk?.completenessScore ?? '—' }}</strong></article><article><span>更新优先分</span><strong>{{ selectedProjection.risk?.priorityScore ?? '—' }}</strong></article><article><span>更新优先级</span><strong>{{ selectedProjection.risk?.priorityLevel ?? '—' }}</strong></article></div>
-            <el-alert v-if="detailAssessment?.freshness === 'STALE'" title="当前评分已过期，请重新计算" type="warning" :closable="false" show-icon />
-            <p>{{ detailAssessment?.disclaimer || '评分仅作为治理辅助信息，不替代专业检测结论。' }}</p>
+            <RiskSummaryPanel :summary="drawerRisk" />
           </el-tab-pane>
           <el-tab-pane label="证据" name="evidence">
             <h3>已纳入评分因素</h3><ul><li v-for="factor in detailAssessment?.risk?.topFactors || []" :key="`${factor.factorCode}-${factor.sourceId || ''}`"><strong>{{ factor.label }}</strong> · 影响 {{ factor.effect }} · 可靠度 {{ factor.reliability ?? '—' }}</li></ul>
@@ -178,12 +211,12 @@ function riskTagType(level?: string): 'danger' | 'warning' | 'success' | 'info' 
 <style scoped lang="scss">
 .spatial-page{display:grid;gap:var(--usp-space-4);min-height:calc(100vh - 120px)}
 .spatial-toolbar,.spatial-filterbar,.row-between,.panel-heading,.tag-row{display:flex;align-items:center;justify-content:space-between;gap:var(--usp-space-3)}
-.spatial-toolbar h1,.detail-title h2{margin:0}.spatial-toolbar p{margin:4px 0 0;color:var(--usp-color-text-secondary)}.tag-row{justify-content:flex-start;flex-wrap:wrap}
+.spatial-toolbar h1{margin:0}.spatial-toolbar p{margin:4px 0 0;color:var(--usp-color-text-secondary)}.tag-row{justify-content:flex-start;flex-wrap:wrap}
 .spatial-filterbar{justify-content:flex-start;padding:var(--usp-space-3);border:1px solid var(--usp-color-border);border-radius:var(--usp-radius-lg);background:var(--usp-color-surface)}.community-filter{width:220px}.spatial-search{width:min(340px,100%)}
 .filter-pill{min-height:34px;padding:0 var(--usp-space-3);border:1px solid var(--usp-color-border);border-radius:999px;background:var(--usp-color-surface);cursor:pointer}.filter-pill.active{border-color:var(--usp-color-primary);background:var(--usp-color-primary-soft);color:var(--usp-color-primary);font-weight:700}
 .spatial-workspace{display:grid;grid-template-columns:minmax(270px,330px) minmax(0,1fr);min-height:650px;overflow:hidden;border:1px solid var(--usp-color-border);border-radius:var(--usp-radius-lg);background:var(--usp-color-surface)}
 .spatial-list-panel{border-right:1px solid var(--usp-color-border)}.panel-heading{padding:var(--usp-space-4);border-bottom:1px solid var(--usp-color-border)}.building-scroll{height:610px}.building-row{display:grid;width:100%;gap:8px;padding:var(--usp-space-4);border:0;border-bottom:1px solid var(--usp-color-border);background:transparent;text-align:left;cursor:pointer}.building-row:hover,.building-row.selected{background:var(--usp-color-primary-soft)}.building-row.selected{box-shadow:inset 3px 0 var(--usp-color-primary)}.building-row small,.metrics{color:var(--usp-color-text-secondary)}.detail-link{color:var(--usp-color-primary);font-size:12px;font-weight:700}
 .map-panel{position:relative;min-height:650px;background:#eef2f6}.map-surface{position:absolute;inset:0}.map-state{position:absolute;inset:0;z-index:20;display:grid;place-content:center;justify-items:center;gap:8px;padding:32px;background:rgba(248,250,252,.94);text-align:center}.map-loading,.map-legend{position:absolute;z-index:15;padding:8px 12px;border-radius:8px;background:rgba(255,255,255,.95);box-shadow:0 4px 18px rgba(15,23,42,.12)}.map-loading{top:12px;left:12px}.map-legend{right:12px;bottom:12px;display:flex;gap:12px}.very-high{color:#cf1322}.high{color:#d46b08}.medium{color:#d4a017}.low{color:#389e0d}
-.metric-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:16px}.metric-grid article{display:grid;gap:4px;padding:12px;border-radius:8px;background:var(--usp-color-bg)}.metric-grid strong{font-size:24px}.score-row,.feedback-card{display:grid;gap:6px;padding:12px;margin-bottom:8px;border:1px solid var(--usp-color-border);border-radius:8px}.score-row{grid-template-columns:1fr auto}.score-row small{grid-column:1/-1}
-@media(max-width:1100px){.spatial-workspace{grid-template-columns:1fr}.spatial-list-panel{border-right:0;border-bottom:1px solid var(--usp-color-border)}.building-scroll{height:320px}.map-panel{min-height:560px}}@media(max-width:720px){.spatial-toolbar,.spatial-filterbar{align-items:stretch;flex-direction:column}.community-filter,.spatial-search{width:100%}.metric-grid{grid-template-columns:1fr}}
+.drawer-tabs{margin-top:var(--usp-space-3)}.score-row,.feedback-card{display:grid;gap:6px;padding:12px;margin-bottom:8px;border:1px solid var(--usp-color-border);border-radius:8px}.score-row{grid-template-columns:1fr auto}.score-row small{grid-column:1/-1}
+@media(max-width:1100px){.spatial-workspace{grid-template-columns:1fr}.spatial-list-panel{border-right:0;border-bottom:1px solid var(--usp-color-border)}.building-scroll{height:320px}.map-panel{min-height:560px}}@media(max-width:720px){.spatial-toolbar,.spatial-filterbar{align-items:stretch;flex-direction:column}.community-filter,.spatial-search{width:100%}}
 </style>

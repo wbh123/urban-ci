@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.urbansafe.priority.common.exception.InvalidRequestException;
+import org.urbansafe.priority.common.security.BusinessAccessService;
 import org.urbansafe.priority.map.config.AmapProperties;
 import org.urbansafe.priority.map.config.MapProperties;
 import org.urbansafe.priority.map.repository.CommunityLocationRepository;
@@ -31,12 +33,15 @@ class Phase2MapServiceTest {
     @Mock
     private CommunityLocationRepository locationRepository;
 
+    @Mock
+    private BusinessAccessService access;
+
     private Phase2MapService service;
 
     @BeforeEach
     void setUp() {
         service = new Phase2MapService(
-                new MapProperties(), new AmapProperties(), repository, locationRepository);
+                new MapProperties(), new AmapProperties(), repository, locationRepository, access);
     }
 
     @Test
@@ -61,6 +66,22 @@ class Phase2MapServiceTest {
         assertThat(result)
                 .containsEntry("provider", "MOCK")
                 .containsEntry("coordinateSystem", "UNKNOWN");
+        verify(access).assertCanManageCommunity(communityId);
+    }
+
+    @Test
+    void readsCommunityLocationOnlyAfterObjectScopeCheck() {
+        UUID communityId = UUID.randomUUID();
+        when(repository.communityExists(communityId)).thenReturn(true);
+        when(repository.findCommunityLocation(communityId)).thenReturn(Optional.of(Map.of(
+                "communityId", communityId,
+                "provider", "MANUAL",
+                "coordinateSystem", "UNKNOWN")));
+
+        Map<String, Object> result = service.getLocation(communityId);
+
+        assertThat(result).containsEntry("communityId", communityId);
+        verify(access).assertCanReadCommunity(communityId);
     }
 
     @Test

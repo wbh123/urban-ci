@@ -7,12 +7,13 @@ import {
   listCommunities,
   previewArchiveReverseGeocoding,
   saveArchiveBuildingLocation,
+  saveCommunityLocation,
   searchArchivePlaces,
   toAppError,
 } from '@/shared/api'
 import { configureInterceptors, resetInterceptors } from '@/shared/api/interceptors'
 import { ensureMockServer } from '@/tests/setup'
-import { BUILDING_ID, MOCK_TOKEN, resetDb } from './fixtures/data'
+import { BUILDING_ID, COMMUNITY_ID, MOCK_TOKEN, resetDb } from './fixtures/data'
 
 describe('Mock 模式可视化建档完整链路', () => {
   beforeAll(async () => {
@@ -82,6 +83,28 @@ describe('Mock 模式可视化建档完整链路', () => {
       provider: 'MOCK',
       mock: true,
     })
+  })
+
+  it('小区中心点在 Mock 与手工来源下保持真实坐标系语义', async () => {
+    const mockSaved = await saveCommunityLocation(COMMUNITY_ID, {
+      longitude: 113.13,
+      latitude: 27.82,
+      provider: 'MOCK',
+      coordinateSystem: 'UNKNOWN',
+      matchLevel: 'MOCK_PREVIEW',
+      mock: true,
+    })
+    const manualSaved = await saveCommunityLocation(COMMUNITY_ID, {
+      longitude: 113.14,
+      latitude: 27.83,
+      provider: 'MANUAL',
+      coordinateSystem: 'UNKNOWN',
+      matchLevel: 'MANUAL_POINT',
+      mock: false,
+    })
+
+    expect(mockSaved).toMatchObject({ provider: 'MOCK', coordinateSystem: 'UNKNOWN' })
+    expect(manualSaved).toMatchObject({ provider: 'MANUAL', coordinateSystem: 'UNKNOWN' })
   })
 
   it('楼栋中心点可保存并重新读取', async () => {

@@ -4,6 +4,10 @@ import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listCommunities, type CommunityListRow } from '@/shared/api/endpoints/communities'
 import { listBuildings, type BuildingListRow } from '@/shared/api/endpoints/buildings'
+import {
+  previewCommunityBoundaryCandidate,
+  type CommunityBoundaryCandidatePreview,
+} from '@/shared/api/endpoints/archive'
 import { getMapRuntimeConfig, type MapRuntimeConfig } from '@/shared/api/endpoints/map'
 import {
   getBuildingBoundary,
@@ -35,6 +39,7 @@ const mapContainer = ref<HTMLElement | null>(null)
 const loading = ref(false)
 const buildingLoading = ref(false)
 const boundaryLoading = ref(false)
+const candidateLoading = ref(false)
 const saving = ref(false)
 const reviewLoading = ref(false)
 const mapReady = ref(false)
@@ -44,6 +49,8 @@ const remark = ref('')
 const dirtyGeometry = ref<SpatialGeoJsonGeometry | null>(null)
 const geoJsonInput = ref('')
 const importedGeometry = ref(false)
+const candidate = ref<CommunityBoundaryCandidatePreview | null>(null)
+const candidateAdopted = ref(false)
 const editor = createSpatialBoundaryEditor()
 
 const preferredEntityType = queryValue(route.query.entityType)
@@ -51,8 +58,9 @@ const preferredEntityId = queryValue(route.query.entityId)
 const preferredCommunityId = queryValue(route.query.communityId)
 
 const selectedEntityId = computed(() => entityType.value === 'COMMUNITY' ? selectedCommunityId.value : selectedBuildingId.value)
+const selectedCommunity = computed(() => communities.value.find((item) => item.id === selectedCommunityId.value) ?? null)
 const selectedEntityName = computed(() => entityType.value === 'COMMUNITY'
-  ? communities.value.find((item) => item.id === selectedCommunityId.value)?.communityName ?? '未选择小区'
+  ? selectedCommunity.value?.communityName ?? '未选择小区'
   : buildings.value.find((item) => item.id === selectedBuildingId.value)?.buildingName ?? '未选择楼栋')
 const statusLabel = computed(() => ({ UNVERIFIED: '待确认', VERIFIED: '已确认', REJECTED: '已驳回' } as Record<string, string>)[currentBoundary.value?.status ?? ''] ?? '暂无边界')
 const statusType = computed<'success' | 'warning' | 'danger' | 'info'>(() => {
@@ -122,9 +130,15 @@ async function handleCommunityChange(): Promise<void> {
 async function handleBuildingChange(): Promise<void> { if (entityType.value === 'BUILDING') await loadCurrentBoundary() }
 async function handleEntityTypeChange(): Promise<void> { await loadCurrentBoundary() }
 
+function clearCandidateState(): void {
+  editor.clearPreview()
+  candidate.value = null
+  candidateAdopted.value = false
+}
+
 async function loadCurrentBoundary(): Promise<void> {
   boundaryLoading.value = true; notice.value = ''; currentBoundary.value = null; dirtyGeometry.value = null
-  geoJsonInput.value = ''; importedGeometry.value = false
+  geoJsonInput.value = ''; importedGeometry.value = false; clearCandidateState()
   const id = selectedEntityId.value
   if (!id) { editor.clear(); boundaryLoading.value = false; return }
   try {
@@ -142,11 +156,53 @@ async function loadCurrentBoundary(): Promise<void> {
 }
 
 function startDraw(): void {
-  notice.value = ''; importedGeometry.value = false; geoJsonInput.value = ''; editor.startDraw()
+  notice.value = ''; importedGeometry.value = false; geoJsonInput.value = ''; clearCandidateState(); editor.startDraw()
 }
 function startEdit(): void {
-  if (!currentBoundary.value) { notice.value = '当前对象尚无边界，请先绘制新边界。'; return }
-  notice.value = ''; importedGeometry.value = false; geoJsonInput.value = ''; editor.startEdit()
+  if (!currentBoundary.value && !dirtyGeometry.value) { notice.value = '当前对象尚无边界，请先绘制新边界。'; return }
+  notice.value = ''; importedGeometry.value = false; geoJsonInput.value = ''
+  if (!candidateAdopted.value) clearCandidateState()
+  editor.startEdit()
+}
+
+async function previewAmapCandidate(): Promise<void> {
+  const community = selectedCommunity.value
+  if (entityType.value !== 'COMMUNITY' || !community) return
+  candidateLoading.value = true; notice.value = ''; clearCandidateState()
+  try {
+    const result = await previewCommunityBoundaryCandidate({
+      communityId: community.id,
+      communityName: community.communityName,
+      address: community.address ?? null,
+      region: community.administrativeRegion ?? null,
+    })
+    candidate.value = result
+    if (!result.available || !result.geometry) {
+      notice.value = `${result.message} 人工绘制和 GeoJSON 导入仍可继续使用。`
+      return
+    }
+    if (mapReady.value) editor.previewGeometry(result.geometry)
+    notice.value = '高德候选已叠加预览，但尚未采用、不会保存。请核对后再决定是否采用为草稿。'
+  } catch (error) {
+    notice.value = `${toAppError(error).message} 人工绘制和 GeoJSON 导入仍可继续使用。`
+  } finally {
+    candidateLoading.value = false
+  }
+}
+
+function adoptAmapCandidate(): void {
+  if (!candidate.value?.available || !candidate.value.geometry) return
+  candidateAdopted.value = true
+  importedGeometry.value = false
+  geoJsonInput.value = ''
+  dirtyGeometry.value = candidate.value.geometry
+  if (mapReady.value) editor.loadGeometry(candidate.value.geometry)
+  notice.value = '高德候选已采用为编辑草稿，但尚未保存。保存后只会进入“待确认”，不会自动成为正式边界。'
+}
+
+function cancelAmapCandidate(): void {
+  clearCandidateState()
+  notice.value = '已取消高德候选预览，当前正式边界和已有草稿未被候选查询修改。'
 }
 
 function importGeoJsonText(): void {
@@ -155,6 +211,7 @@ function importGeoJsonText(): void {
     const geometry = parseSpatialGeoJson(geoJsonInput.value)
     dirtyGeometry.value = geometry
     importedGeometry.value = true
+    clearCandidateState()
     if (mapReady.value) editor.loadGeometry(geometry)
     notice.value = 'GeoJSON 校验通过。保存后将作为 GCJ-02 边界进入待确认状态。'
   } catch (error) {
@@ -180,6 +237,7 @@ async function cancelEdit(): Promise<void> {
   notice.value = ''
   geoJsonInput.value = ''
   importedGeometry.value = false
+  clearCandidateState()
   await loadCurrentBoundary()
   ElMessage.info('已取消本次修改，并恢复服务器当前版本。')
 }
@@ -192,8 +250,9 @@ async function saveBoundary(): Promise<void> {
   const expectedVersion = currentBoundary.value?.version ?? 0
   const payload = {
     expectedVersion,
-    sourceType: importedGeometry.value ? 'GEOJSON_IMPORT' as const : currentBoundary.value ? 'MANUAL_EDIT' as const : 'MANUAL_DRAW' as const,
-    sourceProvider: importedGeometry.value ? 'GEOJSON_IMPORT' : 'INTERNAL_EDITOR',
+    sourceType: candidateAdopted.value ? 'AMAP_AOI' as const : importedGeometry.value ? 'GEOJSON_IMPORT' as const : currentBoundary.value ? 'MANUAL_EDIT' as const : 'MANUAL_DRAW' as const,
+    sourceProvider: candidateAdopted.value ? 'AMAP' : importedGeometry.value ? 'GEOJSON_IMPORT' : 'INTERNAL_EDITOR',
+    sourceObjectId: candidateAdopted.value ? candidate.value?.sourceId ?? null : null,
     sourceCoordinateSystem: 'GCJ02' as const,
     sourceGeometry: geometry,
     displayCoordinateSystem: 'GCJ02' as const,
@@ -207,6 +266,7 @@ async function saveBoundary(): Promise<void> {
     dirtyGeometry.value = currentBoundary.value.displayGeometry
     importedGeometry.value = false
     geoJsonInput.value = ''
+    clearCandidateState()
     if (mapReady.value) editor.loadGeometry(currentBoundary.value.displayGeometry)
     ElMessage.success('边界已保存并进入待确认状态。')
   } catch (error) {
@@ -258,7 +318,23 @@ async function reviewBoundary(action: 'VERIFY' | 'REJECT'): Promise<void> {
           <el-form-item v-if="entityType === 'BUILDING'" label="楼栋"><el-select v-model="selectedBuildingId" filterable :loading="buildingLoading" style="width:100%" @change="handleBuildingChange"><el-option v-for="item in buildings" :key="item.id" :label="`${item.buildingCode} · ${item.buildingName}`" :value="item.id" /></el-select></el-form-item>
         </el-form>
         <div class="boundary-state"><div><small>当前对象</small><strong>{{ selectedEntityName }}</strong></div><el-tag :type="statusType">{{ statusLabel }}</el-tag></div>
-        <dl class="version-info"><div><dt>版本</dt><dd>{{ currentBoundary?.version ?? 0 }}</dd></div><div><dt>展示坐标</dt><dd>{{ currentBoundary?.displayCoordinateSystem ?? 'GCJ02' }}</dd></div><div><dt>来源</dt><dd>{{ currentBoundary?.sourceType ?? '待绘制' }}</dd></div></dl>
+        <dl class="version-info"><div><dt>版本</dt><dd>{{ currentBoundary?.version ?? 0 }}</dd></div><div><dt>展示坐标</dt><dd>{{ currentBoundary?.displayCoordinateSystem ?? 'GCJ02' }}</dd></div><div><dt>来源</dt><dd>{{ candidateAdopted ? 'AMAP_AOI 草稿' : currentBoundary?.sourceType ?? '待绘制' }}</dd></div></dl>
+
+        <template v-if="entityType === 'COMMUNITY'">
+          <el-divider>高德候选边界</el-divider>
+          <el-button :loading="candidateLoading" :disabled="!selectedCommunityId" @click="previewAmapCandidate">查询并预览高德候选边界</el-button>
+          <p class="hint">高德结果只是辅助候选，不会自动落库，也不会自动成为已确认边界；失败时人工绘制和 GeoJSON 导入仍可使用。</p>
+          <div v-if="candidate" class="candidate-card">
+            <div class="candidate-head">
+              <div><strong>{{ candidate.name || selectedCommunity?.communityName }}</strong><small>{{ candidate.address || candidate.message }}</small></div>
+              <el-tag :type="candidate.available ? 'warning' : 'info'">{{ candidateAdopted ? '已采用为草稿' : candidate.available ? '仅预览' : candidate.reasonCode || '不可用' }}</el-tag>
+            </div>
+            <div v-if="candidate.available && candidate.geometry" class="candidate-actions">
+              <el-button type="primary" plain :disabled="candidateAdopted" @click="adoptAmapCandidate">采用候选作为草稿</el-button>
+              <el-button @click="cancelAmapCandidate">取消候选预览</el-button>
+            </div>
+          </div>
+        </template>
 
         <el-divider>导入 GCJ-02 GeoJSON</el-divider>
         <el-form-item label="GeoJSON 文本">
@@ -276,13 +352,13 @@ async function reviewBoundary(action: 'VERIFY' | 'REJECT'): Promise<void> {
         <el-form-item label="维护/审核说明"><el-input v-model="remark" type="textarea" :rows="4" maxlength="1000" show-word-limit /></el-form-item>
         <div class="action-stack">
           <el-button :disabled="!mapReady" @click="startDraw">绘制新边界</el-button>
-          <el-button :disabled="!mapReady || !currentBoundary" @click="startEdit">编辑当前边界</el-button>
+          <el-button :disabled="!mapReady || (!currentBoundary && !dirtyGeometry)" @click="startEdit">编辑当前草稿</el-button>
           <el-button type="primary" :loading="saving" :disabled="boundaryLoading || !selectedEntityId" @click="saveBoundary">保存为新版本</el-button>
           <el-button :disabled="boundaryLoading" @click="cancelEdit">取消本次修改</el-button>
         </div>
         <el-divider>人工审核</el-divider>
         <div class="review-actions"><el-button type="success" :loading="reviewLoading" :disabled="!canReview" @click="reviewBoundary('VERIFY')">确认边界</el-button><el-button type="danger" plain :loading="reviewLoading" :disabled="!canReview" @click="reviewBoundary('REJECT')">驳回边界</el-button></div>
-        <p class="hint">任何绘制或编辑保存后都会进入“待确认”；只有已确认边界会出现在正式地图。</p>
+        <p class="hint">任何绘制、导入或采用候选保存后都会进入“待确认”；只有人工确认后的边界会出现在正式地图。</p>
       </el-card>
 
       <el-card shadow="never" class="editor-card">
@@ -296,5 +372,5 @@ async function reviewBoundary(action: 'VERIFY' | 'REJECT'): Promise<void> {
 </template>
 
 <style scoped lang="scss">
-.archive-page{display:grid;gap:var(--usp-space-4)}.page-head,.boundary-state,.editor-head,.review-actions{display:flex;align-items:center;justify-content:space-between;gap:var(--usp-space-3)}.page-head h1{margin:0}.page-head p,.hint{margin:4px 0 0;color:var(--usp-color-text-secondary)}.archive-grid{display:grid;grid-template-columns:minmax(340px,410px) minmax(0,1fr);gap:var(--usp-space-4)}.archive-controls{min-width:0}.boundary-state{padding:12px;border-radius:8px;background:var(--usp-color-bg)}.boundary-state div{display:grid;gap:3px}.boundary-state small,.version-info dt{color:var(--usp-color-text-secondary)}.version-info{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.version-info div{padding:10px;border:1px solid var(--usp-color-border);border-radius:8px}.version-info dt,.version-info dd{margin:0}.version-info dd{margin-top:4px;font-weight:700}.import-actions{display:flex;gap:8px;align-items:center;margin-bottom:8px}.file-action{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0 15px;border:1px solid var(--usp-color-border);border-radius:var(--usp-radius-sm);background:var(--usp-color-surface);cursor:pointer;font-size:14px}.file-action input{display:none}.action-stack{display:grid;grid-template-columns:1fr 1fr;gap:8px}.action-stack .el-button{margin:0}.review-actions .el-button{flex:1;margin:0}.hint{font-size:12px;line-height:1.6}.editor-card{position:relative;min-width:0}.editor-map{height:680px}.editor-head span{color:var(--usp-color-text-secondary);font-size:12px}.editor-unavailable,.editor-busy{position:absolute;inset:58px 0 0;display:grid;place-content:center;justify-items:center;gap:8px;padding:24px;background:rgba(248,250,252,.94);text-align:center}@media(max-width:1100px){.archive-grid{grid-template-columns:1fr}.editor-map{height:560px}}@media(max-width:640px){.version-info{grid-template-columns:1fr}.action-stack,.import-actions{grid-template-columns:1fr;flex-direction:column;align-items:stretch}}
+.archive-page{display:grid;gap:var(--usp-space-4)}.page-head,.boundary-state,.editor-head,.review-actions,.candidate-head{display:flex;align-items:center;justify-content:space-between;gap:var(--usp-space-3)}.page-head h1{margin:0}.page-head p,.hint{margin:4px 0 0;color:var(--usp-color-text-secondary)}.archive-grid{display:grid;grid-template-columns:minmax(340px,410px) minmax(0,1fr);gap:var(--usp-space-4)}.archive-controls{min-width:0}.boundary-state{padding:12px;border-radius:8px;background:var(--usp-color-bg)}.boundary-state div,.candidate-head>div{display:grid;gap:3px;min-width:0}.boundary-state small,.version-info dt,.candidate-head small{color:var(--usp-color-text-secondary)}.version-info{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.version-info div{padding:10px;border:1px solid var(--usp-color-border);border-radius:8px}.version-info dt,.version-info dd{margin:0}.version-info dd{margin-top:4px;font-weight:700}.candidate-card{display:grid;gap:10px;margin-top:10px;padding:12px;border:1px dashed var(--usp-color-border);border-radius:8px;background:var(--usp-color-bg)}.candidate-head small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.candidate-actions{display:flex;gap:8px;flex-wrap:wrap}.import-actions{display:flex;gap:8px;align-items:center;margin-bottom:8px}.file-action{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:0 15px;border:1px solid var(--usp-color-border);border-radius:var(--usp-radius-sm);background:var(--usp-color-surface);cursor:pointer;font-size:14px}.file-action input{display:none}.action-stack{display:grid;grid-template-columns:1fr 1fr;gap:8px}.action-stack .el-button{margin:0}.review-actions .el-button{flex:1;margin:0}.hint{font-size:12px;line-height:1.6}.editor-card{position:relative;min-width:0}.editor-map{height:680px}.editor-head span{color:var(--usp-color-text-secondary);font-size:12px}.editor-unavailable,.editor-busy{position:absolute;inset:58px 0 0;display:grid;place-content:center;justify-items:center;gap:8px;padding:24px;background:rgba(248,250,252,.94);text-align:center}@media(max-width:1100px){.archive-grid{grid-template-columns:1fr}.editor-map{height:560px}}@media(max-width:640px){.version-info{grid-template-columns:1fr}.action-stack,.import-actions{grid-template-columns:1fr;flex-direction:column;align-items:stretch}.candidate-actions{display:grid}}
 </style>

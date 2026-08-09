@@ -20,16 +20,16 @@ describe('角色客户端访问基线', () => {
     expect(resolveDefaultEntry(user, 'MOBILE')).toBe('/mobile')
   })
 
-  it('社区管理员默认进入电脑端巡检组织管理', () => {
+  it('社区管理员默认进入电脑端角色工作台', () => {
     const user = principal('COMMUNITY_MANAGER')
     expect(canEnterClient(user, 'CONSOLE')).toBe(true)
     expect(canEnterClient(user, 'MOBILE')).toBe(false)
-    expect(resolveDefaultEntry(user, 'CONSOLE')).toBe('/console/inspections')
+    expect(resolveDefaultEntry(user, 'CONSOLE')).toBe('/console')
   })
 
-  it('专家默认进入专业复核且不能进入移动端', () => {
+  it('专家默认进入电脑端角色工作台且不能进入移动端', () => {
     const user = principal('EXPERT')
-    expect(resolveDefaultEntry(user, 'CONSOLE')).toBe('/console/review')
+    expect(resolveDefaultEntry(user, 'CONSOLE')).toBe('/console')
     expect(resolveDefaultEntry(user, 'MOBILE')).toBe('/client-mismatch?expected=MOBILE')
   })
 

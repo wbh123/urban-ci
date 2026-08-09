@@ -91,6 +91,49 @@ public class Phase2Repository {
                 """, Map.of("communityId", communityId));
     }
 
+    public Map<String, Object> saveBuildingLocation(UUID buildingId, double longitude,
+            double latitude, String address, String provider, String coordinateSystem,
+            String level, String metadata) {
+        MapSqlParameterSource p = new MapSqlParameterSource()
+                .addValue("buildingId", buildingId).addValue("longitude", longitude)
+                .addValue("latitude", latitude).addValue("address", address)
+                .addValue("provider", provider).addValue("coordinateSystem", coordinateSystem)
+                .addValue("level", level).addValue("metadata", metadata);
+        int updated = jdbc.update("""
+                UPDATE geo.building_location
+                SET centroid=ST_SetSRID(ST_MakePoint(:longitude,:latitude),4326),
+                    formatted_address=:address, source_provider=:provider,
+                    source_coordinate_system=:coordinateSystem,
+                    match_level=:level,
+                    metadata=CAST(:metadata AS jsonb), collected_at=CURRENT_TIMESTAMP,
+                    updated_at=CURRENT_TIMESTAMP
+                WHERE building_id=:buildingId AND deleted_at IS NULL
+                """, p);
+        if (updated == 0) {
+            jdbc.update("""
+                    INSERT INTO geo.building_location
+                      (building_id,centroid,formatted_address,source_provider,
+                       source_coordinate_system,match_level,metadata)
+                    VALUES (:buildingId,
+                      ST_SetSRID(ST_MakePoint(:longitude,:latitude),4326),
+                      :address,:provider,:coordinateSystem,
+                      :level,CAST(:metadata AS jsonb))
+                    """, p);
+        }
+        return findBuildingLocation(buildingId).orElseThrow();
+    }
+
+    public Optional<Map<String, Object>> findBuildingLocation(UUID buildingId) {
+        return one("""
+                SELECT building_id AS "buildingId", ST_X(centroid) AS "longitude",
+                       ST_Y(centroid) AS "latitude", formatted_address AS "formattedAddress",
+                       source_provider AS "provider", source_coordinate_system AS "coordinateSystem",
+                       match_level AS "matchLevel", metadata AS "metadata", updated_at AS "updatedAt"
+                FROM geo.building_location
+                WHERE building_id=:buildingId AND deleted_at IS NULL
+                """, Map.of("buildingId", buildingId));
+    }
+
     public boolean buildingExists(UUID id) {
         Integer count = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM core.building WHERE id=:id AND deleted_at IS NULL",

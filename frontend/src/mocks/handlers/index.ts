@@ -1,6 +1,7 @@
 import { systemHandlers } from './system'
 import { authHandlers } from './auth'
 import { mapHandlers } from './map'
+import { archiveHandlers } from './archive'
 import { buildingHandlers } from './buildings'
 import { inspectionHandlers } from './inspection'
 import { assetHandlers } from './assets'
@@ -14,6 +15,7 @@ export const handlers = [
   ...systemHandlers,
   ...authHandlers,
   ...mapHandlers,
+  ...archiveHandlers,
   ...buildingHandlers,
   ...inspectionHandlers,
   ...assetHandlers,

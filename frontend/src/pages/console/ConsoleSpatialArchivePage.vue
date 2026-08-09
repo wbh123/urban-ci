@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listCommunities, type CommunityListRow } from '@/shared/api/endpoints/communities'
 import { listBuildings, type BuildingListRow } from '@/shared/api/endpoints/buildings'
@@ -22,6 +23,7 @@ import { parseSpatialGeoJson } from '@/shared/map/spatial-geojson'
 
 type EntityType = 'COMMUNITY' | 'BUILDING'
 
+const route = useRoute()
 const communities = ref<CommunityListRow[]>([])
 const buildings = ref<BuildingListRow[]>([])
 const selectedCommunityId = ref('')
@@ -44,6 +46,10 @@ const geoJsonInput = ref('')
 const importedGeometry = ref(false)
 const editor = createSpatialBoundaryEditor()
 
+const preferredEntityType = queryValue(route.query.entityType)
+const preferredEntityId = queryValue(route.query.entityId)
+const preferredCommunityId = queryValue(route.query.communityId)
+
 const selectedEntityId = computed(() => entityType.value === 'COMMUNITY' ? selectedCommunityId.value : selectedBuildingId.value)
 const selectedEntityName = computed(() => entityType.value === 'COMMUNITY'
   ? communities.value.find((item) => item.id === selectedCommunityId.value)?.communityName ?? '未选择小区'
@@ -60,6 +66,11 @@ const canReview = computed(() => currentBoundary.value?.status === 'UNVERIFIED')
 onMounted(loadWorkspace)
 onBeforeUnmount(() => editor.destroy())
 
+function queryValue(value: unknown): string {
+  if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : ''
+  return typeof value === 'string' ? value : ''
+}
+
 async function loadWorkspace(): Promise<void> {
   loading.value = true; errorMessage.value = ''; notice.value = ''
   try {
@@ -69,8 +80,17 @@ async function loadWorkspace(): Promise<void> {
     ])
     communities.value = communityPage.content ?? []
     runtimeConfig.value = config
-    selectedCommunityId.value = communities.value[0]?.id ?? ''
-    await loadBuildings()
+    const requestedCommunityId = preferredCommunityId
+      || (preferredEntityType === 'COMMUNITY' ? preferredEntityId : '')
+    selectedCommunityId.value = communities.value.some((item) => item.id === requestedCommunityId)
+      ? requestedCommunityId
+      : communities.value[0]?.id ?? ''
+    await loadBuildings(preferredEntityType === 'BUILDING' ? preferredEntityId : '')
+    if (preferredEntityType === 'BUILDING' && selectedBuildingId.value === preferredEntityId) {
+      entityType.value = 'BUILDING'
+    } else if (preferredEntityType === 'COMMUNITY') {
+      entityType.value = 'COMMUNITY'
+    }
     await nextTick()
     if (mapContainer.value && config.enabled && config.mode === 'LIVE' && config.jsApiKey) {
       mapReady.value = await editor.mount(mapContainer.value, config, { onChange: (geometry) => { dirtyGeometry.value = geometry } })
@@ -81,14 +101,16 @@ async function loadWorkspace(): Promise<void> {
   } finally { loading.value = false }
 }
 
-async function loadBuildings(): Promise<void> {
+async function loadBuildings(preferredBuildingId = ''): Promise<void> {
   buildings.value = []; selectedBuildingId.value = ''
   if (!selectedCommunityId.value) return
   buildingLoading.value = true
   try {
     const page = await listBuildings({ communityId: selectedCommunityId.value, size: 100 })
     buildings.value = page.content ?? []
-    selectedBuildingId.value = buildings.value[0]?.id ?? ''
+    selectedBuildingId.value = buildings.value.some((item) => item.id === preferredBuildingId)
+      ? preferredBuildingId
+      : buildings.value[0]?.id ?? ''
   } finally { buildingLoading.value = false }
 }
 

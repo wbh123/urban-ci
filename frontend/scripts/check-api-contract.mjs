@@ -2,9 +2,8 @@
 /**
  * 契约漂移检测：依据当前后端 OpenAPI 重新生成类型，并与已提交的生成文件比较。
  *
- * 主聚合契约继续做完整 TypeScript 生成对比；R2 空间契约保持独立，通过 Git Blob
- * 指纹强制前端 spatial adapter 与契约同步。空间契约发生任何字节级变化后，必须审阅
- * frontend/src/shared/api/endpoints/spatial.ts，并执行 npm run api:generate 更新指纹。
+ * 主聚合契约继续做完整 TypeScript 生成对比；R2 空间契约和可视化建档契约保持独立，
+ * 通过 Git Blob 指纹强制对应前端 adapter 与契约同步。
  */
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -14,19 +13,12 @@ import { fileURLToPath } from 'node:url'
 
 const frontendRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const repoRoot = resolve(frontendRoot, '..')
-const spec = resolve(
-  repoRoot,
-  'backend-java/model/src/main/resources/openapi-interface.yaml',
-)
-const spatialSpec = resolve(
-  repoRoot,
-  'backend-java/model/src/main/resources/spatial/openapi-spatial.yaml',
-)
+const spec = resolve(repoRoot, 'backend-java/model/src/main/resources/openapi-interface.yaml')
+const spatialSpec = resolve(repoRoot, 'backend-java/model/src/main/resources/spatial/openapi-spatial.yaml')
+const archiveSpec = resolve(repoRoot, 'backend-java/model/src/main/resources/archive/openapi-archive.yaml')
 const committed = resolve(frontendRoot, 'src/shared/api/generated/schema.d.ts')
-const spatialFingerprint = resolve(
-  frontendRoot,
-  'src/shared/api/generated/spatial-contract.gitblob',
-)
+const spatialFingerprint = resolve(frontendRoot, 'src/shared/api/generated/spatial-contract.gitblob')
+const archiveFingerprint = resolve(frontendRoot, 'src/shared/api/generated/archive-contract.gitblob')
 const tmp = resolve(frontendRoot, 'node_modules/.tmp/schema.d.ts.check')
 const bin = resolve(frontendRoot, 'node_modules/.bin/openapi-typescript')
 
@@ -41,6 +33,10 @@ if (!existsSync(committed)) {
 }
 if (!existsSync(spatialSpec) || !existsSync(spatialFingerprint)) {
   console.error('[api:check] 找不到 R2 空间契约或其前端指纹。')
+  process.exit(1)
+}
+if (!existsSync(archiveSpec) || !existsSync(archiveFingerprint)) {
+  console.error('[api:check] 找不到可视化建档契约或其前端指纹。')
   process.exit(1)
 }
 
@@ -71,4 +67,13 @@ if (actualSpatialSha !== expectedSpatialSha) {
   process.exit(1)
 }
 
-console.log('[api:check] 主 OpenAPI 类型与 R2 空间契约指纹均一致。')
+const archiveContent = readFileSync(archiveSpec)
+const expectedArchiveSha = readFileSync(archiveFingerprint, 'utf8').trim()
+const actualArchiveSha = gitBlobSha(archiveContent)
+if (actualArchiveSha !== expectedArchiveSha) {
+  console.error('[api:check] 可视化建档 OpenAPI 与前端 archive adapter 指纹不一致（已漂移）。')
+  console.error('[api:check] 请审阅 archive.ts 后执行 npm run api:generate 更新指纹。')
+  process.exit(1)
+}
+
+console.log('[api:check] 主 OpenAPI 类型、R2 空间契约与可视化建档契约指纹均一致。')

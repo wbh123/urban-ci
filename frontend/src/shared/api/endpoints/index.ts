@@ -1,6 +1,7 @@
 export * from './auth'
 export * from './system'
 export * from './map'
+export * from './archive'
 export * from './communities'
 export * from './buildings'
 export * from './inspection'

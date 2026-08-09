@@ -53,11 +53,12 @@ public class ReportDashboardService {
         summary.put("communityCount", rows.stream().map(row -> row.get("communityId")).distinct().count());
         summary.put("buildingCount", (long) rows.size());
         summary.put("assessedBuildingCount", count(rows, row -> !"NO_RESULT".equals(row.get("freshness"))));
-        summary.put("highRiskCount", count(rows, row -> List.of("HIGH", "VERY_HIGH").contains(row.get("riskLevel"))));
+        summary.put("highRiskCount", count(rows,
+                row -> inList(row.get("riskLevel"), List.of("HIGH", "VERY_HIGH"))));
         summary.put("lowConfidenceCount", count(rows,
                 row -> number(row.get("confidenceScore")) < 60 && row.get("riskScore") != null));
         summary.put("highPriorityCount", count(rows,
-                row -> List.of("P1", "P2").contains(row.get("priorityLevel"))));
+                row -> inList(row.get("priorityLevel"), List.of("P1", "P2"))));
         summary.put("staleCount", count(rows, row -> "STALE".equals(row.get("freshness"))));
         summary.put("noResultCount", count(rows, row -> "NO_RESULT".equals(row.get("freshness"))));
 
@@ -339,6 +340,10 @@ public class ReportDashboardService {
 
     private boolean valueInRange(Object value, double start, double end) {
         return value != null && number(value) >= start && number(value) < end;
+    }
+
+    private boolean inList(Object value, List<String> candidates) {
+        return value != null && candidates.contains(value);
     }
 
     private double number(Object value) {

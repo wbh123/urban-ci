@@ -43,4 +43,14 @@ describe('ConsoleSpatialArchivePage R3 lifecycle', () => {
     expect(source).toContain('边界已被其他用户修改')
     expect(source).toContain('loadCurrentBoundary')
   })
+
+  it('consumes archive management deep-link query and preselects the requested object', () => {
+    expect(source).toContain('useRoute')
+    expect(source).toContain('route.query.entityType')
+    expect(source).toContain('route.query.entityId')
+    expect(source).toContain('route.query.communityId')
+    expect(source).toContain('preferredEntityId')
+    expect(source).toContain('preferredCommunityId')
+    expect(source).toContain("entityType.value = 'BUILDING'")
+  })
 })

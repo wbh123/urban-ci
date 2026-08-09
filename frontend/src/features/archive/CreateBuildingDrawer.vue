@@ -52,12 +52,10 @@ const location = reactive({
 const duplicateMatches = computed(() => findArchiveDuplicates({
   code: form.buildingCode,
   name: form.buildingName,
-  address: form.address,
 }, props.existingBuildings.map((item) => ({
   id: item.id,
   code: item.buildingCode,
   name: item.buildingName,
-  address: item.address,
 }))))
 
 const duplicateText = computed(() => duplicateMatches.value.map((match) => {

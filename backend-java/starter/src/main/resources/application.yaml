@@ -1,60 +1,33 @@
-server:
-  port: ${URBAN_SAFE_SERVER_PORT}
-
 spring:
   application:
     name: urban-safe-priority
-  profiles:
-    active: local
-  config:
-    import:
-      - optional:file:./.env[.properties]
-      - optional:file:../.env[.properties]
   datasource:
-    url: jdbc:postgresql://${URBAN_SAFE_DB_HOST}:${URBAN_SAFE_DB_PORT}/${URBAN_SAFE_DB_NAME}
-    username: ${URBAN_SAFE_DB_USER}
+    url: ${URBAN_SAFE_DB_URL}
+    username: ${URBAN_SAFE_DB_USERNAME}
     password: ${URBAN_SAFE_DB_PASSWORD}
-    driver-class-name: org.postgresql.Driver
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${URBAN_SAFE_REDIS_HOST}
+      port: ${URBAN_SAFE_REDIS_PORT}
+      password: ${URBAN_SAFE_REDIS_PASSWORD}
+      database: ${URBAN_SAFE_REDIS_DATABASE}
+  servlet:
+    multipart:
+      max-file-size: ${URBAN_SAFE_STORAGE_MAX_IMAGE_SIZE_BYTES}
+      max-request-size: ${URBAN_SAFE_STORAGE_MAX_REQUEST_SIZE_BYTES}
+  jackson:
+    default-property-inclusion: non_null
   flyway:
     enabled: true
     locations: classpath:db/migration
-    baseline-on-migrate: true
-    baseline-version: 0
+    baseline-on-migrate: false
     validate-on-migrate: true
-  servlet:
-    multipart:
-      max-file-size: ${URBAN_SAFE_STORAGE_MAX_IMAGE_SIZE_BYTES}B
-      max-request-size: ${URBAN_SAFE_STORAGE_MAX_REQUEST_SIZE_BYTES}B
-  ai:
-    model:
-      chat: ${URBAN_SAFE_SPRING_AI_MODEL_CHAT:none}
-      embedding: none
-      image: none
-      moderation: none
-      audio:
-        speech: none
-        transcription: none
-    openai:
-      api-key: ${URBAN_SAFE_SPRING_AI_API_KEY:}
-      base-url: ${URBAN_SAFE_SPRING_AI_BASE_URL:https://api.openai.com}
-      chat:
-        options:
-          model: ${URBAN_SAFE_SPRING_AI_MODEL:}
 
-mybatis-plus:
-  mapper-locations: classpath*:mappers/**/*.xml
-  type-aliases-package: org.urbansafe.priority
-  type-handlers-package: org.urbansafe.priority.persistence.typehandler
-  configuration:
-    map-underscore-to-camel-case: true
-    call-setters-on-nulls: true
-  global-config:
-    banner: false
-    db-config:
-      id-type: input
-      logic-delete-field: deletedAt
-      logic-not-delete-value: "null"
-      logic-delete-value: "now()"
+server:
+  port: ${URBAN_SAFE_SERVER_PORT}
+  servlet:
+    context-path: /
 
 management:
   endpoints:
@@ -96,6 +69,7 @@ urban-safe:
       read-timeout-ms: ${URBAN_SAFE_AMAP_READ_TIMEOUT_MS}
       cache-ttl-seconds: ${URBAN_SAFE_AMAP_CACHE_TTL_SECONDS}
       live-test-enabled: ${URBAN_SAFE_AMAP_LIVE_TEST_ENABLED}
+      boundary-candidate-enabled: ${URBAN_SAFE_AMAP_BOUNDARY_CANDIDATE_ENABLED:false}
   storage:
     provider: ${URBAN_SAFE_STORAGE_PROVIDER}
     endpoint: http://${URBAN_SAFE_MINIO_HOST}:${URBAN_SAFE_MINIO_API_PORT}
@@ -123,35 +97,38 @@ urban-safe:
       batch-size: ${URBAN_SAFE_AI_EXECUTION_BATCH_SIZE:2}
       worker-id: ${URBAN_SAFE_AI_EXECUTION_WORKER_ID:urban-safe-worker}
     dify:
-      enabled: ${URBAN_SAFE_DIFY_ENABLED:false}
-      base-url: ${URBAN_SAFE_DIFY_BASE_URL:https://api.dify.ai/v1}
+      base-url: ${URBAN_SAFE_DIFY_BASE_URL:http://localhost:5001}
       api-key: ${URBAN_SAFE_DIFY_API_KEY:}
-      workflow-id: ${URBAN_SAFE_DIFY_WORKFLOW_ID:}
-      workflow-version: ${URBAN_SAFE_DIFY_WORKFLOW_VERSION:image-analysis-v1.0.1}
-      connect-timeout-ms: ${URBAN_SAFE_DIFY_CONNECT_TIMEOUT_MS:300000}
-      read-timeout-ms: ${URBAN_SAFE_DIFY_READ_TIMEOUT_MS:300000}
-      workflows:
-        image-analysis:
-          api-key: ${URBAN_SAFE_DIFY_IMAGE_ANALYSIS_API_KEY:${URBAN_SAFE_DIFY_API_KEY:}}
-          app-id: ${URBAN_SAFE_DIFY_IMAGE_ANALYSIS_APP_ID:${URBAN_SAFE_DIFY_WORKFLOW_ID:}}
-          version: ${URBAN_SAFE_DIFY_IMAGE_ANALYSIS_VERSION:${URBAN_SAFE_DIFY_WORKFLOW_VERSION:image-analysis-v1.0.1}}
-        review-assist:
-          api-key: ${URBAN_SAFE_DIFY_REVIEW_ASSIST_API_KEY:}
-          app-id: ${URBAN_SAFE_DIFY_REVIEW_ASSIST_APP_ID:}
-          version: ${URBAN_SAFE_DIFY_REVIEW_ASSIST_VERSION:review-assist-v1.0.0}
-        report-draft:
-          api-key: ${URBAN_SAFE_DIFY_REPORT_DRAFT_API_KEY:}
-          app-id: ${URBAN_SAFE_DIFY_REPORT_DRAFT_APP_ID:}
-          version: ${URBAN_SAFE_DIFY_REPORT_DRAFT_VERSION:report-draft-v1.0.0}
-        knowledge-qa:
-          api-key: ${URBAN_SAFE_DIFY_KNOWLEDGE_QA_API_KEY:}
-          app-id: ${URBAN_SAFE_DIFY_KNOWLEDGE_QA_APP_ID:}
-          version: ${URBAN_SAFE_DIFY_KNOWLEDGE_QA_VERSION:knowledge-qa-v1.0.0}
-    spring-ai-provider:
-      enabled: ${URBAN_SAFE_SPRING_AI_PROVIDER_ENABLED:false}
-      provider-type: ${URBAN_SAFE_SPRING_AI_PROVIDER_TYPE:OPENAI_COMPATIBLE}
+      connect-timeout-ms: ${URBAN_SAFE_DIFY_CONNECT_TIMEOUT_MS:3000}
+      read-timeout-ms: ${URBAN_SAFE_DIFY_READ_TIMEOUT_MS:30000}
+      workflow-keys:
+        defect-detection: ${URBAN_SAFE_DIFY_DEFECT_DETECTION_KEY:}
+        risk-explanation: ${URBAN_SAFE_DIFY_RISK_EXPLANATION_KEY:}
+        report-draft: ${URBAN_SAFE_DIFY_REPORT_DRAFT_KEY:}
+        knowledge-qa: ${URBAN_SAFE_DIFY_KNOWLEDGE_QA_KEY:}
+  notification:
+    enabled: ${URBAN_SAFE_NOTIFICATION_ENABLED:true}
+    dispatcher:
+      fixed-delay-ms: ${URBAN_SAFE_NOTIFICATION_DISPATCHER_FIXED_DELAY_MS:1000}
+      batch-size: ${URBAN_SAFE_NOTIFICATION_DISPATCHER_BATCH_SIZE:100}
+      retry-base-delay-seconds: ${URBAN_SAFE_NOTIFICATION_RETRY_BASE_DELAY_SECONDS:10}
+      max-attempts: ${URBAN_SAFE_NOTIFICATION_MAX_ATTEMPTS:5}
+    sse:
+      heartbeat-seconds: ${URBAN_SAFE_NOTIFICATION_SSE_HEARTBEAT_SECONDS:15}
+      session-timeout-seconds: ${URBAN_SAFE_NOTIFICATION_SSE_SESSION_TIMEOUT_SECONDS:120}
+  integration:
+    dify:
+      enabled: ${URBAN_SAFE_DIFY_ENABLED:false}
+      base-url: ${URBAN_SAFE_DIFY_BASE_URL:http://localhost:5001}
+      api-key: ${URBAN_SAFE_DIFY_API_KEY:}
+      connect-timeout-ms: ${URBAN_SAFE_DIFY_CONNECT_TIMEOUT_MS:3000}
+      read-timeout-ms: ${URBAN_SAFE_DIFY_READ_TIMEOUT_MS:30000}
+      health-path: ${URBAN_SAFE_DIFY_HEALTH_PATH:/health}
+      app-id: ${URBAN_SAFE_DIFY_APP_ID:}
+    spring-ai:
+      enabled: ${URBAN_SAFE_SPRING_AI_ENABLED:false}
+      base-url: ${URBAN_SAFE_SPRING_AI_BASE_URL:http://localhost:11434}
       api-key: ${URBAN_SAFE_SPRING_AI_API_KEY:}
-      base-url: ${URBAN_SAFE_SPRING_AI_BASE_URL:https://api.openai.com}
       model: ${URBAN_SAFE_SPRING_AI_MODEL:}
       connect-timeout-ms: ${URBAN_SAFE_SPRING_AI_CONNECT_TIMEOUT_MS:3000}
       read-timeout-ms: ${URBAN_SAFE_SPRING_AI_READ_TIMEOUT_MS:30000}

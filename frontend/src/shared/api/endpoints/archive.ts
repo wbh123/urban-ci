@@ -1,4 +1,5 @@
 import { apiGet, apiPost, apiPut } from '../client'
+import type { SpatialGeoJsonGeometry } from './spatial'
 
 export type ArchiveProvider = 'AMAP' | 'MANUAL' | 'IMPORT' | 'MOCK'
 export type ArchiveCoordinateSystem = 'GCJ02' | 'WGS84' | 'BD09' | 'UNKNOWN'
@@ -47,6 +48,26 @@ export interface ReverseGeocodingResult {
   mock: boolean
 }
 
+export interface CommunityBoundaryCandidateRequest {
+  communityId: string
+  communityName: string
+  address?: string | null
+  region?: string | null
+}
+
+export interface CommunityBoundaryCandidatePreview {
+  available: boolean
+  provider: 'AMAP'
+  reasonCode?: 'DISABLED' | 'NOT_CONFIGURED' | 'NO_RESULT' | 'AOI_UNAVAILABLE' | 'UPSTREAM_UNAVAILABLE' | 'INVALID_GEOMETRY' | null
+  message: string
+  coordinateSystem?: 'GCJ02' | null
+  sourceType?: 'AMAP_AOI' | null
+  sourceId?: string | null
+  name?: string | null
+  address?: string | null
+  geometry?: SpatialGeoJsonGeometry | null
+}
+
 export interface BuildingLocationRequest {
   longitude: number
   latitude: number
@@ -78,6 +99,15 @@ export function previewArchiveReverseGeocoding(
   input: ReverseGeocodingRequest,
 ): Promise<ReverseGeocodingResult> {
   return apiPost<ReverseGeocodingResult>('/api/v1/map/reverse-geocoding/preview', input)
+}
+
+export function previewCommunityBoundaryCandidate(
+  input: CommunityBoundaryCandidateRequest,
+): Promise<CommunityBoundaryCandidatePreview> {
+  return apiPost<CommunityBoundaryCandidatePreview>(
+    '/api/v1/map/community-boundary-candidates/preview',
+    input,
+  )
 }
 
 export function getArchiveBuildingLocation(buildingId: string): Promise<BuildingLocation> {

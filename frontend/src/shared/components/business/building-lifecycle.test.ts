@@ -101,6 +101,17 @@ describe('buildBuildingLifecycle', () => {
     })
   })
 
+  it('does not mark a partially completed workflow as fully completed', () => {
+    const nodes = buildBuildingLifecycle(baseSnapshot({
+      disposal: { total: 2, completed: 1 },
+    }))
+
+    expect(nodes.find((node) => node.stage === 'DISPOSAL')).toMatchObject({
+      status: 'IN_PROGRESS',
+      count: 2,
+    })
+  })
+
   it('maps report generating/failed/stale/generated states with safety-first precedence', () => {
     const generating = buildBuildingLifecycle(baseSnapshot({ reports: [{ reportStatus: 'GENERATING' }] }))
     expect(generating.find((node) => node.stage === 'REPORT')?.status).toBe('IN_PROGRESS')

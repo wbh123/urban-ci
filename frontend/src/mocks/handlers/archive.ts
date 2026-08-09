@@ -62,6 +62,23 @@ export const archiveHandlers = [
     return okResponse(page(db.communities.map(communityRow)))
   }),
 
+  http.get('/api/v1/communities/:communityId', ({ request, params }) => {
+    const unauth = requireAuth(request)
+    if (unauth) return unauth
+    const communityId = params.communityId as string
+    const community = db.communities.find((c) => c.communityId === communityId)
+    if (!community) return errorResponse('COMMUNITY_NOT_FOUND', '小区不存在。', 404)
+    const metadata = db.communityMetadata.get(community.communityId)
+    return okResponse({
+      id: community.communityId,
+      communityCode: metadata?.communityCode ?? `COM-${community.communityId.slice(0, 8)}`,
+      communityName: community.communityName,
+      administrativeRegion: metadata?.administrativeRegion ?? '湖南省株洲市',
+      address: metadata?.address ?? community.address ?? community.formattedAddress ?? '',
+      status: metadata?.status ?? 'ACTIVE',
+    })
+  }),
+
   http.post('/api/v1/communities', async ({ request }) => {
     const unauth = requireAuth(request)
     if (unauth) return unauth

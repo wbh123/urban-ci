@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import source from './ConsoleSpatialArchivePage.vue?raw'
 
-describe('ConsoleSpatialArchivePage R3 lifecycle', () => {
+describe('ConsoleSpatialArchivePage R3/R4 lifecycle', () => {
   it('loads scoped community/building directories and current boundary', () => {
     expect(source).toContain('listCommunities')
     expect(source).toContain('listBuildings')
@@ -16,6 +16,23 @@ describe('ConsoleSpatialArchivePage R3 lifecycle', () => {
     expect(source).toContain('expectedVersion')
     expect(source).toContain('upsertCommunityBoundary')
     expect(source).toContain('upsertBuildingBoundary')
+  })
+
+  it('previews AMap candidates without dirtying the draft until explicit adoption', () => {
+    expect(source).toContain('previewCommunityBoundaryCandidate')
+    expect(source).toContain('editor.previewGeometry(result.geometry)')
+    expect(source).toContain('采用候选作为草稿')
+    expect(source).toContain('candidateAdopted.value = true')
+    expect(source).toContain('editor.loadGeometry(candidate.value.geometry)')
+    expect(source).toContain("sourceType: candidateAdopted.value ? 'AMAP_AOI'")
+    expect(source).toContain("sourceProvider: candidateAdopted.value ? 'AMAP'")
+    expect(source).toContain('保存后只会进入“待确认”')
+  })
+
+  it('keeps manual drawing and GeoJSON available when AMap candidates fail', () => {
+    expect(source).toContain('人工绘制和 GeoJSON 导入仍可继续使用')
+    expect(source).toContain('绘制新边界')
+    expect(source).toContain('导入 GCJ-02 GeoJSON')
   })
 
   it('imports GCJ-02 GeoJSON from text or file and can save without a live map', () => {

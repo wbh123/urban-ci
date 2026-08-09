@@ -97,7 +97,7 @@ public class CommunityBoundaryCandidateService {
 
     private Map<String, Object> parseGeometry(String polyline) {
         String[] polygonSources = polyline.split("\\|");
-        List<List<List<Double>>> polygons = new ArrayList<>();
+        List<List<List<List<Double>>>> polygons = new ArrayList<>();
         for (String polygonSource : polygonSources) {
             List<List<Double>> ring = parseRing(polygonSource);
             if (ring != null) polygons.add(List.of(ring));

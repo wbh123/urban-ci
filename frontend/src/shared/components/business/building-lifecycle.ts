@@ -177,7 +177,9 @@ function genericNode(stage: 'DISPOSAL' | 'REINSPECTION', workflow?: GenericWorkf
   if ((workflow.stale ?? 0) > 0) return node(stage, 'STALE', workflow.total, undefined, workflow.updatedAt)
   if ((workflow.inProgress ?? 0) > 0) return node(stage, 'IN_PROGRESS', workflow.total, undefined, workflow.updatedAt)
   if ((workflow.pending ?? 0) > 0) return node(stage, 'PENDING', workflow.total, undefined, workflow.updatedAt)
-  if ((workflow.completed ?? 0) > 0) return node(stage, 'COMPLETED', workflow.total, undefined, workflow.updatedAt)
+  const completed = workflow.completed ?? 0
+  if (completed >= workflow.total) return node(stage, 'COMPLETED', workflow.total, undefined, workflow.updatedAt)
+  if (completed > 0) return node(stage, 'IN_PROGRESS', workflow.total, '已有部分事项完成，其余事项仍待推进。', workflow.updatedAt)
   return node(stage, 'NOT_STARTED', workflow.total, undefined, workflow.updatedAt)
 }
 

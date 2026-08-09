@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import dashboardSource from './ConsoleDashboardPage.vue?raw'
 import { resolveWorkspaceConfig } from './workbench-config'
 
 describe('R4-4 role dashboard workspace config', () => {
@@ -63,5 +64,26 @@ describe('R4-4 role dashboard workspace config', () => {
 
     expect(config.enableRisk).toBe(false)
     expect(config.metrics.map((item) => item.key)).not.toContain('risk')
+  })
+})
+
+describe('R4-4 role dashboard composition', () => {
+  it('composes the dashboard from reusable workbench panels', () => {
+    expect(dashboardSource).toContain('WorkbenchMetricCard')
+    expect(dashboardSource).toContain('WorkbenchTodoPanel')
+    expect(dashboardSource).toContain('WorkbenchMapPanel')
+    expect(dashboardSource).toContain('WorkbenchTrendPanel')
+  })
+
+  it('derives content from the authenticated roles and permissions', () => {
+    expect(dashboardSource).toContain('resolveWorkspaceConfig')
+    expect(dashboardSource).toContain('authStore.user?.roles')
+    expect(dashboardSource).toContain('authStore.user?.permissions')
+    expect(dashboardSource).not.toContain("hasRole('ADMIN')")
+  })
+
+  it('keeps spatial map and deep-link navigation as explicit workbench actions', () => {
+    expect(dashboardSource).toContain("router.push('/console/map')")
+    expect(dashboardSource).toContain('router.push(todo.path)')
   })
 })

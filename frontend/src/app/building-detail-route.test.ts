@@ -25,7 +25,7 @@ describe('R4-3 building detail routes', () => {
     const target = redirect({
       params: { buildingId: 'b-1' },
       query: { from: 'legacy' },
-    } as never)
+    } as never, {} as never)
 
     expect(target).toEqual({
       name: 'console-building-detail',

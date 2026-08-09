@@ -169,7 +169,7 @@ function riskTagType(level?: string): 'danger' | 'warning' | 'success' | 'info' 
           <el-tab-pane label="评分明细" name="score"><div v-for="dimension in detailAssessment?.risk?.dimensionScores || []" :key="dimension.code" class="score-row"><span>{{ dimension.label }}</span><strong>{{ dimension.score }}</strong><small>权重 {{ dimension.weight }} · 贡献 {{ dimension.contribution }}</small></div><div class="tag-row"><el-tag v-for="item in detailAssessment?.completeness?.missingItems || []" :key="item" type="warning" effect="plain">{{ item }}</el-tag></div></el-tab-pane>
           <el-tab-pane label="公众反馈" name="feedback"><article v-for="item in detailFeedback" :key="item.reportId" class="feedback-card"><div class="row-between"><strong>{{ item.reportCode }}</strong><el-tag size="small">{{ item.status }}</el-tag></div><p>{{ item.description }}</p><small>{{ item.submittedAt }} · {{ item.urgency }}</small></article><el-empty v-if="detailFeedback.length === 0" description="该楼栋暂无公众反馈" /></el-tab-pane>
         </el-tabs>
-        <el-button type="primary" plain @click="router.push(`/console/buildings/${selectedProjection.feature.id}/assessment`)">打开完整评分详情</el-button>
+        <el-button type="primary" plain @click="router.push(`/console/buildings/${selectedProjection.feature.id}`)">打开统一楼栋详情</el-button>
       </template>
     </el-drawer>
   </section>

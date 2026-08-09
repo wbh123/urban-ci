@@ -24,9 +24,23 @@ describe('ConsoleSpatialArchivePage R3/R4 lifecycle', () => {
     expect(source).toContain('采用候选作为草稿')
     expect(source).toContain('candidateAdopted.value = true')
     expect(source).toContain('editor.loadGeometry(candidate.value.geometry)')
-    expect(source).toContain("sourceType: candidateAdopted.value ? 'AMAP_AOI'")
-    expect(source).toContain("sourceProvider: candidateAdopted.value ? 'AMAP'")
+    expect(source).toContain("sourceType: candidateAdopted.value")
+    expect(source).toContain("'AMAP_AOI' as const")
+    expect(source).toContain("sourceProvider: candidateAdopted.value")
+    expect(source).toContain("? 'AMAP'")
     expect(source).toContain('保存后只会进入“待确认”')
+  })
+
+  it('rejects an unnamed community locally instead of issuing an invalid candidate request', () => {
+    expect(source).toContain('community.communityName?.trim()')
+    expect(source).toContain('当前小区缺少名称，无法查询高德候选边界')
+  })
+
+  it('revokes an adopted candidate by restoring the server boundary without saving', () => {
+    expect(source).toContain('const wasAdopted = candidateAdopted.value')
+    expect(source).toContain("candidateAdopted ? '撤销采用' : '取消候选预览'")
+    expect(source).toContain('已撤销采用，并恢复服务器当前边界')
+    expect(source).toContain('await loadCurrentBoundary()')
   })
 
   it('keeps manual drawing and GeoJSON available when AMap candidates fail', () => {

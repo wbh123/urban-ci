@@ -12,6 +12,18 @@ import evidenceSource from './EvidenceGallery.vue?raw'
 
 const global = { plugins: [ElementPlus] }
 
+const buildingSummary = {
+  buildingId: 'b-1',
+  buildingCode: 'B-001',
+  buildingName: '1号楼',
+  communityName: '示范小区',
+  address: '示范路1号',
+  constructionYear: 2008,
+  floorCount: 18,
+  residentCount: 360,
+  spatialStatus: 'VERIFIED' as const,
+}
+
 describe('R4-2 building business components', () => {
   it('keeps all four components presentational without direct API imports', () => {
     for (const source of [summarySource, timelineSource, riskSource, evidenceSource]) {
@@ -23,19 +35,7 @@ describe('R4-2 building business components', () => {
 
   it('renders a business-friendly building summary', () => {
     const wrapper = mount(BuildingSummaryCard, {
-      props: {
-        summary: {
-          buildingId: 'b-1',
-          buildingCode: 'B-001',
-          buildingName: '1号楼',
-          communityName: '示范小区',
-          address: '示范路1号',
-          constructionYear: 2008,
-          floorCount: 18,
-          residentCount: 360,
-          spatialStatus: 'VERIFIED',
-        },
-      },
+      props: { summary: buildingSummary },
       global,
     })
 
@@ -45,6 +45,19 @@ describe('R4-2 building business components', () => {
     expect(wrapper.text()).toContain('18 层')
     expect(wrapper.text()).toContain('360 人')
     expect(wrapper.text()).toContain('空间档案已确认')
+  })
+
+  it('supports a compact summary mode without repeating secondary archive fields', () => {
+    const wrapper = mount(BuildingSummaryCard, {
+      props: { summary: buildingSummary, compact: true },
+      global,
+    })
+
+    expect(wrapper.find('.building-summary-card').classes()).toContain('is-compact')
+    expect(wrapper.text()).toContain('1号楼')
+    expect(wrapper.text()).toContain('B-001')
+    expect(wrapper.text()).not.toContain('建成年份')
+    expect(wrapper.text()).not.toContain('居民')
   })
 
   it('renders the fixed lifecycle stages and human-readable statuses', () => {
@@ -67,7 +80,7 @@ describe('R4-2 building business components', () => {
     expect(wrapper.text()).toContain('已过期')
   })
 
-  it('renders formal risk data while explicitly separating AI assistance from formal conclusions', () => {
+  it('renders formal risk data with business labels and separates AI assistance from formal conclusions', () => {
     const wrapper = mount(RiskSummaryPanel, {
       props: {
         summary: {
@@ -86,10 +99,23 @@ describe('R4-2 building business components', () => {
     })
 
     expect(wrapper.text()).toContain('72.50')
-    expect(wrapper.text()).toContain('HIGH')
+    expect(wrapper.text()).toContain('高风险')
+    expect(wrapper.text()).not.toMatch(/\bHIGH\b/)
+    expect(wrapper.text()).toContain('一级优先')
     expect(wrapper.text()).toContain('需要人工复核')
     expect(wrapper.text()).toContain('辅助分析')
     expect(wrapper.text()).toContain('不作为正式鉴定结论')
+  })
+
+  it('renders a business empty state instead of metric placeholders when no formal assessment exists', () => {
+    const wrapper = mount(RiskSummaryPanel, {
+      props: { summary: { freshness: 'NO_RESULT' } },
+      global,
+    })
+
+    expect(wrapper.text()).toContain('暂无正式风险评分')
+    expect(wrapper.find('.risk-empty').exists()).toBe(true)
+    expect(wrapper.find('.risk-metrics').exists()).toBe(false)
   })
 
   it('renders evidence cards and emits open without exposing raw JSON', async () => {

@@ -90,6 +90,28 @@ export const initialBuildings: MockBuilding[] = [
     status: 'ACTIVE',
     createdAt: now(),
   },
+  {
+    id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+    communityId: COMMUNITY_ID,
+    buildingCode: 'B-003',
+    buildingName: '3号楼',
+    constructionYear: 2010,
+    floorCount: 12,
+    residentCount: 48,
+    status: 'ACTIVE',
+    createdAt: now(),
+  },
+  {
+    id: 'dddddddd-dddd-dddd-dddd-dddddddddddd',
+    communityId: '55555555-5555-5555-5555-555555555555',
+    buildingCode: 'B-004',
+    buildingName: '4号楼',
+    constructionYear: 2015,
+    floorCount: 18,
+    residentCount: 72,
+    status: 'ACTIVE',
+    createdAt: now(),
+  },
 ]
 
 export const initialTasks: InspectionTask[] = [

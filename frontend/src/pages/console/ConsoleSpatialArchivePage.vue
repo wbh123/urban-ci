@@ -201,6 +201,10 @@ function adoptAmapCandidate(): void {
 }
 
 function cancelAmapCandidate(): void {
+  if (candidateAdopted.value) {
+    notice.value = '候选已采用为草稿；如需撤销，请使用“取消本次修改”恢复服务器当前版本。'
+    return
+  }
   clearCandidateState()
   notice.value = '已取消高德候选预览，当前正式边界和已有草稿未被候选查询修改。'
 }
@@ -331,7 +335,8 @@ async function reviewBoundary(action: 'VERIFY' | 'REJECT'): Promise<void> {
             </div>
             <div v-if="candidate.available && candidate.geometry" class="candidate-actions">
               <el-button type="primary" plain :disabled="candidateAdopted" @click="adoptAmapCandidate">采用候选作为草稿</el-button>
-              <el-button @click="cancelAmapCandidate">取消候选预览</el-button>
+              <el-button v-if="!candidateAdopted" @click="cancelAmapCandidate">取消候选预览</el-button>
+              <span v-else class="hint">采用后如需撤销，请使用“取消本次修改”。</span>
             </div>
           </div>
         </template>

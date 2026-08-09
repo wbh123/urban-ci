@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.urbansafe.priority.common.security.BusinessAccessService;
+import org.urbansafe.priority.map.service.CommunityBoundaryCandidateService;
 import org.urbansafe.priority.map.service.MapDiscoveryService;
 import org.urbansafe.priority.model.api.ArchiveMapApi;
 import org.urbansafe.priority.model.dto.CommunityBoundaryCandidatePreview;
@@ -30,7 +31,8 @@ class ArchiveMapControllerTest {
     void controllerImplementsGeneratedApiAndDelegatesPlaceSearch() {
         MapDiscoveryService discovery = mock(MapDiscoveryService.class);
         BusinessAccessService access = mock(BusinessAccessService.class);
-        ArchiveMapController controller = new ArchiveMapController(discovery, access);
+        CommunityBoundaryCandidateService candidates = mock(CommunityBoundaryCandidateService.class);
+        ArchiveMapController controller = new ArchiveMapController(discovery, access, candidates);
         PlaceSearchRequest request = mock(PlaceSearchRequest.class);
         when(request.getKeyword()).thenReturn("示范小区");
         when(request.getRegion()).thenReturn("株洲市");
@@ -44,8 +46,7 @@ class ArchiveMapControllerTest {
                 "coordinateSystem", "UNKNOWN",
                 "mock", true)));
 
-        ResponseEntity<MapPlaceCandidateListSuccessResponse> response =
-                controller.searchArchivePlaces(request);
+        ResponseEntity<MapPlaceCandidateListSuccessResponse> response = controller.searchArchivePlaces(request);
 
         assertThat(controller).isInstanceOf(ArchiveMapApi.class);
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
@@ -58,7 +59,8 @@ class ArchiveMapControllerTest {
     void controllerDelegatesReverseGeocoding() {
         MapDiscoveryService discovery = mock(MapDiscoveryService.class);
         BusinessAccessService access = mock(BusinessAccessService.class);
-        ArchiveMapController controller = new ArchiveMapController(discovery, access);
+        CommunityBoundaryCandidateService candidates = mock(CommunityBoundaryCandidateService.class);
+        ArchiveMapController controller = new ArchiveMapController(discovery, access, candidates);
         ReverseGeocodingRequest request = mock(ReverseGeocodingRequest.class);
         when(request.getLongitude()).thenReturn(113.12);
         when(request.getLatitude()).thenReturn(27.88);
@@ -69,8 +71,7 @@ class ArchiveMapControllerTest {
                 "coordinateSystem", "UNKNOWN",
                 "mock", true));
 
-        ResponseEntity<ReverseGeocodingResultSuccessResponse> response =
-                controller.previewArchiveReverseGeocoding(request);
+        ResponseEntity<ReverseGeocodingResultSuccessResponse> response = controller.previewArchiveReverseGeocoding(request);
 
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(response.getBody()).isNotNull();
@@ -79,18 +80,28 @@ class ArchiveMapControllerTest {
     }
 
     @Test
-    void boundaryCandidatePreviewRequiresCommunityScopeBeforeReturningFallback() {
+    void boundaryCandidatePreviewRequiresCommunityScopeAndDelegatesReadOnlyPreview() {
         MapDiscoveryService discovery = mock(MapDiscoveryService.class);
         BusinessAccessService access = mock(BusinessAccessService.class);
-        ArchiveMapController controller = new ArchiveMapController(discovery, access);
+        CommunityBoundaryCandidateService candidates = mock(CommunityBoundaryCandidateService.class);
+        ArchiveMapController controller = new ArchiveMapController(discovery, access, candidates);
         CommunityBoundaryCandidateRequest request = mock(CommunityBoundaryCandidateRequest.class);
         UUID communityId = UUID.randomUUID();
         when(request.getCommunityId()).thenReturn(communityId);
+        when(request.getCommunityName()).thenReturn("示范小区");
+        when(request.getAddress()).thenReturn("示范路1号");
+        when(request.getRegion()).thenReturn("株洲市");
+        when(candidates.preview("示范小区", "示范路1号", "株洲市")).thenReturn(Map.of(
+                "available", false,
+                "provider", "AMAP",
+                "reasonCode", "DISABLED",
+                "message", "未启用"));
 
         ResponseEntity<CommunityBoundaryCandidatePreviewSuccessResponse> response =
                 controller.previewCommunityBoundaryCandidate(request);
 
         verify(access).assertCanReadCommunity(communityId);
+        verify(candidates).preview("示范小区", "示范路1号", "株洲市");
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getData().getAvailable()).isFalse();
@@ -101,8 +112,7 @@ class ArchiveMapControllerTest {
     @Test
     void generatedApiMethodsRequireDirectoryReadRole() throws Exception {
         assertThat(ArchiveMapApi.class.isAssignableFrom(ArchiveMapController.class)).isTrue();
-        assertPreAuthorize(ArchiveMapController.class.getMethod(
-                "searchArchivePlaces", PlaceSearchRequest.class));
+        assertPreAuthorize(ArchiveMapController.class.getMethod("searchArchivePlaces", PlaceSearchRequest.class));
         assertPreAuthorize(ArchiveMapController.class.getMethod(
                 "previewArchiveReverseGeocoding", ReverseGeocodingRequest.class));
         assertPreAuthorize(ArchiveMapController.class.getMethod(

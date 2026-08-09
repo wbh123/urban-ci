@@ -19,6 +19,8 @@ export interface BoundaryEditorHandlers { onChange?: (geometry: SpatialGeoJsonGe
 export interface SpatialBoundaryEditor {
   mount: (container: HTMLElement, config: MapRuntimeConfig, handlers?: BoundaryEditorHandlers) => Promise<boolean>
   loadGeometry: (geometry: SpatialGeoJsonGeometry | null) => void
+  previewGeometry: (geometry: SpatialGeoJsonGeometry | null) => void
+  clearPreview: () => void
   startEdit: () => void
   startDraw: () => void
   exportGeometry: () => SpatialGeoJsonGeometry | null
@@ -34,6 +36,16 @@ const DRAFT_POLYGON_STYLE = {
   fillOpacity: 0.22,
 } as const
 
+const CANDIDATE_POLYGON_STYLE = {
+  strokeColor: '#d97706',
+  strokeWeight: 3,
+  strokeStyle: 'dashed',
+  strokeOpacity: 0.9,
+  fillColor: '#fbbf24',
+  fillOpacity: 0.1,
+  zIndex: 80,
+} as const
+
 const defaultEditorLoader: SpatialAmapLoader = async (options: SpatialAmapLoadOptions) => (
   await loadAmap(options) as unknown as EditorNamespace as never
 )
@@ -43,6 +55,7 @@ export function createSpatialBoundaryEditor(options: { loader?: SpatialAmapLoade
   let namespace: EditorNamespace | null = null
   let map: MapLike | null = null
   let polygons: PolygonLike[] = []
+  let previewPolygons: PolygonLike[] = []
   let editors: EditorLike[] = []
   let mouseTool: MouseToolLike | null = null
   let handlers: BoundaryEditorHandlers = {}
@@ -60,6 +73,7 @@ export function createSpatialBoundaryEditor(options: { loader?: SpatialAmapLoade
     mouseTool = new namespace.MouseTool(map)
     mouseTool.on('draw', (event) => {
       const polygon = event.obj as PolygonLike
+      clearPreview()
       clearPolygons()
       polygons = [polygon]
       editors = namespace && map ? [new namespace.PolygonEditor(map, polygon)] : []
@@ -70,6 +84,7 @@ export function createSpatialBoundaryEditor(options: { loader?: SpatialAmapLoade
   }
 
   function loadGeometry(geometry: SpatialGeoJsonGeometry | null): void {
+    clearPreview()
     clearPolygons()
     if (!geometry || !namespace || !map) { handlers.onChange?.(null); return }
     geometryToAmapPolygons(geometry).forEach((path) => {
@@ -80,8 +95,25 @@ export function createSpatialBoundaryEditor(options: { loader?: SpatialAmapLoade
     handlers.onChange?.(exportGeometry())
   }
 
-  function startEdit(): void { mouseTool?.close(true); editors.forEach((editor) => editor.open()) }
+  function previewGeometry(geometry: SpatialGeoJsonGeometry | null): void {
+    clearPreview()
+    if (!geometry || !namespace || !map) return
+    geometryToAmapPolygons(geometry).forEach((path) => {
+      const polygon = new namespace!.Polygon({ path, ...CANDIDATE_POLYGON_STYLE })
+      map!.add(polygon)
+      previewPolygons.push(polygon)
+    })
+    if (previewPolygons.length) map.setFitView([...polygons, ...previewPolygons] as unknown[])
+  }
+
+  function clearPreview(): void {
+    previewPolygons.forEach((polygon) => polygon.setMap(null))
+    previewPolygons = []
+  }
+
+  function startEdit(): void { clearPreview(); mouseTool?.close(true); editors.forEach((editor) => editor.open()) }
   function startDraw(): void {
+    clearPreview()
     editors.forEach((editor) => editor.close())
     mouseTool?.polygon({ ...DRAFT_POLYGON_STYLE })
   }
@@ -92,16 +124,16 @@ export function createSpatialBoundaryEditor(options: { loader?: SpatialAmapLoade
       ? { type: 'Polygon', coordinates: coordinatePolygons[0]! }
       : { type: 'MultiPolygon', coordinates: coordinatePolygons }
   }
-  function clear(): void { clearPolygons(); handlers.onChange?.(null) }
+  function clear(): void { clearPreview(); clearPolygons(); handlers.onChange?.(null) }
   function clearPolygons(removeFromMap = true): void {
     editors.forEach((editor) => editor.close()); editors = []
     if (removeFromMap) polygons.forEach((polygon) => polygon.setMap(null))
     polygons = []
   }
   function destroy(): void {
-    mouseTool?.close(true); mouseTool = null; clearPolygons(); map?.destroy(); map = null; namespace = null; handlers = {}
+    mouseTool?.close(true); mouseTool = null; clearPreview(); clearPolygons(); map?.destroy(); map = null; namespace = null; handlers = {}
   }
-  return { mount, loadGeometry, startEdit, startDraw, exportGeometry, clear, destroy }
+  return { mount, loadGeometry, previewGeometry, clearPreview, startEdit, startDraw, exportGeometry, clear, destroy }
 }
 
 function polygonCoordinates(polygon: PolygonLike): number[][][] {

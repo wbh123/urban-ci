@@ -110,6 +110,7 @@ async function submit(): Promise<void> {
           latitude: location.latitude!,
           formattedAddress: optionalText(location.formattedAddress),
           provider: selection.value?.provider ?? 'MANUAL',
+          coordinateSystem: selection.value?.coordinateSystem ?? 'UNKNOWN',
           matchLevel: selection.value?.matchLevel ?? 'MANUAL_POINT',
           mock: selection.value?.mock ?? false,
           metadata: selection.value?.metadata ?? {},

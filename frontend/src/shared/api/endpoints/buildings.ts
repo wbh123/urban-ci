@@ -23,6 +23,11 @@ export function createBuilding(input: CreateBuildingRequest): Promise<BuildingRe
   return apiPost<BuildingResponse>('/api/v1/buildings', input)
 }
 
+/** 查询楼栋详情；统一楼栋档案必须使用详情接口而不是从目录行反推字段。 */
+export function getBuilding(buildingId: string): Promise<BuildingResponse> {
+  return apiGet<BuildingResponse>(`/api/v1/buildings/${encodeURIComponent(buildingId)}`)
+}
+
 /** 查询楼栋目录；目录项必须带唯一标识才能参与选择与对象范围操作。 */
 export function listBuildings(params: ListBuildingsParams = {}): Promise<BuildingPageResponse> {
   return apiGet<BuildingPageResponse>('/api/v1/buildings', { ...params })

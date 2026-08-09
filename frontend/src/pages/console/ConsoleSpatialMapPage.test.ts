@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import source from './ConsoleSpatialMapPage.vue?raw'
 
-describe('ConsoleSpatialMapPage R3 integration', () => {
+describe('ConsoleSpatialMapPage R4-3 integration', () => {
   it('loads runtime config and drives verified bbox data through the spatial store', () => {
     expect(source).toContain('getMapRuntimeConfig')
     expect(source).toContain('createSpatialAmapDriver')
@@ -19,13 +19,14 @@ describe('ConsoleSpatialMapPage R3 integration', () => {
     expect(source).toContain('全部小区')
   })
 
-  it('uses real assessment and feedback data in the selected-building drawer', () => {
-    expect(source).toContain('getCurrentBuildingAssessment')
-    expect(source).toContain('listFeedbackReports')
-    expect(source).toContain('概览')
-    expect(source).toContain('证据')
-    expect(source).toContain('评分明细')
-    expect(source).toContain('公众反馈')
+  it('uses the unified building-detail loader and presentational drawer instead of duplicating business requests', () => {
+    expect(source).toContain('loadBuildingDetail')
+    expect(source).toContain('BuildingDetailDrawer')
+    expect(source).toContain("name: 'console-building-detail'")
+    expect(source).not.toContain('getCurrentBuildingAssessment')
+    expect(source).not.toContain('listFeedbackReports')
+    expect(source).not.toContain('评分明细')
+    expect(source).not.toContain('公众反馈')
   })
 
   it('has an explicit unavailable-state instead of fabricating polygons', () => {

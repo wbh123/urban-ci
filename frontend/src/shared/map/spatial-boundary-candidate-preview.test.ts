@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { MapRuntimeConfig } from '@/shared/api/endpoints/map'
+import type { SpatialGeoJsonGeometry } from '@/shared/api/endpoints/spatial'
 import type { SpatialAmapLoader } from './spatial-amap'
 import { createSpatialBoundaryEditor } from './spatial-boundary-editor'
 
@@ -49,8 +50,14 @@ describe('spatial boundary candidate preview layer', () => {
     const driver = createSpatialBoundaryEditor({ loader })
     await driver.mount(document.createElement('div'), config, { onChange })
 
-    const draft = { type: 'Polygon', coordinates: [[[113, 27], [114, 27], [114, 28], [113, 27]]] } as const
-    const candidate = { type: 'Polygon', coordinates: [[[113.2, 27.2], [113.3, 27.2], [113.3, 27.3], [113.2, 27.2]]] } as const
+    const draft: SpatialGeoJsonGeometry = {
+      type: 'Polygon',
+      coordinates: [[[113, 27], [114, 27], [114, 28], [113, 27]]],
+    }
+    const candidate: SpatialGeoJsonGeometry = {
+      type: 'Polygon',
+      coordinates: [[[113.2, 27.2], [113.3, 27.2], [113.3, 27.3], [113.2, 27.2]]],
+    }
     driver.loadGeometry(draft)
     onChange.mockClear()
 

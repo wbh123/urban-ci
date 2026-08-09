@@ -3,7 +3,7 @@ import { apiGet, apiPost } from '../client'
 
 export type CreateCommunityRequest = Schema<'CreateCommunityRequest'>
 export type CommunityResponse = Schema<'CommunityResponse'> & { id: string }
-export type CommunityListRow = Schema<'CommunityListRow'> & { id: string }
+export type CommunityListRow = Schema<'CommunityListRow'> & { id: string; communityName: string }
 type GeneratedCommunityPageResponse = Schema<'CommunityPageResponse'>
 export type CommunityPageResponse = Omit<GeneratedCommunityPageResponse, 'content'> & {
   content?: CommunityListRow[]
@@ -23,7 +23,7 @@ export function createCommunity(input: CreateCommunityRequest): Promise<Communit
   return apiPost<CommunityResponse>('/api/v1/communities', input)
 }
 
-/** 查询当前账号有权访问的小区目录；目录项必须带唯一标识才能被选择。 */
+/** 查询当前账号有权访问的小区目录；目录项必须带唯一标识和名称才能被选择。 */
 export function listCommunities(params: ListCommunitiesParams = {}): Promise<CommunityPageResponse> {
   return apiGet<CommunityPageResponse>('/api/v1/communities', { ...params })
 }

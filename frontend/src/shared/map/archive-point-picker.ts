@@ -1,4 +1,5 @@
 import type { MapRuntimeConfig } from '@/shared/api/endpoints/map'
+import { loadAmap, type AmapLoadOptions } from './amap-loader'
 
 export interface ArchiveMapPoint {
   longitude: number
@@ -32,16 +33,7 @@ interface AmapNamespaceLike {
   Marker: new (options: Record<string, unknown>) => AmapMarkerLike
 }
 
-interface AmapWindow extends Window {
-  AMap?: AmapNamespaceLike
-  _AMapSecurityConfig?: { serviceHost?: string }
-}
-
-export interface ArchiveAmapLoadOptions {
-  key: string
-  version: string
-}
-
+export type ArchiveAmapLoadOptions = AmapLoadOptions
 export type ArchiveAmapLoader = (options: ArchiveAmapLoadOptions) => Promise<AmapNamespaceLike>
 
 export interface ArchivePointPickerHandlers {
@@ -58,39 +50,9 @@ export interface ArchivePointPicker {
   destroy: () => void
 }
 
-let loaderPromise: Promise<AmapNamespaceLike> | null = null
-
-const defaultLoader: ArchiveAmapLoader = async ({ key, version }) => {
-  if (typeof window === 'undefined' || typeof document === 'undefined') {
-    throw new Error('当前运行环境不支持高德地图')
-  }
-  const target = window as unknown as AmapWindow
-  const callbacks = target as unknown as Record<string, unknown>
-  if (target.AMap) return target.AMap
-  if (loaderPromise) return loaderPromise
-
-  loaderPromise = new Promise<AmapNamespaceLike>((resolve, reject) => {
-    const callbackName = `__urbanSafeArchiveAmapLoaded_${Date.now()}_${Math.random().toString(36).slice(2)}`
-    callbacks[callbackName] = () => {
-      delete callbacks[callbackName]
-      if (target.AMap) resolve(target.AMap)
-      else reject(new Error('高德地图脚本已加载，但 AMap 对象不可用'))
-    }
-
-    const params = new URLSearchParams({ v: version, key, callback: callbackName })
-    const script = document.createElement('script')
-    script.async = true
-    script.src = `https://webapi.amap.com/maps?${params.toString()}`
-    script.onerror = () => {
-      delete callbacks[callbackName]
-      loaderPromise = null
-      reject(new Error('高德地图 JavaScript API 加载失败'))
-    }
-    document.head.appendChild(script)
-  })
-
-  return loaderPromise
-}
+const defaultLoader: ArchiveAmapLoader = async (options) => (
+  await loadAmap(options) as unknown as AmapNamespaceLike
+)
 
 export function createArchivePointPicker(
   options: { loader?: ArchiveAmapLoader } = {},
@@ -109,12 +71,11 @@ export function createArchivePointPicker(
     handlers = nextHandlers
     if (!config.enabled || config.mode !== 'LIVE' || !config.jsApiKey) return false
 
-    if (config.serviceHost && typeof window !== 'undefined') {
-      const target = window as unknown as AmapWindow
-      target._AMapSecurityConfig = { serviceHost: config.serviceHost }
-    }
-
-    const namespace = await loader({ key: config.jsApiKey, version: '2.0' })
+    const namespace = await loader({
+      key: config.jsApiKey,
+      version: '2.0',
+      serviceHost: config.serviceHost || undefined,
+    })
     map = new namespace.Map(container, {
       viewMode: '2D',
       resizeEnable: true,

@@ -35,88 +35,24 @@ class Phase2MapServiceTest {
     }
 
     @Test
-    void savesMockGeocodingResultWithExplicitUnknownCoordinateSystem() {
+    void savesMockGeocodingResultWithExplicitMockProvider() {
         UUID communityId = UUID.randomUUID();
         when(repository.communityExists(communityId)).thenReturn(true);
         when(repository.json(any())).thenReturn("{\"mock\":true}");
         when(repository.saveCommunityLocation(
                 eq(communityId), eq(113.13), eq(27.82), eq("示范小区"),
-                eq("MOCK"), eq("UNKNOWN"), eq("MOCK_PREVIEW"), eq("{\"mock\":true}")))
-                .thenReturn(Map.of("provider", "MOCK", "coordinateSystem", "UNKNOWN"));
+                eq("MOCK"), eq("MOCK_PREVIEW"), eq("{\"mock\":true}")))
+                .thenReturn(Map.of("provider", "MOCK"));
 
         Map<String, Object> result = service.saveLocation(communityId, Map.of(
                 "longitude", 113.13,
                 "latitude", 27.82,
                 "formattedAddress", "示范小区",
                 "provider", "MOCK",
-                "coordinateSystem", "UNKNOWN",
                 "matchLevel", "MOCK_PREVIEW",
                 "mock", true));
 
-        assertThat(result)
-                .containsEntry("provider", "MOCK")
-                .containsEntry("coordinateSystem", "UNKNOWN");
-    }
-
-    @Test
-    void manualLocationDefaultsToUnknownCoordinateSystemInsteadOfPretendingGcj02() {
-        UUID communityId = UUID.randomUUID();
-        when(repository.communityExists(communityId)).thenReturn(true);
-        when(repository.json(any())).thenReturn("{}");
-        when(repository.saveCommunityLocation(
-                eq(communityId), eq(113.13), eq(27.82), eq("人工录入"),
-                eq("MANUAL"), eq("UNKNOWN"), eq("MANUAL_POINT"), eq("{}")))
-                .thenReturn(Map.of("provider", "MANUAL", "coordinateSystem", "UNKNOWN"));
-
-        Map<String, Object> result = service.saveLocation(communityId, Map.of(
-                "longitude", 113.13,
-                "latitude", 27.82,
-                "formattedAddress", "人工录入",
-                "provider", "MANUAL",
-                "matchLevel", "MANUAL_POINT"));
-
-        assertThat(result).containsEntry("coordinateSystem", "UNKNOWN");
-    }
-
-    @Test
-    void amapLocationDefaultsToGcj02WhenLegacyCallerOmitsCoordinateSystem() {
-        UUID communityId = UUID.randomUUID();
-        when(repository.communityExists(communityId)).thenReturn(true);
-        when(repository.json(any())).thenReturn("{}");
-        when(repository.saveCommunityLocation(
-                eq(communityId), eq(113.13), eq(27.82), eq("高德候选"),
-                eq("AMAP"), eq("GCJ02"), eq("PLACE_SEARCH"), eq("{}")))
-                .thenReturn(Map.of("provider", "AMAP", "coordinateSystem", "GCJ02"));
-
-        Map<String, Object> result = service.saveLocation(communityId, Map.of(
-                "longitude", 113.13,
-                "latitude", 27.82,
-                "formattedAddress", "高德候选",
-                "provider", "AMAP",
-                "matchLevel", "PLACE_SEARCH"));
-
-        assertThat(result).containsEntry("coordinateSystem", "GCJ02");
-    }
-
-    @Test
-    void preservesExplicitCoordinateSystemForImportedLocation() {
-        UUID communityId = UUID.randomUUID();
-        when(repository.communityExists(communityId)).thenReturn(true);
-        when(repository.json(any())).thenReturn("{}");
-        when(repository.saveCommunityLocation(
-                eq(communityId), eq(113.13), eq(27.82), eq("导入点位"),
-                eq("IMPORT"), eq("WGS84"), eq("IMPORT"), eq("{}")))
-                .thenReturn(Map.of("provider", "IMPORT", "coordinateSystem", "WGS84"));
-
-        Map<String, Object> result = service.saveLocation(communityId, Map.of(
-                "longitude", 113.13,
-                "latitude", 27.82,
-                "formattedAddress", "导入点位",
-                "provider", "IMPORT",
-                "coordinateSystem", "WGS84",
-                "matchLevel", "IMPORT"));
-
-        assertThat(result).containsEntry("coordinateSystem", "WGS84");
+        assertThat(result).containsEntry("provider", "MOCK");
     }
 
     @Test
@@ -132,23 +68,6 @@ class Phase2MapServiceTest {
                 .hasMessageContaining("provider");
 
         verify(repository, never()).saveCommunityLocation(
-                any(), anyDouble(), anyDouble(), any(), any(), any(), any(), any());
-    }
-
-    @Test
-    void rejectsUnsupportedCoordinateSystemBeforeWritingDatabase() {
-        UUID communityId = UUID.randomUUID();
-        when(repository.communityExists(communityId)).thenReturn(true);
-
-        assertThatThrownBy(() -> service.saveLocation(communityId, Map.of(
-                "longitude", 113.13,
-                "latitude", 27.82,
-                "provider", "MANUAL",
-                "coordinateSystem", "EPSG3857")))
-                .isInstanceOf(InvalidRequestException.class)
-                .hasMessageContaining("coordinateSystem");
-
-        verify(repository, never()).saveCommunityLocation(
-                any(), anyDouble(), anyDouble(), any(), any(), any(), any(), any());
+                any(), anyDouble(), anyDouble(), any(), any(), any(), any());
     }
 }

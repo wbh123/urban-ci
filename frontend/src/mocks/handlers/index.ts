@@ -11,6 +11,7 @@ import { aiInferenceHandlers } from './ai-inference'
 import { aiGovernanceHandlers } from './ai-governance'
 import { assessmentHandlers } from './assessment'
 import { knowledgeHandlers } from './knowledge'
+import { reportHandlers } from './reports'
 
 export const handlers = [
   ...systemHandlers,
@@ -26,4 +27,5 @@ export const handlers = [
   ...aiGovernanceHandlers,
   ...assessmentHandlers,
   ...knowledgeHandlers,
+  ...reportHandlers,
 ]

@@ -26,4 +26,23 @@ export const buildingHandlers = [
       },
     })
   }),
+
+  http.get('/api/v1/buildings/:buildingId', ({ request, params }) => {
+    const unauth = requireAuth(request)
+    if (unauth) return unauth
+    const buildingId = params.buildingId as string
+    const building = db.buildings.find((b) => b.id === buildingId)
+    if (!building) return errorResponse('BUILDING_NOT_FOUND', '楼栋不存在。', 404)
+    return okResponse({
+      id: building.id,
+      buildingCode: building.buildingCode,
+      buildingName: building.buildingName,
+      communityId: building.communityId,
+      constructionYear: building.constructionYear,
+      floorCount: building.floorCount,
+      residentCount: building.residentCount,
+      status: building.status,
+      createdAt: building.createdAt,
+    })
+  }),
 ]

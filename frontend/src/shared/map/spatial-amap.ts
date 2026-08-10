@@ -1161,10 +1161,17 @@ export function createSpatialAmapDriver(
     const polygonPath = projection
       ? geometryToAmapPolygons(projection.feature.geometry)[0]?.[0]
       : undefined
-    if (polygonPath && polygonPath.length >= 3) paths.push(polygonPath)
+    const resolvedPath = resolveBuildingPath(selection.buildingId, input)
+    if (polygonPath && polygonPath.length >= 3 && resolvedPath) paths.push(resolvedPath)
 
     const point = input.buildingPoints?.find((item) => item.id === selection.buildingId && validPoint(item))
-    paths.push(point ? pointFence(point) : coordinateFence(selection.longitude, selection.latitude))
+    if (point) {
+      paths.push(pointFence(point))
+    } else if (!polygonPath) {
+      paths.push(resolvedPath ?? coordinateFence(selection.longitude, selection.latitude))
+    } else {
+      paths.push(coordinateFence(selection.longitude, selection.latitude))
+    }
     return paths
   }
 

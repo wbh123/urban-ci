@@ -6,6 +6,7 @@ import App from '@/App.vue'
 import { router } from './router'
 import { configureInterceptors, getApiMode } from '@/shared/api'
 import { useAuthStore } from '@/stores/auth'
+import { installWorkbenchStatusRingOverlay } from '@/components/workbench/workbench-status-ring-overlay'
 
 interface UnhandledRequestPrinter { warning: () => void }
 
@@ -82,4 +83,5 @@ export async function bootstrap(): Promise<void> {
   })
 
   app.mount('#app')
+  installWorkbenchStatusRingOverlay(pinia)
 }

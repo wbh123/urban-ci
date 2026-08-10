@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { MapRuntimeConfig } from '@/shared/api/endpoints/map'
 import { createSpatialAmapDriver, type SpatialAmapLoader } from './spatial-amap'
 
+// RED: overview 3D must work without selecting a building first.
 const liveConfig = {
   mode: 'LIVE',
   jsApiKey: 'key',

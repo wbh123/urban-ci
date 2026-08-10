@@ -24,6 +24,11 @@ describe('ConsoleSpatialMapPage production integration', () => {
     expect(source).toContain('await store.loadViewport(initialViewport)')
   })
 
+  it('rejects null and empty coordinates instead of mapping them to zero', () => {
+    expect(source).toContain("value !== null && value !== undefined && value !== ''")
+    expect(source).toContain('Number.isFinite(Number(value))')
+  })
+
   it('keeps search, risk filters and explicit community selection connected to store actions', () => {
     expect(source).toContain('store.setSearchKeyword')
     expect(source).toContain('store.setRiskLevels')

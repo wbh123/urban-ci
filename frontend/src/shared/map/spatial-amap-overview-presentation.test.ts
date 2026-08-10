@@ -30,7 +30,9 @@ describe('spatial AMap overview presentation', () => {
       pitchCalls: number[] = []
       rotationCalls: number[] = []
 
-      constructor(_container: HTMLElement, _options: Record<string, unknown>) {
+      constructor(container: HTMLElement, options: Record<string, unknown>) {
+        void container
+        void options
         maps.push(this)
       }
 

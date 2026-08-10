@@ -29,10 +29,11 @@ describe('spatial AMap overview presentation', () => {
     class FakeMap {
       pitchCalls: number[] = []
       rotationCalls: number[] = []
+      options: Record<string, unknown>
 
       constructor(container: HTMLElement, options: Record<string, unknown>) {
         void container
-        void options
+        this.options = { ...options }
         maps.push(this)
       }
 
@@ -62,6 +63,7 @@ describe('spatial AMap overview presentation', () => {
     })
     const driver = createSpatialAmapDriver({ loader, showOfficialBuildings: true })
     expect(await driver.mount(document.createElement('div'), liveConfig)).toBe(true)
+    expect(maps[0]?.options.features).toEqual(['bg', 'road'])
 
     expect(driver.setOverviewPresentation(true)).toBe(true)
     expect(maps[0]?.pitchCalls.at(-1)).toBeGreaterThan(0)

@@ -191,6 +191,7 @@ interface PlainLeftGesture {
 
 const DEFAULT_PLUGINS = ['AMap.PolygonEditor', 'AMap.MouseTool']
 const POI_HIGHLIGHT_HALF_SIZE_METERS = 24
+const COMMUNITY_MARKER_HALF_SIZE_METERS = 18
 const BUILDING_CLICK_RADIUS_METERS = 60
 const BUILDING_SCREEN_CLICK_RADIUS_PX = 58
 const BUILDING_MODEL_MIN_ZOOM = 17.2
@@ -337,6 +338,25 @@ function pointStyle(
   }
 }
 
+function communityPointPolygonStyle(
+  point: SpatialAmapPointFeature,
+  selected: boolean,
+  theme: SpatialAmapTheme,
+): Record<string, unknown> {
+  const color = theme === 'DARK' ? '#57d6c2' : '#155eef'
+  return {
+    path: communityDiamondFence(point.longitude, point.latitude),
+    strokeColor: selected ? '#ffffff' : color,
+    strokeWeight: selected ? 3 : 2,
+    strokeOpacity: 0.95,
+    fillColor: color,
+    fillOpacity: 0,
+    bubble: false,
+    cursor: 'pointer',
+    zIndex: selected ? 175 : 55,
+  }
+}
+
 function statusFreshnessOpacity(point: SpatialAmapPointFeature): number {
   return point.freshness === 'STALE' ? 0.48 : 1
 }
@@ -359,7 +379,7 @@ function nativeStatusPriorityStyle(
   return {
     center: [point.longitude, point.latitude],
     radius: selected ? 12 : 10,
-    strokeColor: selected ? '#ffffff' : statusPriorityColor(point),
+    strokeColor: statusPriorityColor(point),
     strokeWeight: selected ? 5 : 4,
     strokeOpacity: opacity,
     fillColor: statusPriorityColor(point),
@@ -410,6 +430,19 @@ function coordinateFence(longitude: number, latitude: number, halfSizeMeters = P
     [longitude + lngDelta, latitude + latDelta],
     [longitude - lngDelta, latitude + latDelta],
     [longitude - lngDelta, latitude - latDelta],
+  ]
+}
+
+function communityDiamondFence(longitude: number, latitude: number): Ring {
+  const latDelta = COMMUNITY_MARKER_HALF_SIZE_METERS / 111_320
+  const cosine = Math.max(0.25, Math.cos((latitude * Math.PI) / 180))
+  const lngDelta = COMMUNITY_MARKER_HALF_SIZE_METERS / (111_320 * cosine)
+  return [
+    [longitude, latitude - latDelta],
+    [longitude + lngDelta, latitude],
+    [longitude, latitude + latDelta],
+    [longitude - lngDelta, latitude],
+    [longitude, latitude - latDelta],
   ]
 }
 
@@ -531,7 +564,7 @@ export function createSpatialAmapDriver(
       zoom: config.defaultZoom,
       center: [config.defaultCenter.longitude, config.defaultCenter.latitude],
       mapStyle,
-      features: showOfficialBuildings ? ['bg', 'point', 'road'] : configuredFeatures,
+      features: showOfficialBuildings ? ['bg', 'road'] : configuredFeatures,
       showBuildingBlock: !showOfficialBuildings,
       skyColor: theme === 'DARK' ? '#07191b' : '#dfeef7',
     }
@@ -873,34 +906,40 @@ export function createSpatialAmapDriver(
       })
     })
 
+    input.communityPoints
+      ?.filter((point) => !communityPolygonIds.has(point.id))
+      .filter(validPoint)
+      .forEach((point) => {
+        const selected = point.id === input.selectedCommunityId
+        const marker = showOfficialBuildings
+          ? new namespace!.Polygon({ ...communityPointPolygonStyle(point, selected, theme) })
+          : namespace!.CircleMarker
+            ? new namespace!.CircleMarker({ ...pointStyle(point, selected, theme) })
+            : null
+        if (!marker) return
+        marker.on('click', (event) => {
+          cancelPendingBuildingSelection()
+          const currentMap = map
+          if (currentMap?.setZoomAndCenter) {
+            if (!overviewState) overviewState = capturePresentationState()
+            currentMap.setZoomAndCenter(
+              Math.max(currentMap.getZoom(), COMMUNITY_POINT_FOCUS_ZOOM),
+              [point.longitude, point.latitude],
+              false,
+              MAP_CAMERA_MOVE_DURATION_MS,
+            )
+            handlers.onMapTransform?.()
+          }
+          const context = clickContext(event)
+          if (context) handlers.onCommunityClick?.(point.id, context)
+          else handlers.onCommunityClick?.(point.id)
+        })
+        map!.add(marker)
+        overlays.push(marker)
+      })
+
     const CircleMarker = namespace.CircleMarker
     if (CircleMarker) {
-      input.communityPoints
-        ?.filter((point) => !communityPolygonIds.has(point.id))
-        .filter(validPoint)
-        .forEach((point) => {
-          const marker = new CircleMarker({ ...pointStyle(point, point.id === input.selectedCommunityId, theme) })
-          marker.on('click', (event) => {
-            cancelPendingBuildingSelection()
-            const currentMap = map
-            if (currentMap?.setZoomAndCenter) {
-              if (!overviewState) overviewState = capturePresentationState()
-              currentMap.setZoomAndCenter(
-                Math.max(currentMap.getZoom(), COMMUNITY_POINT_FOCUS_ZOOM),
-                [point.longitude, point.latitude],
-                false,
-                MAP_CAMERA_MOVE_DURATION_MS,
-              )
-              handlers.onMapTransform?.()
-            }
-            const context = clickContext(event)
-            if (context) handlers.onCommunityClick?.(point.id, context)
-            else handlers.onCommunityClick?.(point.id)
-          })
-          map!.add(marker)
-          overlays.push(marker)
-        })
-
       input.buildingPoints
         ?.filter(validPoint)
         .filter((point) => showOfficialBuildings || !buildingPolygonIds.has(point.id))
@@ -955,19 +994,17 @@ export function createSpatialAmapDriver(
       return
     }
 
-    const path = selection.source === 'SYSTEM' && selection.buildingId
-      ? resolveBuildingPath(selection.buildingId, input) ?? coordinateFence(selection.longitude, selection.latitude)
-      : coordinateFence(selection.longitude, selection.latitude)
     const colors = selectedBuildingBlockColors()
+    const paths = resolveBuildingHighlightPaths(selection, input)
     baseBuildingsLayer.setStyle({
       hideWithoutStyle: false,
-      areas: [{
+      areas: paths.map((path) => ({
         rejectTexture: true,
         visible: true,
         path,
         color1: colors.roof,
         color2: colors.wall,
-      }],
+      })),
     })
   }
 
@@ -1109,6 +1146,26 @@ export function createSpatialAmapDriver(
     if (polygonPath && polygonPath.length >= 3) return polygonPath
     const point = input.buildingPoints?.find((item) => item.id === buildingId && validPoint(item))
     return point ? pointFence(point) : null
+  }
+
+  function resolveBuildingHighlightPaths(
+    selection: SpatialAmapActiveBuilding,
+    input: SpatialAmapSyncInput,
+  ): Ring[] {
+    if (selection.source !== 'SYSTEM' || !selection.buildingId) {
+      return [coordinateFence(selection.longitude, selection.latitude)]
+    }
+
+    const paths: Ring[] = []
+    const projection = input.buildings.find((item) => item.feature.id === selection.buildingId)
+    const polygonPath = projection
+      ? geometryToAmapPolygons(projection.feature.geometry)[0]?.[0]
+      : undefined
+    if (polygonPath && polygonPath.length >= 3) paths.push(polygonPath)
+
+    const point = input.buildingPoints?.find((item) => item.id === selection.buildingId && validPoint(item))
+    paths.push(point ? pointFence(point) : coordinateFence(selection.longitude, selection.latitude))
+    return paths
   }
 
   function projectToContainer(longitude: number, latitude: number): SpatialAmapContainerPoint | null {

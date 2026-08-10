@@ -43,7 +43,10 @@ describe('spatial AMap native status markers', () => {
     }
 
     class FakeMap {
-      constructor(_container: HTMLElement, _options: Record<string, unknown>) {}
+      constructor(container: HTMLElement, options: Record<string, unknown>) {
+        void container
+        void options
+      }
       add() {}
       on() {}
       getZoom() { return 15 }

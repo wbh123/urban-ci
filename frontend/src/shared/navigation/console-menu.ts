@@ -8,7 +8,7 @@ export interface ConsoleMenuItem {
 }
 
 export interface ConsoleMenuGroup {
-  key: 'workspace' | 'housing' | 'risk' | 'decision' | 'system'
+  key: 'workspace' | 'archive' | 'inspection' | 'risk' | 'decision' | 'system'
   label: string
   items: ConsoleMenuItem[]
 }
@@ -32,30 +32,12 @@ const GROUPS: readonly ConsoleMenuGroup[] = [
     label: '工作台',
     items: [
       { path: '/console', label: '管理总览', icon: '▦' },
-      {
-        path: '/console/map',
-        label: '地图展示',
-        icon: '⌖',
-        allowedRoles: MAP_READ_ROLES,
-      },
     ],
   },
   {
-    key: 'housing',
-    label: '房屋治理',
+    key: 'archive',
+    label: '基础建档',
     items: [
-      {
-        path: '/console/inspections',
-        label: '巡检管理',
-        icon: '⌁',
-        allowedRoles: ['COMMUNITY_MANAGER', 'ADMIN'],
-      },
-      {
-        path: '/console/feedback',
-        label: '公众反馈',
-        icon: '◇',
-        allowedRoles: ['COMMUNITY_MANAGER', 'GOVERNMENT_MANAGER', 'ADMIN'],
-      },
       {
         path: '/console/archive-management',
         label: '小区与楼栋管理',
@@ -71,6 +53,24 @@ const GROUPS: readonly ConsoleMenuGroup[] = [
     ],
   },
   {
+    key: 'inspection',
+    label: '巡检治理',
+    items: [
+      {
+        path: '/console/inspections',
+        label: '巡检管理',
+        icon: '⌁',
+        allowedRoles: ['COMMUNITY_MANAGER', 'ADMIN'],
+      },
+      {
+        path: '/console/feedback',
+        label: '公众反馈',
+        icon: '◇',
+        allowedRoles: ['COMMUNITY_MANAGER', 'GOVERNMENT_MANAGER', 'ADMIN'],
+      },
+    ],
+  },
+  {
     key: 'risk',
     label: '风险研判',
     items: [
@@ -79,6 +79,12 @@ const GROUPS: readonly ConsoleMenuGroup[] = [
         label: '专业复核',
         icon: '✓',
         allowedRoles: ['EXPERT', 'PROFESSIONAL_REVIEWER', 'ADMIN'],
+      },
+      {
+        path: '/console/map',
+        label: '地图展示',
+        icon: '⌖',
+        allowedRoles: MAP_READ_ROLES,
       },
       {
         path: '/console/renewal-priorities',
@@ -120,12 +126,6 @@ const GROUPS: readonly ConsoleMenuGroup[] = [
         path: '/console/system-status',
         label: '系统状态',
         icon: '◎',
-        allowedRoles: ['ADMIN'],
-      },
-      {
-        path: '/console/legacy-workspace',
-        label: '兼容工作台',
-        icon: '↗',
         allowedRoles: ['ADMIN'],
       },
     ],

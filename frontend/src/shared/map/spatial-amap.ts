@@ -17,27 +17,37 @@ interface AmapBoundsLike {
 }
 
 interface AmapMapLike {
-  add: (overlay: AmapPolygonLike) => void
+  add: (overlay: AmapOverlayLike) => void
   on: (event: string, handler: () => void) => void
   getZoom: () => number
   getBounds: () => AmapBoundsLike
   destroy: () => void
 }
 
-interface AmapPolygonLike {
+interface AmapOverlayLike {
   on: (event: string, handler: () => void) => void
-  setOptions: (options: Record<string, unknown>) => void
+  setOptions?: (options: Record<string, unknown>) => void
   setMap: (map: AmapMapLike | null) => void
 }
 
 interface AmapNamespaceLike {
   Map: new (container: HTMLElement, options: Record<string, unknown>) => AmapMapLike
-  Polygon: new (options: Record<string, unknown>) => AmapPolygonLike
+  Polygon: new (options: Record<string, unknown>) => AmapOverlayLike
+  CircleMarker?: new (options: Record<string, unknown>) => AmapOverlayLike
 }
 
 export type SpatialAmapLoadOptions = AmapLoadOptions
-
 export type SpatialAmapLoader = (options: SpatialAmapLoadOptions) => Promise<AmapNamespaceLike>
+export type SpatialAmapTheme = 'LIGHT' | 'DARK'
+
+export interface SpatialAmapPointFeature {
+  id: string
+  longitude: number
+  latitude: number
+  kind: 'COMMUNITY' | 'BUILDING'
+  label?: string
+  riskLevel?: string
+}
 
 export interface SpatialAmapHandlers {
   onViewportChange?: (viewport: SpatialBboxQuery) => void
@@ -48,6 +58,8 @@ export interface SpatialAmapHandlers {
 export interface SpatialAmapSyncInput {
   communities: SpatialGeoJsonFeature[]
   buildings: SpatialBuildingProjection[]
+  communityPoints?: SpatialAmapPointFeature[]
+  buildingPoints?: SpatialAmapPointFeature[]
   selectedCommunityId: string | null
   selectedBuildingIds: string[]
 }
@@ -74,9 +86,7 @@ const defaultLoader: SpatialAmapLoader = async (options) => (
 )
 
 export function geometryToAmapPolygons(geometry: SpatialGeoJsonGeometry): PolygonPath[] {
-  if (geometry.type === 'Polygon') {
-    return [normalizePolygon(geometry.coordinates)]
-  }
+  if (geometry.type === 'Polygon') return [normalizePolygon(geometry.coordinates)]
   if (geometry.type === 'MultiPolygon') {
     if (!Array.isArray(geometry.coordinates)) return []
     return geometry.coordinates.map((polygon) => normalizePolygon(polygon))
@@ -86,10 +96,7 @@ export function geometryToAmapPolygons(geometry: SpatialGeoJsonGeometry): Polygo
 
 function normalizePolygon(value: unknown): PolygonPath {
   if (!Array.isArray(value)) return []
-  return value
-    .filter(Array.isArray)
-    .map((ring) => normalizeRing(ring))
-    .filter((ring) => ring.length >= 3)
+  return value.filter(Array.isArray).map((ring) => normalizeRing(ring)).filter((ring) => ring.length >= 3)
 }
 
 function normalizeRing(value: unknown): Ring {
@@ -106,41 +113,44 @@ function normalizeRing(value: unknown): Ring {
 
 function communityStyle(selected: boolean): Record<string, unknown> {
   return {
-    strokeColor: selected ? '#155eef' : '#4d7cfe',
-    strokeWeight: selected ? 4 : 2.4,
-    strokeOpacity: selected ? 1 : 0.8,
-    fillColor: selected ? '#91caff' : '#d6e4ff',
-    fillOpacity: selected ? 0.22 : 0.1,
-    zIndex: selected ? 40 : 10,
+    strokeColor: selected ? '#155eef' : '#4d7cfe', strokeWeight: selected ? 4 : 2.4,
+    strokeOpacity: selected ? 1 : 0.8, fillColor: selected ? '#91caff' : '#d6e4ff',
+    fillOpacity: selected ? 0.22 : 0.1, zIndex: selected ? 40 : 10,
   }
 }
 
 function buildingStyle(riskLevel: string | undefined, selected: boolean): Record<string, unknown> {
-  const palette: Record<string, string> = {
-    VERY_HIGH: '#cf1322',
-    HIGH: '#d46b08',
-    MEDIUM: '#d4a017',
-    LOW: '#389e0d',
-  }
+  const palette: Record<string, string> = { VERY_HIGH: '#cf1322', HIGH: '#d46b08', MEDIUM: '#d4a017', LOW: '#389e0d' }
   const fillColor = palette[riskLevel ?? ''] ?? '#8c8c8c'
   return {
-    strokeColor: selected ? '#111827' : fillColor,
-    strokeWeight: selected ? 4 : 1.6,
-    strokeOpacity: selected ? 1 : 0.9,
-    fillColor,
-    fillOpacity: selected ? 0.62 : 0.42,
+    strokeColor: selected ? '#111827' : fillColor, strokeWeight: selected ? 4 : 1.6,
+    strokeOpacity: selected ? 1 : 0.9, fillColor, fillOpacity: selected ? 0.62 : 0.42,
     zIndex: selected ? 60 : 30,
   }
 }
 
+function pointStyle(point: SpatialAmapPointFeature, selected: boolean): Record<string, unknown> {
+  const palette: Record<string, string> = { VERY_HIGH: '#cf1322', HIGH: '#d46b08', MEDIUM: '#d4a017', LOW: '#389e0d' }
+  const fillColor = point.kind === 'COMMUNITY' ? '#287a6a' : (palette[point.riskLevel ?? ''] ?? '#5b6b7a')
+  return {
+    center: [point.longitude, point.latitude],
+    radius: selected ? 9 : point.kind === 'COMMUNITY' ? 7 : 6,
+    strokeColor: '#ffffff',
+    strokeWeight: selected ? 3 : 2,
+    fillColor,
+    fillOpacity: 0.92,
+    zIndex: selected ? 80 : point.kind === 'COMMUNITY' ? 45 : 55,
+  }
+}
+
 export function createSpatialAmapDriver(
-  options: { loader?: SpatialAmapLoader } = {},
+  options: { loader?: SpatialAmapLoader; theme?: SpatialAmapTheme; showOfficialBuildings?: boolean } = {},
 ): SpatialAmapDriver {
   const loader = options.loader ?? defaultLoader
   let namespace: AmapNamespaceLike | null = null
   let map: AmapMapLike | null = null
   let handlers: SpatialAmapHandlers = {}
-  let overlays: AmapPolygonLike[] = []
+  let overlays: AmapOverlayLike[] = []
 
   async function mount(
     container: HTMLElement,
@@ -150,20 +160,12 @@ export function createSpatialAmapDriver(
     destroy()
     handlers = nextHandlers
     if (config.mode !== 'LIVE' || !config.jsApiKey) return false
-
-    namespace = await loader({
-      key: config.jsApiKey,
-      version: '2.0',
-      plugins: DEFAULT_PLUGINS,
-      serviceHost: config.serviceHost || undefined,
-    })
+    namespace = await loader({ key: config.jsApiKey, version: '2.0', plugins: DEFAULT_PLUGINS, serviceHost: config.serviceHost || undefined })
     map = new namespace.Map(container, {
-      viewMode: '2D',
-      resizeEnable: true,
-      zoom: config.defaultZoom,
+      viewMode: '2D', resizeEnable: true, zoom: config.defaultZoom,
       center: [config.defaultCenter.longitude, config.defaultCenter.latitude],
+      mapStyle: options.theme === 'DARK' ? 'amap://styles/darkblue' : undefined,
     })
-
     const emitViewport = () => {
       const nextViewport = getViewport()
       if (nextViewport) handlers.onViewportChange?.(nextViewport)
@@ -181,13 +183,9 @@ export function createSpatialAmapDriver(
     input.communities.forEach((feature) => {
       const selected = feature.id === input.selectedCommunityId
       geometryToAmapPolygons(feature.geometry).forEach((path) => {
-        const polygon = new namespace!.Polygon({
-          path,
-          ...communityStyle(selected),
-        })
+        const polygon = new namespace!.Polygon({ path, ...communityStyle(selected) })
         polygon.on('click', () => handlers.onCommunityClick?.(feature.id))
-        map!.add(polygon)
-        overlays.push(polygon)
+        map!.add(polygon); overlays.push(polygon)
       })
     })
 
@@ -195,42 +193,43 @@ export function createSpatialAmapDriver(
     input.buildings.forEach(({ feature, risk }) => {
       const selected = selectedBuildingIds.has(feature.id)
       geometryToAmapPolygons(feature.geometry).forEach((path) => {
-        const polygon = new namespace!.Polygon({
-          path,
-          ...buildingStyle(risk?.riskLevel, selected),
-        })
+        const polygon = new namespace!.Polygon({ path, ...buildingStyle(risk?.riskLevel, selected) })
         polygon.on('click', () => handlers.onBuildingClick?.(feature.id))
-        map!.add(polygon)
-        overlays.push(polygon)
+        map!.add(polygon); overlays.push(polygon)
       })
     })
+
+    if (namespace.CircleMarker) {
+      input.communityPoints?.forEach((point) => {
+        const marker = new namespace!.CircleMarker!({ ...pointStyle(point, point.id === input.selectedCommunityId) })
+        marker.on('click', () => handlers.onCommunityClick?.(point.id))
+        map!.add(marker); overlays.push(marker)
+      })
+      input.buildingPoints?.forEach((point) => {
+        const marker = new namespace!.CircleMarker!({ ...pointStyle(point, selectedBuildingIds.has(point.id)) })
+        marker.on('click', () => handlers.onBuildingClick?.(point.id))
+        map!.add(marker); overlays.push(marker)
+      })
+    }
   }
 
   function getViewport(): SpatialBboxQuery | null {
     if (!map) return null
     const bounds = map.getBounds()
-    const southWest = bounds.getSouthWest()
-    const northEast = bounds.getNorthEast()
-    const west = readLongitude(southWest)
-    const south = readLatitude(southWest)
-    const east = readLongitude(northEast)
-    const north = readLatitude(northEast)
+    const southWest = bounds.getSouthWest(); const northEast = bounds.getNorthEast()
+    const west = readLongitude(southWest); const south = readLatitude(southWest)
+    const east = readLongitude(northEast); const north = readLatitude(northEast)
     const zoom = Math.round(map.getZoom())
     if (![west, south, east, north, zoom].every(Number.isFinite)) return null
     return { west, south, east, north, zoom }
   }
 
   function clearOverlays(): void {
-    overlays.forEach((overlay) => overlay.setMap(null))
-    overlays = []
+    overlays.forEach((overlay) => overlay.setMap(null)); overlays = []
   }
 
   function destroy(): void {
-    clearOverlays()
-    map?.destroy()
-    map = null
-    namespace = null
-    handlers = {}
+    clearOverlays(); map?.destroy(); map = null; namespace = null; handlers = {}
   }
 
   return { mount, sync, getViewport, destroy }
@@ -240,7 +239,6 @@ function readLongitude(value: AmapLngLatLike): number {
   if (typeof value.getLng === 'function') return value.getLng()
   return Number(value.lng)
 }
-
 function readLatitude(value: AmapLngLatLike): number {
   if (typeof value.getLat === 'function') return value.getLat()
   return Number(value.lat)

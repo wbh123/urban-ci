@@ -842,7 +842,8 @@ export function createSpatialAmapDriver(
         polygon.on('click', (event) => {
           cancelPendingBuildingSelection()
           const context = clickContext(event)
-          context ? handlers.onCommunityClick?.(feature.id, context) : handlers.onCommunityClick?.(feature.id)
+          if (context) handlers.onCommunityClick?.(feature.id, context)
+          else handlers.onCommunityClick?.(feature.id)
         })
         map!.add(polygon)
         overlays.push(polygon)
@@ -863,7 +864,8 @@ export function createSpatialAmapDriver(
         if (!showOfficialBuildings) {
           polygon.on('click', (event) => {
             const context = clickContext(event)
-            context ? handlers.onBuildingClick?.(feature.id, context) : handlers.onBuildingClick?.(feature.id)
+            if (context) handlers.onBuildingClick?.(feature.id, context)
+            else handlers.onBuildingClick?.(feature.id)
           })
         }
         map!.add(polygon)
@@ -892,7 +894,8 @@ export function createSpatialAmapDriver(
               handlers.onMapTransform?.()
             }
             const context = clickContext(event)
-            context ? handlers.onCommunityClick?.(point.id, context) : handlers.onCommunityClick?.(point.id)
+            if (context) handlers.onCommunityClick?.(point.id, context)
+            else handlers.onCommunityClick?.(point.id)
           })
           map!.add(marker)
           overlays.push(marker)
@@ -906,7 +909,8 @@ export function createSpatialAmapDriver(
           const handleClick = (event?: AmapMouseEventLike) => {
             cancelPendingBuildingSelection()
             const context = clickContext(event)
-            context ? handlers.onBuildingClick?.(point.id, context) : handlers.onBuildingClick?.(point.id)
+            if (context) handlers.onBuildingClick?.(point.id, context)
+            else handlers.onBuildingClick?.(point.id)
           }
           if (showOfficialBuildings) {
             const priorityRing = new CircleMarker({ ...nativeStatusPriorityStyle(point, selected) })

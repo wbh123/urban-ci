@@ -3,7 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createPinia } from 'pinia'
 import { useSpatialMapStore } from '@/stores/spatial-map'
 import type { DashboardBuilding } from '@/shared/api/endpoints/reports'
-import { installWorkbenchStatusRingOverlay } from './workbench-status-ring-overlay'
+import {
+  disposeWorkbenchStatusRingOverlay,
+  installWorkbenchStatusRingOverlay,
+} from './workbench-status-ring-overlay'
 
 class FakeResizeObserver {
   observe(): void {}
@@ -13,6 +16,7 @@ class FakeResizeObserver {
 
 describe('Workbench status ring overlay', () => {
   afterEach(() => {
+    disposeWorkbenchStatusRingOverlay()
     document.body.innerHTML = ''
     vi.restoreAllMocks()
     vi.unstubAllGlobals()

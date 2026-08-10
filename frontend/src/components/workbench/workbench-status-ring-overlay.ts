@@ -18,6 +18,7 @@ let scheduledFrame: number | null = null
 let activeRoot: HTMLElement | null = null
 let resizeObserver: ResizeObserver | null = null
 let mutationObserver: MutationObserver | null = null
+let cleanupInstalled: (() => void) | null = null
 
 function markerTitle(building: {
   buildingName: string
@@ -111,6 +112,10 @@ function relevantWallMutation(records: MutationRecord[]): boolean {
   })
 }
 
+export function disposeWorkbenchStatusRingOverlay(): void {
+  cleanupInstalled?.()
+}
+
 export function installWorkbenchStatusRingOverlay(pinia: Pinia): void {
   if (installed || typeof document === 'undefined') return
   installed = true
@@ -155,11 +160,27 @@ export function installWorkbenchStatusRingOverlay(pinia: Pinia): void {
     })
   }
 
-  watch([riskRows, viewport], render, { deep: true })
+  const stopWatch = watch([riskRows, viewport], render, { deep: true })
   mutationObserver = new MutationObserver((records) => {
     if (relevantWallMutation(records)) render()
   })
   mutationObserver.observe(document.body, { childList: true, subtree: true })
   window.addEventListener('resize', render, { passive: true })
+
+  cleanupInstalled = () => {
+    stopWatch()
+    mutationObserver?.disconnect()
+    mutationObserver = null
+    resizeObserver?.disconnect()
+    resizeObserver = null
+    window.removeEventListener('resize', render)
+    if (scheduledFrame !== null) cancelAnimationFrame(scheduledFrame)
+    scheduledFrame = null
+    activeRoot = null
+    document.querySelectorAll(`.${OVERLAY_CLASS}, .${LEGEND_CLASS}`).forEach((node) => node.remove())
+    cleanupInstalled = null
+    installed = false
+  }
+
   render()
 }

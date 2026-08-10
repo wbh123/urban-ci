@@ -86,5 +86,6 @@ describe('spatial AMap community marker shape', () => {
     expect(polygons).toHaveLength(1)
     expect(polygons[0]?.options.fillOpacity).toBe(0)
     expect(polygons[0]?.options.cursor).toBe('pointer')
+    expect(polygons[0]?.options.path).toHaveLength(5)
   })
 })

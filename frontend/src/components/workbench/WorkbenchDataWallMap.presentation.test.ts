@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
-
-const source = readFileSync(new URL('./WorkbenchDataWallMap.vue', import.meta.url), 'utf8')
+import source from './WorkbenchDataWallMap.vue?raw'
 
 describe('WorkbenchDataWallMap presentation contract', () => {
   it('uses the information overlay background for risk tone and keeps close controls hidden for future use', () => {

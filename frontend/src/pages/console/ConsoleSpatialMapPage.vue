@@ -174,7 +174,7 @@ function syncMap(): void {
 }
 
 function isCoordinate(value: unknown): boolean {
-  return Number.isFinite(Number(value))
+  return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value))
 }
 
 function toggleRiskLevel(level: MapRiskLevel): void {

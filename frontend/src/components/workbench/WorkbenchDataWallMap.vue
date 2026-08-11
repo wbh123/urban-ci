@@ -189,18 +189,19 @@ const selectionHaloStyle = computed(() => {
 
 const communityMapPoints = computed<SpatialAmapPointFeature[]>(() => communityPoints.value
   .filter((item) => isCoordinate(item.longitude) && isCoordinate(item.latitude))
-  .map((item) => ({
-    id: item.communityId,
-    longitude: Number(item.longitude),
-    latitude: Number(item.latitude),
-    kind: 'COMMUNITY',
-    label: item.communityName,
-    riskLevel: strongestRiskLevel(
-      riskRows.value
-        .filter((row) => row.communityId === item.communityId)
-        .map((row) => row.riskLevel),
-    ),
-  })))
+  .map((item) => {
+    const rows = riskRows.value.filter((row) => row.communityId === item.communityId)
+    return {
+      id: item.communityId,
+      longitude: Number(item.longitude),
+      latitude: Number(item.latitude),
+      kind: 'COMMUNITY',
+      label: item.communityName,
+      riskLevel: strongestRiskLevel(rows.map((row) => row.riskLevel)),
+      priorityLevel: strongestPriorityLevel(rows.map((row) => row.priorityLevel)),
+      freshness: aggregateFreshness(rows.map((row) => row.freshness)),
+    }
+  }))
 
 const buildingMapPoints = computed<SpatialAmapPointFeature[]>(() => {
   const result = new Map<string, SpatialAmapPointFeature>()
@@ -669,6 +670,19 @@ function strongestRiskLevel(levels: Array<string | undefined>): string | undefin
   return levels
     .filter((level): level is string => Boolean(level))
     .sort((left, right) => (weight[right] ?? 0) - (weight[left] ?? 0))[0]
+}
+
+function strongestPriorityLevel(levels: Array<string | undefined>): string | undefined {
+  const weight: Record<string, number> = { P1: 4, P2: 3, P3: 2, P4: 1 }
+  return levels
+    .filter((level): level is string => Boolean(level))
+    .sort((left, right) => (weight[right] ?? 0) - (weight[left] ?? 0))[0]
+}
+
+function aggregateFreshness(freshness: Array<string | undefined>): SpatialAmapPointFeature['freshness'] {
+  if (freshness.includes('CURRENT')) return 'CURRENT'
+  if (freshness.includes('STALE')) return 'STALE'
+  return 'NO_RESULT'
 }
 
 function riskLabel(level?: string): string {

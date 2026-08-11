@@ -17,6 +17,17 @@ describe('WorkbenchDataWallMap marker stability contract', () => {
     expect(resetBlock).not.toContain('syncMap()')
   })
 
+  it('clears the community risk scope before restoring the overview viewport', () => {
+    const start = source.indexOf('function resetMapInteraction(): void')
+    const end = source.indexOf('function handleBuildingSelection', start)
+    const resetBlock = source.slice(start, end)
+    const clearCommunityIndex = resetBlock.indexOf('store.selectCommunity(null)')
+    const restoreOverviewIndex = resetBlock.indexOf('driver.restoreOverview()')
+
+    expect(clearCommunityIndex).toBeGreaterThanOrEqual(0)
+    expect(restoreOverviewIndex).toBeGreaterThan(clearCommunityIndex)
+  })
+
   it('does not let selection-only Pinia mutations trigger the deep data overlay watcher', () => {
     const start = source.indexOf('watch(\n  [')
     const end = source.indexOf('onMounted(initialiseMap)', start)

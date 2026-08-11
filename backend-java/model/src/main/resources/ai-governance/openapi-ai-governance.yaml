@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: UrbanSafe Priority 人工智能治理接口
-  version: 1.1.0
+  version: 1.2.0
   description: |
     面向系统管理员的人工智能提供者配置状态、近七日任务统计与自动化开关。
     接口不返回密钥、基础地址、模型权重路径、完整供应商响应或内部堆栈。
@@ -27,7 +27,7 @@ paths:
     get:
       operationId: getAiAutomationSettings
       summary: 查询人工智能自动化设置
-      description: 只允许 ADMIN 调用，不会主动访问 Dify 或其他外部服务。
+      description: 只允许 ADMIN 调用，不会主动访问 FastAPI、Dify 或在线文本模型。
       tags: [AiAutomationSettings]
       responses:
         '200':
@@ -42,8 +42,8 @@ paths:
       operationId: updateAiAutomationSettings
       summary: 更新上传后自动识别开关
       description: |
-        只允许 ADMIN 调用。开启前要求 Dify 工作流提供者已启用且配置完整。
-        开启后，仅成功上传并绑定 INSPECTION_TASK 的图片触发自动识别；自动识别失败不回滚图片上传。
+        只允许 ADMIN 调用。开启前要求 FastAPI 本地视觉提供者已启用且配置完整。
+        开启后，仅成功上传并绑定 INSPECTION_TASK 的图片触发 VISION_INFERENCE；自动识别失败不回滚图片上传。
       tags: [AiAutomationSettings]
       requestBody:
         required: true
@@ -61,7 +61,7 @@ paths:
         '400': { description: 请求值无效 }
         '401': { description: 未登录 }
         '403': { description: 非管理员无权访问 }
-        '409': { description: Dify 工作流提供者尚未配置完整 }
+        '409': { description: 本地视觉模型提供者尚未配置完整 }
 components:
   schemas:
     AiProviderMetrics:
@@ -121,13 +121,13 @@ components:
           description: 成功上传巡检任务图片后是否自动执行识别
         modelId:
           type: string
-          description: 自动识别使用的稳定模型登记编号
+          description: 自动识别使用的稳定本地视觉模型登记编号，当前默认 AI-VISION-LOCAL-001
         providerCode:
           type: string
-          description: 当前固定为 DIFY
+          description: 当前固定为 FAST_API
         capabilityType:
           type: string
-          description: 当前固定为 WORKFLOW
+          description: 当前固定为 VISION_INFERENCE
         updatedAt:
           type: string
           format: date-time

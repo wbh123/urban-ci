@@ -8,13 +8,13 @@ import org.urbansafe.priority.ai.orchestration.AiCapabilityProvider;
 import org.urbansafe.priority.ai.orchestration.AiCapabilityType;
 import org.urbansafe.priority.common.exception.ResourceConflictException;
 
-/** 管理上传后自动执行 Dify 工作流的系统开关。 */
+/** 管理上传后自动执行本地视觉识别的系统开关。 */
 @Service
 public class AiAutomationSettingsService {
 
-    public static final String AUTO_MODEL_ID = "AI-DIFY-WORKFLOW-001";
-    public static final String AUTO_PROVIDER_CODE = "DIFY";
-    public static final String AUTO_CAPABILITY_TYPE = "WORKFLOW";
+    public static final String AUTO_MODEL_ID = "AI-VISION-LOCAL-001";
+    public static final String AUTO_PROVIDER_CODE = "FAST_API";
+    public static final String AUTO_CAPABILITY_TYPE = "VISION_INFERENCE";
 
     private final AiAutomationSettingsRepository repository;
     private final List<AiCapabilityProvider> providers;
@@ -36,21 +36,21 @@ public class AiAutomationSettingsService {
     }
 
     public AiAutomationSettings update(boolean enabled, UUID updatedBy) {
-        if (enabled && !difyWorkflowReady()) {
+        if (enabled && !localVisionProviderReady()) {
             throw new ResourceConflictException(
                     "AI_AUTO_INFERENCE_PROVIDER_NOT_READY",
-                    "Dify 工作流提供者尚未启用或配置完整，不能开启上传后自动识别");
+                    "本地视觉模型提供者尚未启用或配置完整，不能开启上传后自动识别");
         }
         repository.updateAutoInferenceOnUpload(enabled, updatedBy);
         return get();
     }
 
-    private boolean difyWorkflowReady() {
+    private boolean localVisionProviderReady() {
         return providers.stream().anyMatch(provider ->
                 AUTO_PROVIDER_CODE.equals(normalize(provider.providerCode()))
                         && provider.enabled()
                         && provider.configured()
-                        && provider.supports(AiCapabilityType.WORKFLOW));
+                        && provider.supports(AiCapabilityType.VISION_INFERENCE));
     }
 
     private static String normalize(String value) {

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.urbansafe.priority.ai.config.SpringAiProviderProperties;
 import org.urbansafe.priority.ai.orchestration.AiCapabilityType;
@@ -14,6 +15,14 @@ import org.urbansafe.priority.ai.orchestration.AiOrchestrationRequest;
 import org.urbansafe.priority.ai.orchestration.AiStructuredResult;
 
 class SpringAiDirectProviderTest {
+
+    @Test
+    void supportsTextGenerationOnly() {
+        SpringAiDirectProvider provider = new SpringAiDirectProvider(
+                request -> "{\"summary\":\"ok\"}", new ObjectMapper(), configuredProperties());
+
+        assertEquals(Set.of(AiCapabilityType.TEXT_GENERATION), provider.capabilities());
+    }
 
     @Test
     void convertsSuccessfulStructuredJson() {
@@ -26,6 +35,7 @@ class SpringAiDirectProviderTest {
         AiStructuredResult result = provider.execute(request());
 
         assertEquals("SPRING_AI", result.providerCode());
+        assertEquals("deepseek-v4-flash", result.modelCode());
         assertEquals("需要补拍近景", result.summary());
         assertEquals(0.66d, result.confidence());
     }
@@ -34,7 +44,6 @@ class SpringAiDirectProviderTest {
     void isNotConfiguredWithoutApiKey() {
         SpringAiProviderProperties properties = new SpringAiProviderProperties();
         properties.setEnabled(true);
-        properties.setModel("vision-model");
         SpringAiDirectProvider provider = new SpringAiDirectProvider(
                 request -> "{}", new ObjectMapper(), properties);
 
@@ -93,15 +102,14 @@ class SpringAiDirectProviderTest {
 
     private static AiOrchestrationRequest request() {
         return new AiOrchestrationRequest(
-                "request-1", AiCapabilityType.VISION_INFERENCE, "SPRING_AI",
-                "vision-model", "REAL", new byte[]{1}, "image/jpeg", "分析图片", Map.of());
+                "request-1", AiCapabilityType.TEXT_GENERATION, "SPRING_AI",
+                null, "REAL", null, null, "解释风险并给出辅助建议", Map.of());
     }
 
     private static SpringAiProviderProperties configuredProperties() {
         SpringAiProviderProperties properties = new SpringAiProviderProperties();
         properties.setEnabled(true);
         properties.setApiKey("test-key");
-        properties.setModel("vision-model");
         return properties;
     }
 }

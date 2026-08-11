@@ -2,15 +2,19 @@ package org.urbansafe.priority.ai.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/** Spring AI 在线模型直连配置。 */
+/** Spring AI DeepSeek 文本模型直连配置。 */
 @ConfigurationProperties(prefix = "urban-safe.ai.spring-ai-provider")
 public class SpringAiProviderProperties {
 
+    public static final String DEFAULT_PROVIDER_TYPE = "DEEPSEEK";
+    public static final String DEFAULT_BASE_URL = "https://api.deepseek.com";
+    public static final String DEFAULT_MODEL = "deepseek-v4-flash";
+
     private boolean enabled;
-    private String providerType = "OPENAI_COMPATIBLE";
+    private String providerType = DEFAULT_PROVIDER_TYPE;
     private String apiKey;
-    private String baseUrl = "https://api.openai.com";
-    private String model;
+    private String baseUrl = DEFAULT_BASE_URL;
+    private String model = DEFAULT_MODEL;
     private int connectTimeoutMs = 3000;
     private int readTimeoutMs = 30000;
 

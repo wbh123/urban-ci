@@ -36,10 +36,10 @@ spring:
         transcription: none
     openai:
       api-key: ${URBAN_SAFE_SPRING_AI_API_KEY:}
-      base-url: ${URBAN_SAFE_SPRING_AI_BASE_URL:https://api.openai.com}
+      base-url: ${URBAN_SAFE_SPRING_AI_BASE_URL:https://api.deepseek.com}
       chat:
         options:
-          model: ${URBAN_SAFE_SPRING_AI_MODEL:}
+          model: ${URBAN_SAFE_SPRING_AI_MODEL:deepseek-v4-flash}
 
 mybatis-plus:
   mapper-locations: classpath*:mappers/**/*.xml
@@ -150,9 +150,9 @@ urban-safe:
           version: ${URBAN_SAFE_DIFY_KNOWLEDGE_QA_VERSION:knowledge-qa-v1.0.0}
     spring-ai-provider:
       enabled: ${URBAN_SAFE_SPRING_AI_PROVIDER_ENABLED:false}
-      provider-type: ${URBAN_SAFE_SPRING_AI_PROVIDER_TYPE:OPENAI_COMPATIBLE}
+      provider-type: ${URBAN_SAFE_SPRING_AI_PROVIDER_TYPE:DEEPSEEK}
       api-key: ${URBAN_SAFE_SPRING_AI_API_KEY:}
-      base-url: ${URBAN_SAFE_SPRING_AI_BASE_URL:https://api.openai.com}
-      model: ${URBAN_SAFE_SPRING_AI_MODEL:}
+      base-url: ${URBAN_SAFE_SPRING_AI_BASE_URL:https://api.deepseek.com}
+      model: ${URBAN_SAFE_SPRING_AI_MODEL:deepseek-v4-flash}
       connect-timeout-ms: ${URBAN_SAFE_SPRING_AI_CONNECT_TIMEOUT_MS:3000}
       read-timeout-ms: ${URBAN_SAFE_SPRING_AI_READ_TIMEOUT_MS:30000}

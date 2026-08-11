@@ -20,33 +20,45 @@ import org.urbansafe.priority.common.exception.ResourceConflictException;
 class AiAutomationSettingsServiceTest {
 
     @Test
-    void shouldReturnPersistedSwitchAndStableDifyRoute() {
+    void shouldReturnPersistedSwitchAndStableFastApiVisionRoute() {
         AiAutomationSettingsRepository repository = mock(AiAutomationSettingsRepository.class);
         when(repository.findAutoInferenceOnUpload()).thenReturn(true);
         when(repository.findUpdatedAt()).thenReturn(OffsetDateTime.parse("2026-08-01T12:00:00Z"));
 
         AiAutomationSettingsService service = new AiAutomationSettingsService(
                 repository,
-                List.of(provider("DIFY", true, true, Set.of(AiCapabilityType.WORKFLOW))));
+                List.of(provider("FAST_API", true, true, Set.of(AiCapabilityType.VISION_INFERENCE))));
 
         AiAutomationSettings settings = service.get();
 
         assertThat(settings.autoInferenceOnUpload()).isTrue();
-        assertThat(settings.modelId()).isEqualTo("AI-DIFY-WORKFLOW-001");
-        assertThat(settings.providerCode()).isEqualTo("DIFY");
-        assertThat(settings.capabilityType()).isEqualTo("WORKFLOW");
+        assertThat(settings.modelId()).isEqualTo("AI-VISION-LOCAL-001");
+        assertThat(settings.providerCode()).isEqualTo("FAST_API");
+        assertThat(settings.capabilityType()).isEqualTo("VISION_INFERENCE");
     }
 
     @Test
-    void shouldRejectEnablingWhenDifyWorkflowProviderIsNotReady() {
+    void shouldRejectEnablingWhenFastApiVisionProviderIsNotReady() {
         AiAutomationSettingsRepository repository = mock(AiAutomationSettingsRepository.class);
         AiAutomationSettingsService service = new AiAutomationSettingsService(
                 repository,
-                List.of(provider("DIFY", true, false, Set.of(AiCapabilityType.WORKFLOW))));
+                List.of(provider("FAST_API", true, false, Set.of(AiCapabilityType.VISION_INFERENCE))));
 
         assertThatThrownBy(() -> service.update(true, UUID.randomUUID()))
                 .isInstanceOf(ResourceConflictException.class)
-                .hasMessageContaining("Dify");
+                .hasMessageContaining("本地视觉模型");
+    }
+
+    @Test
+    void shouldNotTreatDifyWorkflowAsUploadVisionProvider() {
+        AiAutomationSettingsRepository repository = mock(AiAutomationSettingsRepository.class);
+        AiAutomationSettingsService service = new AiAutomationSettingsService(
+                repository,
+                List.of(provider("DIFY", true, true, Set.of(AiCapabilityType.WORKFLOW))));
+
+        assertThatThrownBy(() -> service.update(true, UUID.randomUUID()))
+                .isInstanceOf(ResourceConflictException.class)
+                .hasMessageContaining("本地视觉模型");
     }
 
     @Test

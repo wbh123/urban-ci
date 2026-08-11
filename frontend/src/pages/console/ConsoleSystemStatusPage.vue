@@ -15,15 +15,26 @@ const savingAutomation = ref(false)
 const status = ref<AiGovernanceStatus | null>(null)
 const automationSettings = ref<AiAutomationSettings | null>(null)
 
+const PROVIDER_LABELS: Record<string, string> = {
+  FAST_API: '本地视觉模型',
+  SPRING_AI: 'DeepSeek 文本模型',
+  DIFY: '智能工作流',
+}
+const CAPABILITY_LABELS: Record<string, string> = {
+  VISION_INFERENCE: '视觉识别',
+  TEXT_GENERATION: '文本研判',
+  WORKFLOW: '工作流',
+}
+
 const total = computed(() => status.value?.total7d)
 const configuredCount = computed(
   () => status.value?.providers.filter((item) => item.configurationStatus === 'CONFIGURED').length ?? 0,
 )
-const difyReady = computed(() =>
+const visionReady = computed(() =>
   status.value?.providers.some((item) =>
-    item.providerCode === 'DIFY'
+    item.providerCode === 'FAST_API'
     && item.configurationStatus === 'CONFIGURED'
-    && item.capabilities.includes('WORKFLOW'),
+    && item.capabilities.includes('VISION_INFERENCE'),
   ) ?? false,
 )
 
@@ -37,6 +48,14 @@ function configurationLabel(value: AiProviderStatus['configurationStatus']): str
   if (value === 'CONFIGURED') return '配置完整'
   if (value === 'NOT_CONFIGURED') return '配置不完整'
   return '已禁用'
+}
+
+function providerLabel(code: string): string {
+  return PROVIDER_LABELS[code] ?? code
+}
+
+function capabilityLabel(code: string): string {
+  return CAPABILITY_LABELS[code] ?? code
 }
 
 function percent(value: number | undefined): string {
@@ -83,7 +102,7 @@ onMounted(load)
       <div>
         <p class="eyebrow">AI Governance</p>
         <h1>人工智能运行状态</h1>
-        <p>查看提供者配置、默认路由、自动化开关和近七日调用质量，不展示任何密钥或内部路径。</p>
+        <p>查看本地视觉模型、DeepSeek 文本模型和智能工作流的配置与近七日调用质量，不展示任何密钥或内部路径。</p>
       </div>
       <el-button type="primary" @click="load">刷新</el-button>
     </header>
@@ -114,7 +133,7 @@ onMounted(load)
         <strong>{{ total?.pendingReviewTasks ?? 0 }}</strong>
       </el-card>
       <el-card shadow="never">
-        <span>配置完整提供者</span>
+        <span>配置完整服务</span>
         <strong>{{ configuredCount }}/{{ status?.providers.length ?? 0 }}</strong>
       </el-card>
     </div>
@@ -130,17 +149,17 @@ onMounted(load)
           </div>
           <p>
             开启后，成功上传并绑定巡检任务的图片将自动调用
-            {{ automationSettings.providerCode }} / {{ automationSettings.capabilityType }}，
+            {{ providerLabel(automationSettings.providerCode) }} / {{ capabilityLabel(automationSettings.capabilityType) }}，
             使用模型 {{ automationSettings.modelId }}。识别失败不会回滚图片上传。
           </p>
-          <p v-if="!difyReady" class="setting-warning">
-            Dify 工作流提供者尚未启用或配置完整，当前不能开启此开关。
+          <p v-if="!visionReady" class="setting-warning">
+            本地视觉模型服务尚未就绪，当前不能开启此开关。
           </p>
         </div>
         <el-switch
           v-model="automationSettings.autoInferenceOnUpload"
           :loading="savingAutomation"
-          :disabled="savingAutomation || (!difyReady && !automationSettings.autoInferenceOnUpload)"
+          :disabled="savingAutomation || (!visionReady && !automationSettings.autoInferenceOnUpload)"
           inline-prompt
           active-text="自动"
           inactive-text="手动"
@@ -151,7 +170,14 @@ onMounted(load)
 
     <el-card shadow="never">
       <el-table :data="status?.providers ?? []" stripe>
-        <el-table-column prop="providerCode" label="提供者" min-width="130" />
+        <el-table-column label="人工智能服务" min-width="170">
+          <template #default="{ row }">
+            <div class="provider-name">
+              <strong>{{ providerLabel(row.providerCode) }}</strong>
+              <small>{{ row.providerCode }}</small>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column label="配置状态" min-width="130">
           <template #default="{ row }">
             <el-tag :type="tagType(row)">{{ configurationLabel(row.configurationStatus) }}</el-tag>
@@ -160,13 +186,13 @@ onMounted(load)
         <el-table-column label="能力" min-width="220">
           <template #default="{ row }">
             <el-tag v-for="item in row.capabilities" :key="item" class="inline-tag" effect="plain">
-              {{ item }}
+              {{ capabilityLabel(item) }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="默认路由" min-width="180">
           <template #default="{ row }">
-            <span v-if="row.defaultFor.length">{{ row.defaultFor.join('、') }}</span>
+            <span v-if="row.defaultFor.length">{{ row.defaultFor.map(capabilityLabel).join('、') }}</span>
             <span v-else>非默认</span>
           </template>
         </el-table-column>
@@ -216,6 +242,9 @@ onMounted(load)
 .setting-title { display: flex; align-items: center; gap: 10px; }
 .automation-setting p { max-width: 860px; margin: 8px 0 0; color: #667085; line-height: 1.65; }
 .automation-setting .setting-warning { color: #b54708; }
+.provider-name { display: grid; gap: 2px; }
+.provider-name strong { color: #152b27; }
+.provider-name small { color: #98a2b3; font-size: 11px; }
 .inline-tag { margin: 2px 6px 2px 0; }
 @media (max-width: 1100px) { .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 720px) { .automation-setting { align-items: flex-start; flex-direction: column; } }

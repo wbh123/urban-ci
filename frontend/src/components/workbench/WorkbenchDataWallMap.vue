@@ -349,6 +349,7 @@ function scheduleAnchoredUiRefresh(): void {
 
 function resetMapInteraction(): void {
   popup.value = null
+  store.selectCommunity(null)
   clearBuildingFocus(false)
   driver.restoreOverview()
   scheduleSettledMapSync()

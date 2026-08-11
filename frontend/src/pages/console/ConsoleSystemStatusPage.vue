@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
 import {
   getAiAutomationSettings,
   getAiGovernanceStatus,
@@ -9,7 +8,9 @@ import {
   type AiGovernanceStatus,
   type AiProviderStatus,
 } from '@/shared/api'
+import { useAppStore } from '@/stores/app'
 
+const appStore = useAppStore()
 const loading = ref(false)
 const savingAutomation = ref(false)
 const status = ref<AiGovernanceStatus | null>(null)
@@ -72,7 +73,7 @@ async function load(): Promise<void> {
     status.value = governance
     automationSettings.value = automation
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '人工智能运行状态加载失败')
+    appStore.notify(error instanceof Error ? error.message : '人工智能运行状态加载失败', 'error')
   } finally {
     loading.value = false
   }
@@ -84,10 +85,10 @@ async function saveAutomationSetting(): Promise<void> {
   savingAutomation.value = true
   try {
     automationSettings.value = await updateAiAutomationSettings(desired)
-    ElMessage.success(desired ? '已开启上传后自动识别' : '已关闭上传后自动识别')
+    appStore.notify(desired ? '已开启上传后自动识别' : '已关闭上传后自动识别', 'success')
   } catch (error) {
     automationSettings.value.autoInferenceOnUpload = !desired
-    ElMessage.error(error instanceof Error ? error.message : '自动识别开关保存失败')
+    appStore.notify(error instanceof Error ? error.message : '自动识别开关保存失败', 'error')
   } finally {
     savingAutomation.value = false
   }
@@ -102,18 +103,18 @@ onMounted(load)
       <div>
         <p class="eyebrow">AI Governance</p>
         <h1>人工智能运行状态</h1>
-        <p>查看本地视觉模型、DeepSeek 文本模型和智能工作流的配置与近七日调用质量，不展示任何密钥或内部路径。</p>
+        <p>查看本地视觉模型、DeepSeek 文本模型和智能工作流的配置、自动化开关与近七日调用质量。</p>
       </div>
-      <el-button type="primary" @click="load">刷新</el-button>
+      <el-button type="primary" round @click="load">刷新</el-button>
     </header>
 
-    <el-alert
-      v-if="status"
-      :title="status.healthSemantics"
-      type="info"
-      :closable="false"
-      show-icon
-    />
+    <section v-if="status?.healthSemantics" class="health-card">
+      <span class="health-dot" />
+      <div>
+        <strong>运行状态说明</strong>
+        <p>{{ status.healthSemantics }}</p>
+      </div>
+    </section>
 
     <div class="summary-grid">
       <el-card shadow="never">
@@ -133,7 +134,7 @@ onMounted(load)
         <strong>{{ total?.pendingReviewTasks ?? 0 }}</strong>
       </el-card>
       <el-card shadow="never">
-        <span>配置完整服务</span>
+        <span>可用服务</span>
         <strong>{{ configuredCount }}/{{ status?.providers.length ?? 0 }}</strong>
       </el-card>
     </div>
@@ -143,17 +144,17 @@ onMounted(load)
         <div>
           <div class="setting-title">
             <strong>上传巡检图片后自动执行识别</strong>
-            <el-tag :type="automationSettings.autoInferenceOnUpload ? 'success' : 'info'">
+            <el-tag :type="automationSettings.autoInferenceOnUpload ? 'success' : 'info'" round>
               {{ automationSettings.autoInferenceOnUpload ? '已开启' : '已关闭' }}
             </el-tag>
           </div>
           <p>
-            开启后，成功上传并绑定巡检任务的图片将自动调用
+            开启后，巡检图片上传完成后将自动调用
             {{ providerLabel(automationSettings.providerCode) }} / {{ capabilityLabel(automationSettings.capabilityType) }}，
             使用模型 {{ automationSettings.modelId }}。识别失败不会回滚图片上传。
           </p>
           <p v-if="!visionReady" class="setting-warning">
-            本地视觉模型服务尚未就绪，当前不能开启此开关。
+            本地视觉模型服务尚未就绪，暂不能开启自动识别。
           </p>
         </div>
         <el-switch
@@ -168,9 +169,9 @@ onMounted(load)
       </div>
     </el-card>
 
-    <el-card shadow="never">
+    <el-card shadow="never" class="provider-card">
       <el-table :data="status?.providers ?? []" stripe>
-        <el-table-column label="人工智能服务" min-width="170">
+        <el-table-column label="服务" min-width="170">
           <template #default="{ row }">
             <div class="provider-name">
               <strong>{{ providerLabel(row.providerCode) }}</strong>
@@ -180,20 +181,20 @@ onMounted(load)
         </el-table-column>
         <el-table-column label="配置状态" min-width="130">
           <template #default="{ row }">
-            <el-tag :type="tagType(row)">{{ configurationLabel(row.configurationStatus) }}</el-tag>
+            <el-tag :type="tagType(row)" round>{{ configurationLabel(row.configurationStatus) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="能力" min-width="220">
           <template #default="{ row }">
-            <el-tag v-for="item in row.capabilities" :key="item" class="inline-tag" effect="plain">
+            <el-tag v-for="item in row.capabilities" :key="item" class="inline-tag" effect="plain" round>
               {{ capabilityLabel(item) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="默认路由" min-width="180">
+        <el-table-column label="默认能力" min-width="180">
           <template #default="{ row }">
             <span v-if="row.defaultFor.length">{{ row.defaultFor.map(capabilityLabel).join('、') }}</span>
-            <span v-else>非默认</span>
+            <span v-else>—</span>
           </template>
         </el-table-column>
         <el-table-column label="近七日成功/总数" min-width="150">
@@ -212,19 +213,11 @@ onMounted(load)
         </el-table-column>
         <el-table-column label="连通性" min-width="110">
           <template #default="{ row }">
-            <el-tag type="info" effect="plain">{{ row.connectivityStatus }}</el-tag>
+            <el-tag type="info" effect="plain" round>{{ row.connectivityStatus }}</el-tag>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
-
-    <el-alert
-      v-if="status"
-      :title="status.disclaimer"
-      type="warning"
-      :closable="false"
-      show-icon
-    />
   </section>
 </template>
 
@@ -234,7 +227,11 @@ onMounted(load)
 .page-header h1 { margin: 4px 0 8px; }
 .page-header p { margin: 0; color: #667085; }
 .eyebrow { color: #176354 !important; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.health-card { display: flex; align-items: flex-start; gap: 12px; padding: 15px 17px; border: 1px solid #d9e9e4; border-radius: var(--usp-radius-lg); background: #f6fbf9; box-shadow: var(--usp-shadow-sm); }
+.health-card p { margin: 3px 0 0; color: var(--usp-color-text-secondary); line-height: 1.6; }
+.health-dot { width: 10px; height: 10px; margin-top: 6px; border-radius: 999px; background: var(--usp-color-success); box-shadow: 0 0 0 5px rgb(6 118 71 / 10%); }
 .summary-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.summary-grid .el-card, .automation-card, .provider-card { border-radius: var(--usp-radius-xl); box-shadow: var(--usp-shadow-sm); }
 .summary-grid :deep(.el-card__body) { display: grid; gap: 8px; }
 .summary-grid span { color: #667085; font-size: 13px; }
 .summary-grid strong { color: #152b27; font-size: 24px; }
@@ -243,8 +240,8 @@ onMounted(load)
 .automation-setting p { max-width: 860px; margin: 8px 0 0; color: #667085; line-height: 1.65; }
 .automation-setting .setting-warning { color: #b54708; }
 .provider-name { display: grid; gap: 2px; }
-.provider-name strong { color: #152b27; }
-.provider-name small { color: #98a2b3; font-size: 11px; }
+.provider-name strong { color: var(--usp-color-text-primary); }
+.provider-name small { color: var(--usp-color-text-tertiary); font-size: 11px; }
 .inline-tag { margin: 2px 6px 2px 0; }
 @media (max-width: 1100px) { .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 720px) { .automation-setting { align-items: flex-start; flex-direction: column; } }

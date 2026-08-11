@@ -1,5 +1,11 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import source from '../../../scripts/dev/calculate-showcase-assessments.sh?raw'
+
+const source = readFileSync(
+  resolve(process.cwd(), '../scripts/dev/calculate-showcase-assessments.sh'),
+  'utf8',
+)
 
 describe('showcase assessment generation quality gate', () => {
   it('fails showcase generation when assessment success rate is too low', () => {

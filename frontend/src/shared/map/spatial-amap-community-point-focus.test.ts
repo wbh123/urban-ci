@@ -20,7 +20,10 @@ describe('spatial AMap community point focus', () => {
 
     class FakePolygon {
       handlers = new Map<string, (event?: unknown) => void>()
-      constructor(_options: Record<string, unknown>) { polygons.push(this) }
+      constructor(options: Record<string, unknown>) {
+        void options
+        polygons.push(this)
+      }
       on(event: string, handler: (event?: unknown) => void) { this.handlers.set(event, handler) }
       setMap() {}
       emit(event: string) {
@@ -36,7 +39,11 @@ describe('spatial AMap community point focus', () => {
       zoomCalls: unknown[][] = []
       pitchCalls: unknown[][] = []
       rotationCalls: unknown[][] = []
-      constructor(_container: HTMLElement, _options: Record<string, unknown>) { maps.push(this) }
+      constructor(container: HTMLElement, options: Record<string, unknown>) {
+        void container
+        void options
+        maps.push(this)
+      }
       add() {}
       on() {}
       getZoom() { return this.currentZoom }

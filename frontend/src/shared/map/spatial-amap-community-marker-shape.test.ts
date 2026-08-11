@@ -27,7 +27,10 @@ describe('spatial AMap community marker shape', () => {
     }
 
     class FakeCircleMarker {
-      constructor(_options: Record<string, unknown>) { circles.push(this) }
+      constructor(options: Record<string, unknown>) {
+        void options
+        circles.push(this)
+      }
       on() {}
       setMap() {}
     }

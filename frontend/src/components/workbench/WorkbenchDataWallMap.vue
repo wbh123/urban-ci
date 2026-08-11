@@ -7,6 +7,7 @@ import {
   type CommunityPoint,
   type MapRuntimeConfig,
 } from '@/shared/api/endpoints/map'
+import type { SpatialBboxQuery } from '@/shared/api/endpoints/spatial'
 import {
   createSpatialAmapDriver,
   geometryToAmapPolygons,
@@ -59,6 +60,8 @@ const BUILDING_INTERACTION_DUPLICATE_WINDOW_MS = 320
 const BUILDING_INTERACTION_DUPLICATE_PIXEL_RADIUS_PX = 14
 const BUILDING_INTERACTION_DUPLICATE_GEO_RADIUS_METERS = 8
 const BUILDING_INTERACTION_MIN_ZOOM = 17
+const VIEWPORT_REFRESH_DEBOUNCE_MS = 140
+const CAMERA_SETTLE_SYNC_MS = 640
 
 const store = useSpatialMapStore()
 const {
@@ -82,6 +85,11 @@ const buildingFocusMode = ref<BuildingFocusMode>('3D')
 const selectionHalo = ref<SelectionHaloState | null>(null)
 const selectionOutlinePath = ref<string | null>(null)
 let lastBuildingInteraction: BuildingInteractionSnapshot | null = null
+let viewportRefreshTimer: ReturnType<typeof setTimeout> | null = null
+let pendingViewport: SpatialBboxQuery | null = null
+let cameraSettleSyncTimer: ReturnType<typeof setTimeout> | null = null
+let mapSyncFrame: number | null = null
+let anchoredUiFrame: number | null = null
 
 const driver = createSpatialAmapDriver({
   theme: 'DARK',
@@ -234,23 +242,19 @@ const buildingMapPoints = computed<SpatialAmapPointFeature[]>(() => {
 })
 
 watch(
-  [
-    communityFeatures,
-    visibleBuildings,
-    riskRows,
-    communityPoints,
-    selectedCommunityId,
-    selectedBuildingIds,
-  ],
-  () => {
-    syncMap()
-    refreshAnchoredUi()
-  },
+  [communityFeatures, visibleBuildings, riskRows, communityPoints],
+  () => scheduleMapSync(),
   { deep: true },
 )
 
 onMounted(initialiseMap)
-onBeforeUnmount(() => driver.destroy())
+onBeforeUnmount(() => {
+  if (viewportRefreshTimer) clearTimeout(viewportRefreshTimer)
+  if (cameraSettleSyncTimer) clearTimeout(cameraSettleSyncTimer)
+  if (mapSyncFrame !== null) cancelAnimationFrame(mapSyncFrame)
+  if (anchoredUiFrame !== null) cancelAnimationFrame(anchoredUiFrame)
+  driver.destroy()
+})
 
 async function initialiseMap(): Promise<void> {
   runtimeLoading.value = true
@@ -264,28 +268,14 @@ async function initialiseMap(): Promise<void> {
     await nextTick()
     if (!mapContainer.value || !config.enabled || config.mode !== 'LIVE' || !config.jsApiKey) return
     mapMounted.value = await driver.mount(mapContainer.value, config, {
-      onMapTransform: refreshAnchoredUi,
+      onMapTransform: scheduleAnchoredUiRefresh,
       onMapBlankClick: resetMapInteraction,
-      onViewportChange: (viewport) => {
-        refreshAnchoredUi()
-        if (activeBuilding.value) return
-        void store.loadViewport(viewport).then(() => {
-          syncMap()
-          refreshAnchoredUi()
-        }).catch(() => undefined)
-      },
+      onViewportChange: scheduleViewportRefresh,
       onCommunityClick: (communityId, context) => {
         clearBuildingFocus(true)
         store.selectCommunity(selectedCommunityId.value === communityId ? null : communityId)
         popup.value = createPopup('COMMUNITY', communityId, context)
-        refreshAnchoredUi()
-        const viewport = driver.getViewport()
-        if (viewport) {
-          void store.loadViewport(viewport).then(() => {
-            syncMap()
-            refreshAnchoredUi()
-          }).catch(() => undefined)
-        }
+        scheduleAnchoredUiRefresh()
       },
       onBuildingClick: (buildingId, context) => {
         const point = buildingMapPoints.value.find((item) => item.id === buildingId)
@@ -313,11 +303,55 @@ async function initialiseMap(): Promise<void> {
   }
 }
 
+function scheduleViewportRefresh(viewport: SpatialBboxQuery): void {
+  pendingViewport = { ...viewport }
+  if (viewportRefreshTimer) clearTimeout(viewportRefreshTimer)
+  viewportRefreshTimer = setTimeout(() => {
+    viewportRefreshTimer = null
+    const target = pendingViewport
+    pendingViewport = null
+    if (!target || activeBuilding.value) return
+    void store.loadViewport(target)
+      .then(() => scheduleAnchoredUiRefresh())
+      .catch(() => undefined)
+  }, VIEWPORT_REFRESH_DEBOUNCE_MS)
+}
+
+function scheduleMapSync(): void {
+  if (cameraSettleSyncTimer) {
+    clearTimeout(cameraSettleSyncTimer)
+    cameraSettleSyncTimer = null
+  }
+  if (mapSyncFrame !== null) return
+  mapSyncFrame = requestAnimationFrame(() => {
+    mapSyncFrame = null
+    syncMap()
+    scheduleAnchoredUiRefresh()
+  })
+}
+
+function scheduleSettledMapSync(): void {
+  if (cameraSettleSyncTimer) clearTimeout(cameraSettleSyncTimer)
+  cameraSettleSyncTimer = setTimeout(() => {
+    cameraSettleSyncTimer = null
+    scheduleMapSync()
+  }, CAMERA_SETTLE_SYNC_MS)
+}
+
+function scheduleAnchoredUiRefresh(): void {
+  if (anchoredUiFrame !== null) return
+  anchoredUiFrame = requestAnimationFrame(() => {
+    anchoredUiFrame = null
+    refreshAnchoredUi()
+  })
+}
+
 function resetMapInteraction(): void {
   popup.value = null
   clearBuildingFocus(false)
   driver.restoreOverview()
-  refreshAnchoredUi()
+  scheduleSettledMapSync()
+  scheduleAnchoredUiRefresh()
 }
 
 function handleBuildingSelection(next: SpatialAmapBuildingModelHit): void {
@@ -349,13 +383,13 @@ function handleBuildingSelection(next: SpatialAmapBuildingModelHit): void {
   )
 
   driver.setActiveBuilding(selection, currentMapInput())
-  syncMap()
   if (buildingFocusMode.value === '3D') {
     driver.focusBuilding(selection)
   } else {
     driver.focusBuildingOutline(selection)
   }
-  refreshAnchoredUi()
+  scheduleSettledMapSync()
+  scheduleAnchoredUiRefresh()
 }
 
 function setBuildingFocusMode(mode: BuildingFocusMode): void {
@@ -364,7 +398,7 @@ function setBuildingFocusMode(mode: BuildingFocusMode): void {
   driver.setOverviewPresentation(mode === '3D')
   const current = activeBuilding.value
   if (!current) {
-    refreshAnchoredUi()
+    scheduleAnchoredUiRefresh()
     return
   }
 
@@ -373,7 +407,8 @@ function setBuildingFocusMode(mode: BuildingFocusMode): void {
   } else {
     driver.focusBuildingOutline(current)
   }
-  refreshAnchoredUi()
+  scheduleSettledMapSync()
+  scheduleAnchoredUiRefresh()
 }
 
 function isDuplicatePhysicalBuildingInteraction(next: SpatialAmapBuildingModelHit): boolean {
@@ -417,8 +452,10 @@ function clearBuildingFocus(restoreCamera: boolean): void {
   selectionOutlinePath.value = null
   store.clearBuildingSelection()
   driver.setActiveBuilding(null, currentMapInput())
-  syncMap()
-  if (restoreCamera && hadActiveBuilding) driver.restoreOverview()
+  if (restoreCamera && hadActiveBuilding) {
+    driver.restoreOverview()
+    scheduleSettledMapSync()
+  }
   if (popup.value?.kind === 'BUILDING') popup.value = null
 }
 
@@ -538,10 +575,7 @@ function refreshSelectionHaloPosition(): void {
     selectionHalo.value = null
     return
   }
-  selectionHalo.value = {
-    x: projected.x,
-    y: projected.y,
-  }
+  selectionHalo.value = { x: projected.x, y: projected.y }
 }
 
 function refreshPopupPosition(): void {
@@ -576,11 +610,9 @@ function clampPopupPosition(anchorX: number, anchorY: number): { x: number; y: n
   const maxX = Math.max(minX, width - sideSafe - popupWidth - 12)
   const minY = Math.min(topSafe, Math.max(16, height - popupHeight - bottomSafe))
   const maxY = Math.max(minY, height - popupHeight - bottomSafe)
-  const requestedX = anchorX + 18
-  const requestedY = anchorY - 36
   return {
-    x: Math.min(Math.max(minX, requestedX), maxX),
-    y: Math.min(Math.max(minY, requestedY), maxY),
+    x: Math.min(Math.max(minX, anchorX + 18), maxX),
+    y: Math.min(Math.max(minY, anchorY - 36), maxY),
   }
 }
 
@@ -663,46 +695,18 @@ function riskTone(level?: string): string {
     <div ref="mapContainer" class="wall-map-surface" aria-label="城市建筑安全空间态势地图" />
 
     <div class="building-focus-switch" role="group" aria-label="地图展示模式">
-      <button
-        type="button"
-        :data-active="buildingFocusMode === 'OUTLINE'"
-        @click.stop="setBuildingFocusMode('OUTLINE')"
-      >2D 俯视</button>
-      <button
-        type="button"
-        :data-active="buildingFocusMode === '3D'"
-        @click.stop="setBuildingFocusMode('3D')"
-      >3D 视角</button>
+      <button type="button" :data-active="buildingFocusMode === 'OUTLINE'" @click.stop="setBuildingFocusMode('OUTLINE')">2D 俯视</button>
+      <button type="button" :data-active="buildingFocusMode === '3D'" @click.stop="setBuildingFocusMode('3D')">3D 视角</button>
     </div>
 
-    <svg
-      v-if="buildingFocusMode === 'OUTLINE' && selectionOutlinePath"
-      class="selected-building-outline-layer"
-      aria-hidden="true"
-    >
-      <path :d="selectionOutlinePath" />
-    </svg>
-
-    <div
-      v-if="buildingFocusMode === 'OUTLINE' && selectionHalo"
-      class="selected-building-halo"
-      :style="selectionHaloStyle"
-      aria-hidden="true"
-    ><span /></div>
+    <svg v-if="buildingFocusMode === 'OUTLINE' && selectionOutlinePath" class="selected-building-outline-layer" aria-hidden="true"><path :d="selectionOutlinePath" /></svg>
+    <div v-if="buildingFocusMode === 'OUTLINE' && selectionHalo" class="selected-building-halo" :style="selectionHaloStyle" aria-hidden="true"><span /></div>
 
     <div v-if="runtimeLoading" class="wall-map-state">正在加载地图服务</div>
-    <div v-else-if="mapUnavailable" class="wall-map-state">
-      <strong>地图服务当前不可用</strong>
-      <span>风险指标仍可正常查看。</span>
-    </div>
+    <div v-else-if="mapUnavailable" class="wall-map-state"><strong>地图服务当前不可用</strong><span>风险指标仍可正常查看。</span></div>
     <div v-else-if="loading" class="wall-map-loading">正在更新空间态势…</div>
 
-    <article
-      v-if="popup?.kind === 'COMMUNITY' && popupCommunityName"
-      class="map-popup"
-      :data-tone="popupRiskTone"
-      :style="popupStyle"
-    >
+    <article v-if="popup?.kind === 'COMMUNITY' && popupCommunityName" class="map-popup" :data-tone="popupRiskTone" :style="popupStyle">
       <button type="button" class="popup-close" aria-label="关闭小区信息" @click="popup = null">×</button>
       <span class="popup-kicker">小区空间档案</span>
       <strong class="popup-title">{{ popupCommunityName }}</strong>
@@ -716,23 +720,11 @@ function riskTone(level?: string): string {
       <button type="button" class="popup-action" @click="emit('openMap')">进入完整空间档案 →</button>
     </article>
 
-    <article
-      v-else-if="popup?.kind === 'BUILDING' && popupBuildingView"
-      class="map-popup"
-      :data-tone="popupRiskTone"
-      :style="popupStyle"
-    >
+    <article v-else-if="popup?.kind === 'BUILDING' && popupBuildingView" class="map-popup" :data-tone="popupRiskTone" :style="popupStyle">
       <button type="button" class="popup-close" aria-label="关闭楼栋信息" @click="popup = null">×</button>
-      <div class="popup-kicker-line">
-        <span class="popup-kicker">{{ popupBuildingView.registered ? '楼栋风险信息' : '高德建筑模型' }}</span>
-        <span class="view-state" :data-active="popupBuildingView.threeDimensional">{{ popupBuildingView.threeDimensional ? '3D' : '轮廓' }}</span>
-      </div>
-
+      <div class="popup-kicker-line"><span class="popup-kicker">{{ popupBuildingView.registered ? '楼栋风险信息' : '高德建筑模型' }}</span><span class="view-state" :data-active="popupBuildingView.threeDimensional">{{ popupBuildingView.threeDimensional ? '3D' : '轮廓' }}</span></div>
       <template v-if="popupBuildingView.registered">
-        <div class="popup-title-line">
-          <strong class="popup-title">{{ popupBuildingView.name }}</strong>
-          <span class="risk-pill" :data-tone="riskTone(popupBuildingView.riskLevel)">{{ riskLabel(popupBuildingView.riskLevel) }}</span>
-        </div>
+        <div class="popup-title-line"><strong class="popup-title">{{ popupBuildingView.name }}</strong><span class="risk-pill" :data-tone="riskTone(popupBuildingView.riskLevel)">{{ riskLabel(popupBuildingView.riskLevel) }}</span></div>
         <span class="popup-code">{{ popupBuildingView.communityName }}</span>
         <div class="popup-grid">
           <div><small>楼栋编码</small><b>{{ popupBuildingView.code }}</b></div>
@@ -742,25 +734,18 @@ function riskTone(level?: string): string {
         </div>
         <button type="button" class="popup-action" @click="emit('openMap')">查看楼栋完整信息 →</button>
       </template>
-
       <template v-else>
         <strong class="popup-title">该建筑尚未纳入系统档案</strong>
         <span class="popup-code">当前仅识别为高德三维建筑模型，不生成虚构业务数据。</span>
         <div class="popup-grid">
-          <div><small>档案状态</small><b>未建档</b></div>
-          <div><small>风险评估</small><b>—</b></div>
-          <div><small>空间来源</small><b>高德楼块</b></div>
-          <div><small>点击坐标</small><b>{{ popupBuildingView.longitude?.toFixed(5) }}, {{ popupBuildingView.latitude?.toFixed(5) }}</b></div>
+          <div><small>档案状态</small><b>未建档</b></div><div><small>风险评估</small><b>—</b></div>
+          <div><small>空间来源</small><b>高德楼块</b></div><div><small>点击坐标</small><b>{{ popupBuildingView.longitude?.toFixed(5) }}, {{ popupBuildingView.latitude?.toFixed(5) }}</b></div>
         </div>
         <button type="button" class="popup-action" @click="emit('openMap')">进入空间建档 →</button>
       </template>
     </article>
 
-    <div class="wall-map-legend" aria-label="地图交互图例">
-      <span><i data-kind="selected" />当前选中楼栋</span>
-      <span><i data-kind="community" />小区点位/已确认边界</span>
-      <span><i data-kind="official" />未建档高德楼块</span>
-    </div>
+    <div class="wall-map-legend" aria-label="地图交互图例"><span><i data-kind="selected" />当前选中楼栋</span><span><i data-kind="community" />小区点位/已确认边界</span><span><i data-kind="official" />未建档高德楼块</span></div>
   </section>
 </template>
 

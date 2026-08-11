@@ -38,6 +38,27 @@ export const useSpatialMapStore = defineStore('spatial-map', () => {
     return result
   })
 
+  const visibleRiskBuildings = computed<DashboardBuilding[]>(() => {
+    const keyword = searchKeyword.value.trim().toLocaleLowerCase()
+    const allowedRiskLevels = new Set(riskLevels.value)
+
+    return riskRows.value.filter((risk) => {
+      if (selectedCommunityId.value && risk.communityId !== selectedCommunityId.value) return false
+      if (
+        allowedRiskLevels.size > 0
+        && (!risk.riskLevel || !allowedRiskLevels.has(risk.riskLevel as MapRiskLevel))
+      ) {
+        return false
+      }
+      if (!keyword) return true
+      return [risk.buildingName, risk.buildingCode, risk.communityName]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase()
+        .includes(keyword)
+    })
+  })
+
   const visibleBuildings = computed<SpatialBuildingProjection[]>(() => {
     const keyword = searchKeyword.value.trim().toLocaleLowerCase()
     const allowedRiskLevels = new Set(riskLevels.value)
@@ -48,6 +69,13 @@ export const useSpatialMapStore = defineStore('spatial-map', () => {
         risk: riskByBuildingId.value.get(feature.id),
       }))
       .filter(({ feature, risk }) => {
+        if (
+          selectedCommunityId.value
+          && feature.properties.communityId !== selectedCommunityId.value
+          && risk?.communityId !== selectedCommunityId.value
+        ) {
+          return false
+        }
         if (
           allowedRiskLevels.size > 0
           && (!risk?.riskLevel || !allowedRiskLevels.has(risk.riskLevel as MapRiskLevel))
@@ -85,13 +113,13 @@ export const useSpatialMapStore = defineStore('spatial-map', () => {
       const [communities, buildings, risk] = await Promise.all([
         querySpatialCommunities(nextViewport),
         querySpatialBuildings(buildingQuery),
-        getRiskMap(riskScope, scopeId),
+        getRiskMap(riskScope, scopeId).catch(() => null),
       ])
       if (requestId !== requestSequence) return
 
       communityFeatures.value = communities.features
       buildingFeatures.value = buildings.features
-      riskRows.value = risk.buildings
+      riskRows.value = risk?.buildings ?? []
     } catch (error) {
       if (requestId !== requestSequence) return
       errorMessage.value = error instanceof Error ? error.message : String(error)
@@ -140,6 +168,7 @@ export const useSpatialMapStore = defineStore('spatial-map', () => {
     searchKeyword,
     loading,
     errorMessage,
+    visibleRiskBuildings,
     visibleBuildings,
     loadViewport,
     selectCommunity,

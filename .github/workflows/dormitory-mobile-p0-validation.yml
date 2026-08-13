@@ -1,0 +1,60 @@
+name: Dormitory Mobile P0 Validation
+
+on:
+  push:
+    branches:
+      - ci/dormitory-mobile-p0-20260813
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout private dormitory source
+        uses: actions/checkout@v4
+        with:
+          repository: wbh123/Wust-Dormitory-Select
+          ref: 9ebff8c916df505fb12598937ffb4e9ed44cead2
+          token: ${{ secrets.URBAN_PRIVATE_REPO_TOKEN }}
+          path: source
+          fetch-depth: 1
+
+      - name: Verify exact source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git -C source rev-parse HEAD)"
+          test "$actual" = "9ebff8c916df505fb12598937ffb4e9ed44cead2"
+          echo "validated source $actual"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate mobile app
+        working-directory: source/app
+        run: |
+          npm install --no-audit --no-fund
+          npm test
+          npm run build
+
+      - name: Validate existing web frontend
+        working-directory: source/frontend
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: source/backend-java/pom.xml
+
+      - name: Validate backend
+        run: mvn -f source/backend-java/pom.xml --batch-mode --no-transfer-progress clean verify

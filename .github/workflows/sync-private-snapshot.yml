@@ -78,7 +78,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash scripts/dev/validate-wuhan-competition-generator.sh
+          if [[ -f scripts/dev/validate-wuhan-competition-generator.sh ]]; then
+            bash scripts/dev/validate-wuhan-competition-generator.sh
+          else
+            echo "Legacy competition-generator validator is absent; running current showcase generator checks instead."
+            bash -n scripts/dev/generate-showcase-data.sh
+            python -m py_compile \
+              scripts/dev/generate-showcase-data.py \
+              scripts/dev/generate-showcase-data-cached.py \
+              scripts/dev/enhance-showcase-diversity.py \
+              scripts/dev/normalize-showcase-diversity-sql.py
+            python -m unittest scripts.dev.tests.test_showcase_amap_cache
+          fi
 
       - name: Build sanitized public mirror
         shell: bash

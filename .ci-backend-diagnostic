@@ -1,0 +1,244 @@
+source_ref=23f9b7f513be364c36d08841f6879acc5004275a
+run_id=31827997058
+--- Maven tail ---
+[INFO] Processing operation createPhase2InspectionTask
+[INFO] Processing operation getPhase2InspectionTask
+[INFO] Processing operation startPhase2InspectionTask
+[INFO] Processing operation completePhase2InspectionTask
+[INFO] Processing operation cancelPhase2InspectionTask
+[INFO] Processing operation listPhase2InspectionRecords
+[INFO] Processing operation createPhase2InspectionRecord
+[INFO] Processing operation uploadPhase2InspectionImage
+[INFO] Processing operation listPhase2Assets
+[INFO] Processing operation previewPhase2Asset
+[INFO] Processing operation readPhase2AssetContent
+[INFO] Processing operation listAiInferences
+[INFO] Processing operation createAiInference
+[INFO] Processing operation listAiInferenceExecutions
+[INFO] Processing operation getAiInferenceExecution
+[INFO] Processing operation getAiInference
+[INFO] Processing operation retryAiInference
+[INFO] Processing operation runIntelligentAnalysis
+[INFO] Processing operation getIntelligentAnalysisExecution
+[INFO] Processing operation reviewAiInference
+[INFO] Processing operation null
+[INFO] Processing operation null
+[INFO] Processing operation null
+[INFO] Processing operation null
+[INFO] Processing operation null
+[INFO] Processing operation null
+[INFO] Processing operation null
+[INFO] Processing operation null
+[INFO] Processing operation null
+[INFO] Processing operation null
+[INFO] Processing operation null
+[INFO] Processing operation listAssessmentRules
+[INFO] Processing operation createAssessmentRule
+[INFO] Processing operation getAssessmentRule
+[INFO] Processing operation activateAssessmentRule
+[INFO] Processing operation calculateBuildingAssessment
+[INFO] Processing operation getCurrentBuildingAssessment
+[INFO] Processing operation getBuildingAssessmentSummary
+[INFO] Processing operation getBuildingAssessmentHistory
+[INFO] Processing operation recalculateAssessments
+[INFO] Processing operation listRenewalPriorities
+[INFO] Processing operation getRiskOverview
+[INFO] Processing operation getRiskMap
+[INFO] Processing operation previewBuildingRiskReport
+[INFO] Processing operation generateBuildingRiskReport
+[INFO] Processing operation listRiskReports
+[INFO] Processing operation getRiskReport
+[INFO] Processing operation downloadRiskReport
+[INFO] Processing operation createKnowledgeDocument
+[INFO] Processing operation askKnowledgeQuestion
+[INFO] Skipping generation of models.
+[WARNING] Ignoring complex example on request body
+[WARNING] Ignoring complex example on request body
+[WARNING] Ignoring complex example on request body
+[WARNING] Ignoring complex example on request body
+[WARNING] Ignoring complex example on request body
+[WARNING] Ignoring complex example on request body
+[WARNING] Ignoring complex example on request body
+[WARNING] Empty operationId found for path: get /api/v1/public/feedback/communities. Renamed to auto-generated operationId: apiV1PublicFeedbackCommunitiesGet
+[WARNING] Empty operationId found for path: get /api/v1/public/feedback/communities/{communityId}/buildings. Renamed to auto-generated operationId: apiV1PublicFeedbackCommunitiesCommunityIdBuildingsGet
+[WARNING] Empty operationId found for path: post /api/v1/public/feedback/reports. Renamed to auto-generated operationId: apiV1PublicFeedbackReportsPost
+[WARNING] Empty operationId found for path: get /api/v1/public/feedback/reports/{reportCode}. Renamed to auto-generated operationId: apiV1PublicFeedbackReportsReportCodeGet
+[WARNING] Empty operationId found for path: get /api/v1/public/feedback/reports/{reportCode}/images. Renamed to auto-generated operationId: apiV1PublicFeedbackReportsReportCodeImagesGet
+[WARNING] Empty operationId found for path: post /api/v1/public/feedback/reports/{reportCode}/images. Renamed to auto-generated operationId: apiV1PublicFeedbackReportsReportCodeImagesPost
+[WARNING] Empty operationId found for path: get /api/v1/public/feedback/reports/{reportCode}/images/{assetId}/content. Renamed to auto-generated operationId: apiV1PublicFeedbackReportsReportCodeImagesAssetIdContentGet
+[WARNING] Empty operationId found for path: get /api/v1/feedback/reports. Renamed to auto-generated operationId: apiV1FeedbackReportsGet
+[WARNING] Empty operationId found for path: get /api/v1/feedback/reports/{reportId}/images. Renamed to auto-generated operationId: apiV1FeedbackReportsReportIdImagesGet
+[WARNING] Empty operationId found for path: post /api/v1/feedback/reports/manual. Renamed to auto-generated operationId: apiV1FeedbackReportsManualPost
+[WARNING] Empty operationId found for path: post /api/v1/feedback/reports/{reportId}/status. Renamed to auto-generated operationId: apiV1FeedbackReportsReportIdStatusPost
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/AssessmentApi.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/AssessmentApiClient.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/AuditOperationApi.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/AuditOperationApiClient.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/AuthCurrentUserApi.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/AuthCurrentUserApiClient.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/AuthLoginApi.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/AuthLoginApiClient.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/BuildingApi.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/BuildingApiClient.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/BuildingEvidenceApi.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/BuildingEvidenceApiClient.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/CommunityApi.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/CommunityApiClient.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/DefaultApi.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/DefaultApiClient.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/FeedbackManagementApi.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/FeedbackManagementApiClient.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/KnowledgeQaApi.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/KnowledgeQaApiClient.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/PublicFeedbackApi.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/PublicFeedbackApiClient.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/ReportDashboardApi.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/ReportDashboardApiClient.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/SystemHealthApi.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/SystemHealthApiClient.java
+[INFO] Skipping generation of Webhooks.
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/pom.xml
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/README.md
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/config/ApiKeyRequestInterceptor.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/config/ClientConfiguration.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/.openapi-generator-ignore
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/.openapi-generator/VERSION
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/.openapi-generator/FILES
+################################################################################
+# Thanks for using OpenAPI Generator.                                          #
+# Please consider donation to help us maintain this project 🙏                 #
+# https://opencollective.com/openapi_generator/donate                          #
+################################################################################
+[INFO] 
+[INFO] --- openapi-generator:7.6.0:generate (generate-ai-governance-feign-client) @ client ---
+[INFO] Generating with dryRun=false
+[INFO] OpenAPI Generator: spring (server)
+[INFO] Generator 'spring' is considered stable.
+[INFO] ----------------------------------
+[INFO] Set base package to invoker package (org.urbansafe.priority.client.invoker)
+[INFO] Environment variable JAVA_POST_PROCESS_FILE not defined so the Java code may not be properly formatted. To define it, try 'export JAVA_POST_PROCESS_FILE="/usr/local/bin/clang-format -i"' (Linux/Mac)
+[INFO] NOTE: To enable file post-processing, 'enablePostProcessFile' must be set to `true` (--enable-post-process-file for CLI).
+[INFO] Processing operation getAiGovernanceStatus
+[INFO] Processing operation getAiAutomationSettings
+[INFO] Processing operation updateAiAutomationSettings
+[INFO] 'host' (OAS 2.0) or 'servers' (OAS 3.0) not defined in the spec. Default to [http://localhost] for server URL [http://localhost/]
+[INFO] 'host' (OAS 2.0) or 'servers' (OAS 3.0) not defined in the spec. Default to [http://localhost] for server URL [http://localhost/]
+[INFO] 'host' (OAS 2.0) or 'servers' (OAS 3.0) not defined in the spec. Default to [http://localhost] for server URL [http://localhost/]
+[INFO] Skipping generation of models.
+[INFO] 'host' (OAS 2.0) or 'servers' (OAS 3.0) not defined in the spec. Default to [http://localhost] for server URL [http://localhost/]
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/AiAutomationSettingsApi.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/AiAutomationSettingsApiClient.java
+[INFO] 'host' (OAS 2.0) or 'servers' (OAS 3.0) not defined in the spec. Default to [http://localhost] for server URL [http://localhost/]
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/AiGovernanceApi.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/AiGovernanceApiClient.java
+[INFO] Skipping generation of Webhooks.
+[INFO] 'host' (OAS 2.0) or 'servers' (OAS 3.0) not defined in the spec. Default to [http://localhost] for server URL [http://localhost/]
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/pom.xml
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/README.md
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/config/ApiKeyRequestInterceptor.java
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/config/ClientConfiguration.java
+[INFO] Skipped /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/.openapi-generator-ignore (Skipped by supportingFiles options supplied by user.)
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/.openapi-generator/VERSION
+[INFO] writing file /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/.openapi-generator/FILES
+################################################################################
+# Thanks for using OpenAPI Generator.                                          #
+# Please consider donation to help us maintain this project 🙏                 #
+# https://opencollective.com/openapi_generator/donate                          #
+################################################################################
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ client ---
+[INFO] skip non existing resourceDirectory /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/src/main/resources
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ client ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 32 source files with javac [debug target 21] to target/classes
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ client ---
+[INFO] skip non existing resourceDirectory /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/src/test/resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ client ---
+[INFO] No sources to compile
+[INFO] 
+[INFO] --- surefire:3.0.0-M9:test (default-test) @ client ---
+[INFO] No tests to run.
+[INFO] 
+[INFO] ------------------------< org.urbansafe:server >------------------------
+[INFO] Building UrbanSafe Priority Server Module 1.0.0-SNAPSHOT           [4/5]
+[INFO]   from server/pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- build-helper:3.3.0:add-source (add-persistence-generated-source) @ server ---
+[INFO] Source directory: /home/runner/work/urban-ci/urban-ci/mirror/backend-java/server/src/generated/java added.
+[INFO] 
+[INFO] --- resources:3.4.0:resources (default-resources) @ server ---
+[INFO] Copying 41 resources from src/main/resources to target/classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ server ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 289 source files with javac [debug target 21] to target/classes
+[INFO] Annotation processing is enabled because one or more processors were found
+  on the class path. A future release of javac may disable annotation processing
+  unless at least one processor is specified by name (-processor), or a search
+  path is specified (--processor-path, --processor-module-path), or annotation
+  processing is enabled explicitly (-proc:only, -proc:full).
+  Use -Xlint:-options to suppress this message.
+  Use -proc:none to disable annotation processing.
+[INFO] /home/runner/work/urban-ci/urban-ci/mirror/backend-java/server/src/main/java/org/urbansafe/priority/assessment/checksum/AssessmentInputCanonicalizer.java: Some input files use or override a deprecated API.
+[INFO] /home/runner/work/urban-ci/urban-ci/mirror/backend-java/server/src/main/java/org/urbansafe/priority/assessment/checksum/AssessmentInputCanonicalizer.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.4.0:testResources (default-testResources) @ server ---
+[INFO] Copying 3 resources from src/test/resources to target/test-classes
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ server ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 144 source files with javac [debug target 21] to target/test-classes
+[INFO] Annotation processing is enabled because one or more processors were found
+  on the class path. A future release of javac may disable annotation processing
+  unless at least one processor is specified by name (-processor), or a search
+  path is specified (--processor-path, --processor-module-path), or annotation
+  processing is enabled explicitly (-proc:only, -proc:full).
+  Use -Xlint:-options to suppress this message.
+  Use -proc:none to disable annotation processing.
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /home/runner/work/urban-ci/urban-ci/mirror/backend-java/server/src/test/java/org/urbansafe/priority/feedback/FeedbackClosureServiceTest.java:[20,47] cannot find symbol
+  symbol:   class FeedbackClosureService
+  location: package org.urbansafe.priority.feedback.service
+[ERROR] /home/runner/work/urban-ci/urban-ci/mirror/backend-java/server/src/test/java/org/urbansafe/priority/feedback/FeedbackClosureServiceTest.java:[30,13] cannot find symbol
+  symbol:   class FeedbackClosureService
+  location: class org.urbansafe.priority.feedback.FeedbackClosureServiceTest
+[INFO] 2 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] Reactor Summary for UrbanSafe Priority Server 1.0.0-SNAPSHOT:
+[INFO] 
+[INFO] UrbanSafe Priority Server .......................... SUCCESS [  0.002 s]
+[INFO] model .............................................. SUCCESS [ 10.492 s]
+[INFO] client ............................................. SUCCESS [  1.830 s]
+[INFO] UrbanSafe Priority Server Module ................... FAILURE [  4.714 s]
+[INFO] starter ............................................ SKIPPED
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  17.409 s
+[INFO] Finished at: 2026-08-14T18:20:19Z
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:testCompile (default-testCompile) on project server: Compilation failure: Compilation failure: 
+[ERROR] /home/runner/work/urban-ci/urban-ci/mirror/backend-java/server/src/test/java/org/urbansafe/priority/feedback/FeedbackClosureServiceTest.java:[20,47] cannot find symbol
+[ERROR]   symbol:   class FeedbackClosureService
+[ERROR]   location: package org.urbansafe.priority.feedback.service
+[ERROR] /home/runner/work/urban-ci/urban-ci/mirror/backend-java/server/src/test/java/org/urbansafe/priority/feedback/FeedbackClosureServiceTest.java:[30,13] cannot find symbol
+[ERROR]   symbol:   class FeedbackClosureService
+[ERROR]   location: class org.urbansafe.priority.feedback.FeedbackClosureServiceTest
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+[ERROR] 
+[ERROR] After correcting the problems, you can resume the build with the command
+[ERROR]   mvn <args> -rf :server
+--- Surefire summaries ---

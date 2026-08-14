@@ -1,0 +1,91 @@
+name: Browser Private Snapshot
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Exact urban-safe-priority commit SHA to validate
+        required: true
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - '.ci-sync-source'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: private-browser-validation
+  cancel-in-progress: false
+
+jobs:
+  chromium:
+    name: Chromium browser acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DISPATCH_SOURCE_REF: ${{ inputs.source_ref }}
+    steps:
+      - name: Checkout control source pointer
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: control
+          fetch-depth: 1
+
+      - name: Resolve exact private source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_ref="${DISPATCH_SOURCE_REF:-}"
+          if [[ -z "$source_ref" ]]; then
+            source_ref="$(tr -d '[:space:]' < control/.ci-sync-source)"
+          fi
+          source_ref="${source_ref,,}"
+          if [[ ! "$source_ref" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "source_ref must be an exact 40-character commit SHA"
+            exit 1
+          fi
+          echo "SOURCE_REF=$source_ref" >> "$GITHUB_ENV"
+
+      - name: Checkout exact private source
+        uses: actions/checkout@v4
+        with:
+          repository: wbh123/urban-safe-priority
+          ref: main
+          token: ${{ secrets.URBAN_PRIVATE_REPO_TOKEN }}
+          path: private-source
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact private source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C private-source fetch --depth 1 origin "$SOURCE_REF"
+          git -C private-source checkout --detach FETCH_HEAD
+          actual="$(git -C private-source rev-parse HEAD)"
+          test "$actual" = "$SOURCE_REF"
+          echo "Validated browser source commit: $actual"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: private-source/frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: private-source/frontend
+        run: npm ci
+
+      - name: Install Chromium
+        working-directory: private-source/frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Chromium browser acceptance
+        working-directory: private-source/frontend
+        env:
+          CI: 'true'
+        run: npm run test:e2e

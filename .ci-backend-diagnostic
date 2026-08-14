@@ -1,5 +1,5 @@
 source_ref=23f9b7f513be364c36d08841f6879acc5004275a
-run_id=31827997058
+run_id=31829209163
 --- Maven tail ---
 [INFO] Processing operation createPhase2InspectionTask
 [INFO] Processing operation getPhase2InspectionTask
@@ -213,16 +213,16 @@ run_id=31827997058
 [INFO] ------------------------------------------------------------------------
 [INFO] Reactor Summary for UrbanSafe Priority Server 1.0.0-SNAPSHOT:
 [INFO] 
-[INFO] UrbanSafe Priority Server .......................... SUCCESS [  0.002 s]
-[INFO] model .............................................. SUCCESS [ 10.492 s]
-[INFO] client ............................................. SUCCESS [  1.830 s]
-[INFO] UrbanSafe Priority Server Module ................... FAILURE [  4.714 s]
+[INFO] UrbanSafe Priority Server .......................... SUCCESS [  0.001 s]
+[INFO] model .............................................. SUCCESS [  7.836 s]
+[INFO] client ............................................. SUCCESS [  1.373 s]
+[INFO] UrbanSafe Priority Server Module ................... FAILURE [  3.634 s]
 [INFO] starter ............................................ SKIPPED
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD FAILURE
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  17.409 s
-[INFO] Finished at: 2026-08-14T18:20:19Z
+[INFO] Total time:  13.252 s
+[INFO] Finished at: 2026-08-14T18:35:32Z
 [INFO] ------------------------------------------------------------------------
 [ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:testCompile (default-testCompile) on project server: Compilation failure: Compilation failure: 
 [ERROR] /home/runner/work/urban-ci/urban-ci/mirror/backend-java/server/src/test/java/org/urbansafe/priority/feedback/FeedbackClosureServiceTest.java:[20,47] cannot find symbol

@@ -191,16 +191,50 @@ jobs:
           cache: npm
           cache-dependency-path: mirror/frontend/package-lock.json
 
-      - name: Validate frontend
+      - name: Install frontend dependencies
         working-directory: mirror/frontend
+        shell: bash
         run: |
-          npm ci
-          npm run api:generate
-          npm run api:check
-          npm run type-check
-          npm run test
-          npm run build
-          npm run lint
+          set -euo pipefail
+          npm ci 2>&1 | tee "$GITHUB_WORKSPACE/frontend-npm-ci.log"
+
+      - name: Validate generated frontend API contract
+        working-directory: mirror/frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            npm run api:generate
+            npm run api:check
+          } 2>&1 | tee "$GITHUB_WORKSPACE/frontend-api.log"
+
+      - name: Validate frontend TypeScript
+        working-directory: mirror/frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run type-check 2>&1 | tee "$GITHUB_WORKSPACE/frontend-typecheck.log"
+
+      - name: Validate frontend tests
+        working-directory: mirror/frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run test 2>&1 | tee "$GITHUB_WORKSPACE/frontend-test.log"
+
+      - name: Validate frontend production build
+        working-directory: mirror/frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build 2>&1 | tee "$GITHUB_WORKSPACE/frontend-build.log"
+
+      - name: Validate frontend lint
+        working-directory: mirror/frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run lint 2>&1 | tee "$GITHUB_WORKSPACE/frontend-lint.log"
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -298,6 +332,36 @@ jobs:
           trigger_commit=$GITHUB_SHA
           EOF_RESULT
 
+          frontend_logs=(
+            ../frontend-npm-ci.log
+            ../frontend-api.log
+            ../frontend-typecheck.log
+            ../frontend-test.log
+            ../frontend-build.log
+            ../frontend-lint.log
+          )
+          has_frontend_log=false
+          for log in "${frontend_logs[@]}"; do
+            if [[ -f "$log" ]]; then
+              has_frontend_log=true
+              break
+            fi
+          done
+          if [[ "$SYNC_STATUS" != "success" && "$has_frontend_log" == "true" ]]; then
+            {
+              echo "source_ref=$source_ref"
+              echo "run_id=$GITHUB_RUN_ID"
+              for log in "${frontend_logs[@]}"; do
+                if [[ -f "$log" ]]; then
+                  echo "--- $(basename "$log") tail ---"
+                  tail -n 180 "$log"
+                fi
+              done
+            } > .ci-frontend-diagnostic
+          else
+            rm -f .ci-frontend-diagnostic
+          fi
+
           if [[ "$SYNC_STATUS" != "success" && -f ../backend-validation.log ]]; then
             {
               echo "source_ref=$source_ref"
@@ -315,7 +379,8 @@ jobs:
 
           git config user.name 'urban-ci-bot'
           git config user.email 'urban-ci-bot@users.noreply.github.com'
-          git add .ci-sync-result .ci-backend-diagnostic 2>/dev/null || git add -u .ci-sync-result .ci-backend-diagnostic
+          git add .ci-sync-result .ci-frontend-diagnostic .ci-backend-diagnostic 2>/dev/null || \
+            git add -u .ci-sync-result .ci-frontend-diagnostic .ci-backend-diagnostic
           if ! git diff --cached --quiet; then
             git commit -m "ci: record private snapshot sync $SYNC_STATUS"
             git push origin HEAD:main

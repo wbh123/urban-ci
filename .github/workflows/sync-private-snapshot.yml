@@ -214,6 +214,7 @@ jobs:
         working-directory: mirror/backend-java
         shell: bash
         run: |
+          set -uo pipefail
           mkdir -p .mvn
           cat > .mvn/settings.xml <<'SETTINGS_EOF'
           <?xml version="1.0" encoding="UTF-8"?>
@@ -221,7 +222,11 @@ jobs:
                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                     xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd" />
           SETTINGS_EOF
-          mvn -B -ntp test
+          set +e
+          mvn -B -ntp test 2>&1 | tee "$GITHUB_WORKSPACE/backend-validation.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          exit "$status"
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -292,9 +297,25 @@ jobs:
           run_attempt=$GITHUB_RUN_ATTEMPT
           trigger_commit=$GITHUB_SHA
           EOF_RESULT
+
+          if [[ "$SYNC_STATUS" != "success" && -f ../backend-validation.log ]]; then
+            {
+              echo "source_ref=$source_ref"
+              echo "run_id=$GITHUB_RUN_ID"
+              echo "--- Maven tail ---"
+              tail -n 240 ../backend-validation.log
+              echo "--- Surefire summaries ---"
+              find ../mirror/backend-java -path '*/surefire-reports/*.txt' -type f -print0 2>/dev/null \
+                | sort -z \
+                | xargs -0 -r grep -H -E 'Tests run:|FAILURE|ERROR|Caused by:' || true
+            } > .ci-backend-diagnostic
+          else
+            rm -f .ci-backend-diagnostic
+          fi
+
           git config user.name 'urban-ci-bot'
           git config user.email 'urban-ci-bot@users.noreply.github.com'
-          git add .ci-sync-result
+          git add .ci-sync-result .ci-backend-diagnostic 2>/dev/null || git add -u .ci-sync-result .ci-backend-diagnostic
           if ! git diff --cached --quiet; then
             git commit -m "ci: record private snapshot sync $SYNC_STATUS"
             git push origin HEAD:main

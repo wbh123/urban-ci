@@ -73,6 +73,13 @@ jobs:
           fi
           echo "Validated private source commit: $actual"
 
+      - name: Validate Wuhan competition data generators
+        working-directory: private-source
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/dev/validate-wuhan-competition-generator.sh
+
       - name: Build sanitized public mirror
         shell: bash
         run: |

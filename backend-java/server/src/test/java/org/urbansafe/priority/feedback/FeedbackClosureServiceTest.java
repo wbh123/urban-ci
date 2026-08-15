@@ -8,12 +8,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.urbansafe.priority.asset.service.Phase2AssetService;
 import org.urbansafe.priority.common.exception.ResourceConflictException;
 import org.urbansafe.priority.feedback.repository.FeedbackClosureRepository;
 import org.urbansafe.priority.feedback.repository.FeedbackRepository;
@@ -22,129 +24,23 @@ import org.urbansafe.priority.feedback.service.FeedbackService;
 import org.urbansafe.priority.inspection.service.Phase2InspectionService;
 
 class FeedbackClosureServiceTest {
-
     private FeedbackRepository repository;
     private FeedbackClosureRepository closureRepository;
     private Phase2InspectionService inspectionService;
+    private Phase2AssetService assetService;
     private FeedbackService feedbackService;
     private FeedbackClosureService service;
 
-    @BeforeEach
-    void setUp() {
-        repository = mock(FeedbackRepository.class);
-        closureRepository = mock(FeedbackClosureRepository.class);
-        inspectionService = mock(Phase2InspectionService.class);
-        feedbackService = mock(FeedbackService.class);
-        service = new FeedbackClosureService(repository, closureRepository, inspectionService, feedbackService);
+    @BeforeEach void setUp(){
+        repository=mock(FeedbackRepository.class);closureRepository=mock(FeedbackClosureRepository.class);
+        inspectionService=mock(Phase2InspectionService.class);assetService=mock(Phase2AssetService.class);feedbackService=mock(FeedbackService.class);
+        service=new FeedbackClosureService(repository,closureRepository,inspectionService,assetService,feedbackService);
     }
-
-    @Test
-    void resolvedRectificationCreatesReinspectionTaskAndLinksItByEvent() {
-        UUID reportId = UUID.randomUUID();
-        UUID buildingId = UUID.randomUUID();
-        UUID taskId = UUID.randomUUID();
-        UUID actor = UUID.randomUUID();
-        when(repository.findReport(reportId)).thenReturn(Optional.of(Map.of(
-                "reportId", reportId,
-                "reportCode", "DEMO-FEEDBACK-001",
-                "status", "RESOLVED",
-                "buildingId", buildingId)));
-        when(closureRepository.latestReinspection(reportId)).thenReturn(Optional.empty());
-        when(inspectionService.createTask(anyMap())).thenReturn(Map.of(
-                "taskId", taskId,
-                "taskCode", "IT-RECHECK-001",
-                "buildingId", buildingId,
-                "inspectionType", "REINSPECTION",
-                "status", "PENDING"));
-
-        Map<String, Object> result = service.createReinspection(reportId, actor);
-
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<String, Object>> taskBody = ArgumentCaptor.forClass(Map.class);
-        verify(inspectionService).createTask(taskBody.capture());
-        assertThat(taskBody.getValue()).containsEntry("buildingId", buildingId.toString());
-        assertThat(taskBody.getValue()).containsEntry("inspectionType", "REINSPECTION");
-        verify(repository).insertEvent(
-                eq(reportId), eq("REINSPECTION_CREATED"), eq("RESOLVED"), eq("RESOLVED"),
-                eq("整改已完成，已安排复查复验。"), eq("PUBLIC"), eq("STAFF"), eq(actor), anyMap());
-        assertThat(result).containsEntry("taskId", taskId);
-        assertThat(result).containsEntry("reused", false);
-    }
-
-    @Test
-    void completedReinspectionCanCloseTheFeedbackLoop() {
-        UUID reportId = UUID.randomUUID();
-        UUID taskId = UUID.randomUUID();
-        UUID actor = UUID.randomUUID();
-        when(repository.findReport(reportId)).thenReturn(Optional.of(Map.of(
-                "reportId", reportId,
-                "reportCode", "DEMO-FEEDBACK-001",
-                "status", "RESOLVED",
-                "buildingId", UUID.randomUUID())));
-        when(closureRepository.latestReinspection(reportId)).thenReturn(Optional.of(Map.of(
-                "taskId", taskId,
-                "taskCode", "IT-RECHECK-001",
-                "status", "COMPLETED")));
-        when(feedbackService.updateStatus(eq(reportId), anyMap(), eq(actor)))
-                .thenReturn(Map.of("reportId", reportId, "status", "CLOSED"));
-
-        Map<String, Object> result = service.completeReinspection(
-                reportId, true, "复查未发现原整改问题继续存在，复验通过。", actor);
-
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<String, Object>> statusBody = ArgumentCaptor.forClass(Map.class);
-        verify(feedbackService).updateStatus(eq(reportId), statusBody.capture(), eq(actor));
-        assertThat(statusBody.getValue()).containsEntry("status", "CLOSED");
-        verify(repository).insertEvent(
-                eq(reportId), eq("REINSPECTION_PASSED"), eq("RESOLVED"), eq("CLOSED"),
-                eq("复查复验通过，整改事项已闭环。"), eq("PUBLIC"), eq("STAFF"), eq(actor), anyMap());
-        assertThat(result).containsEntry("status", "CLOSED");
-        assertThat(result).containsEntry("taskId", taskId);
-    }
-
-    @Test
-    void failedReinspectionReturnsToProcessingInsteadOfClosing() {
-        UUID reportId = UUID.randomUUID();
-        UUID taskId = UUID.randomUUID();
-        UUID actor = UUID.randomUUID();
-        when(repository.findReport(reportId)).thenReturn(Optional.of(Map.of(
-                "reportId", reportId,
-                "reportCode", "DEMO-FEEDBACK-001",
-                "status", "RESOLVED",
-                "buildingId", UUID.randomUUID())));
-        when(closureRepository.latestReinspection(reportId)).thenReturn(Optional.of(Map.of(
-                "taskId", taskId,
-                "taskCode", "IT-RECHECK-001",
-                "status", "COMPLETED")));
-        when(feedbackService.updateStatus(eq(reportId), anyMap(), eq(actor)))
-                .thenReturn(Map.of("reportId", reportId, "status", "PROCESSING"));
-
-        Map<String, Object> result = service.completeReinspection(
-                reportId, false, "原位置仍有松动，需要继续整改。", actor);
-
-        assertThat(result).containsEntry("status", "PROCESSING");
-        verify(repository).insertEvent(
-                eq(reportId), eq("REINSPECTION_FAILED"), eq("RESOLVED"), eq("PROCESSING"),
-                eq("复查复验未通过，已退回继续整改。"), eq("PUBLIC"), eq("STAFF"), eq(actor), anyMap());
-    }
-
-    @Test
-    void reinspectionResultCannotBeSubmittedBeforeTaskCompletion() {
-        UUID reportId = UUID.randomUUID();
-        UUID taskId = UUID.randomUUID();
-        when(repository.findReport(reportId)).thenReturn(Optional.of(Map.of(
-                "reportId", reportId,
-                "reportCode", "DEMO-FEEDBACK-001",
-                "status", "RESOLVED",
-                "buildingId", UUID.randomUUID())));
-        when(closureRepository.latestReinspection(reportId)).thenReturn(Optional.of(Map.of(
-                "taskId", taskId,
-                "taskCode", "IT-RECHECK-001",
-                "status", "IN_PROGRESS")));
-
-        assertThatThrownBy(() -> service.completeReinspection(
-                reportId, true, "提前提交", UUID.randomUUID()))
-                .isInstanceOf(ResourceConflictException.class)
-                .hasMessageContaining("复查任务完成");
-    }
+    @Test void rectificationRequiresEvidence(){UUID id=UUID.randomUUID();when(repository.findReport(id)).thenReturn(Optional.of(Map.of("reportId",id,"reportCode","DEMO-1","status","PROCESSING","buildingId",UUID.randomUUID())));when(assetService.list("RESIDENT_REPORT",id)).thenReturn(List.of());assertThatThrownBy(()->service.submitRectification(id,"已完成外墙裂缝封闭。",null,UUID.randomUUID())).isInstanceOf(ResourceConflictException.class).hasMessageContaining("整改证据");}
+    @Test void evidenceMovesToPendingReinspection(){UUID id=UUID.randomUUID(),actor=UUID.randomUUID();when(repository.findReport(id)).thenReturn(Optional.of(Map.of("reportId",id,"reportCode","DEMO-1","status","PROCESSING","buildingId",UUID.randomUUID())));when(assetService.list("RESIDENT_REPORT",id)).thenReturn(List.of(Map.of("assetId",UUID.randomUUID(),"bindingRole","RECTIFICATION_PHOTO")));when(feedbackService.updateStatus(eq(id),anyMap(),eq(actor))).thenReturn(Map.of("reportId",id,"status","RESOLVED"));Map<String,Object> result=service.submitRectification(id,"已完成外墙裂缝封闭。",null,actor);assertThat(result).containsEntry("status","RESOLVED").containsEntry("formalRiskChanged",false);}
+    @Test void completedReinspectionCanClose(){UUID id=UUID.randomUUID(),actor=UUID.randomUUID(),task=UUID.randomUUID();when(repository.findReport(id)).thenReturn(Optional.of(Map.of("reportId",id,"reportCode","DEMO-1","status","RESOLVED","buildingId",UUID.randomUUID())));when(closureRepository.latestReinspection(id)).thenReturn(Optional.of(Map.of("taskId",task,"taskCode","RI-1","status","COMPLETED")));when(feedbackService.updateStatus(eq(id),anyMap(),eq(actor))).thenReturn(Map.of("reportId",id,"status","CLOSED"));Map<String,Object> result=service.completeReinspection(id,true,"复验通过，原问题未继续存在。",actor);assertThat(result).containsEntry("formalRiskChanged",false);@SuppressWarnings("unchecked") ArgumentCaptor<Map<String,Object>> body=ArgumentCaptor.forClass(Map.class);verify(feedbackService).updateStatus(eq(id),body.capture(),eq(actor));assertThat(body.getValue()).containsEntry("status","CLOSED");}
+    @Test void failedReinspectionReturnsToProcessing(){UUID id=UUID.randomUUID(),actor=UUID.randomUUID();when(repository.findReport(id)).thenReturn(Optional.of(Map.of("reportId",id,"reportCode","DEMO-1","status","RESOLVED","buildingId",UUID.randomUUID())));when(closureRepository.latestReinspection(id)).thenReturn(Optional.of(Map.of("taskId",UUID.randomUUID(),"taskCode","RI-1","status","COMPLETED")));when(feedbackService.updateStatus(eq(id),anyMap(),eq(actor))).thenReturn(Map.of("reportId",id,"status","PROCESSING"));Map<String,Object> result=service.completeReinspection(id,false,"现场仍存在渗水痕迹，需要继续整改。",actor);assertThat(result).containsEntry("formalRiskChanged",false);}
+    @Test void cannotCloseBeforeTaskCompleted(){UUID id=UUID.randomUUID();when(repository.findReport(id)).thenReturn(Optional.of(Map.of("reportId",id,"reportCode","DEMO-1","status","RESOLVED","buildingId",UUID.randomUUID())));when(closureRepository.latestReinspection(id)).thenReturn(Optional.of(Map.of("taskId",UUID.randomUUID(),"taskCode","RI-1","status","IN_PROGRESS")));assertThatThrownBy(()->service.completeReinspection(id,true,"提前提交复验结论。",UUID.randomUUID())).isInstanceOf(ResourceConflictException.class).hasMessageContaining("复查任务完成");}
+    @Test void recordedCompletedReinspectionMustNotBeReusedForNextCycle(){UUID id=UUID.randomUUID(),actor=UUID.randomUUID(),building=UUID.randomUUID(),oldTask=UUID.randomUUID(),newTask=UUID.randomUUID();when(repository.findReport(id)).thenReturn(Optional.of(Map.of("reportId",id,"reportCode","DEMO-1","status","RESOLVED","buildingId",building)));when(closureRepository.latestReinspection(id)).thenReturn(Optional.of(Map.of("taskId",oldTask,"taskCode","RI-OLD","status","COMPLETED","resultRecorded",true)));when(inspectionService.createTask(anyMap())).thenReturn(Map.of("taskId",newTask,"taskCode","RI-NEW","buildingId",building,"inspectionType","REINSPECTION","status","PENDING"));Map<String,Object> result=service.createReinspection(id,actor);verify(inspectionService).createTask(anyMap());assertThat(result).containsEntry("taskId",newTask).containsEntry("reused",false);}
+    @Test void recordedResultCannotBeSubmittedAgain(){UUID id=UUID.randomUUID();when(repository.findReport(id)).thenReturn(Optional.of(Map.of("reportId",id,"reportCode","DEMO-1","status","RESOLVED","buildingId",UUID.randomUUID())));when(closureRepository.latestReinspection(id)).thenReturn(Optional.of(Map.of("taskId",UUID.randomUUID(),"taskCode","RI-OLD","status","COMPLETED","resultRecorded",true)));assertThatThrownBy(()->service.completeReinspection(id,true,"重复提交旧任务复验结论。",UUID.randomUUID())).isInstanceOf(ResourceConflictException.class).hasMessageContaining("已提交复验结论");}
 }

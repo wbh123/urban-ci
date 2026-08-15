@@ -441,7 +441,15 @@ public class AiInferenceRepository {
                 JOIN ai.inference_result r ON r.id=d.inference_result_id
                 WHERE r.inference_task_id=:id
                 ORDER BY d.sequence_no
-                """, Map.of("id", inferenceId), rowMapper);
+                """, Map.of("id", inferenceId), rowMapper).stream()
+                .map(this::normalizeDetectionJsonColumns)
+                .toList();
+    }
+
+    private Map<String, Object> normalizeDetectionJsonColumns(Map<String, Object> source) {
+        Map<String, Object> normalized = new LinkedHashMap<>(source);
+        normalized.put("boundingBox", readJsonColumn(normalized.get("boundingBox"), Map.of()));
+        return normalized;
     }
 
     private Optional<Map<String, Object>> latestReview(UUID inferenceId) {

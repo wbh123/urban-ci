@@ -55,19 +55,33 @@ public class AiAutomationSettingsService {
                 repository.findUpdatedAt());
     }
 
+    /**
+     * 旧业务入口保持原契约：只切换三个布尔能力，不要求调用方感知默认模型字段。
+     */
     public AiAutomationSettings update(
             boolean autoInferenceOnUpload,
             boolean intelligentWorkflowEnabled,
             boolean knowledgeQaEnabled,
             UUID updatedBy) {
-        return update(
+        boolean currentAutoInference = repository.findAutoInferenceOnUpload();
+        boolean currentWorkflow = repository.findIntelligentWorkflowEnabled();
+        boolean currentKnowledgeQa = repository.findKnowledgeQaEnabled();
+        validateProviderTransitions(
                 autoInferenceOnUpload,
                 intelligentWorkflowEnabled,
                 knowledgeQaEnabled,
-                repository.findDefaultVisionModelId(AUTO_MODEL_ID),
+                currentAutoInference,
+                currentWorkflow,
+                currentKnowledgeQa);
+        repository.update(
+                autoInferenceOnUpload,
+                intelligentWorkflowEnabled,
+                knowledgeQaEnabled,
                 updatedBy);
+        return get();
     }
 
+    /** 管理端新入口：在三个业务开关之外，可安全切换默认视觉模型。 */
     public AiAutomationSettings update(
             boolean autoInferenceOnUpload,
             boolean intelligentWorkflowEnabled,
@@ -84,6 +98,37 @@ public class AiAutomationSettingsService {
                 || !effectiveModelId.equals(currentModelId)) {
             requireSelectableVisionModel(effectiveModelId);
         }
+        validateProviderTransitions(
+                autoInferenceOnUpload,
+                intelligentWorkflowEnabled,
+                knowledgeQaEnabled,
+                currentAutoInference,
+                currentWorkflow,
+                currentKnowledgeQa);
+        repository.update(
+                autoInferenceOnUpload,
+                intelligentWorkflowEnabled,
+                knowledgeQaEnabled,
+                effectiveModelId,
+                updatedBy);
+        return get();
+    }
+
+    public boolean intelligentWorkflowEnabled() {
+        return repository.findIntelligentWorkflowEnabled();
+    }
+
+    public boolean knowledgeQaEnabled() {
+        return repository.findKnowledgeQaEnabled();
+    }
+
+    private void validateProviderTransitions(
+            boolean autoInferenceOnUpload,
+            boolean intelligentWorkflowEnabled,
+            boolean knowledgeQaEnabled,
+            boolean currentAutoInference,
+            boolean currentWorkflow,
+            boolean currentKnowledgeQa) {
         if (autoInferenceOnUpload
                 && !currentAutoInference
                 && !providerReady(AUTO_PROVIDER_CODE, AiCapabilityType.VISION_INFERENCE)) {
@@ -105,21 +150,6 @@ public class AiAutomationSettingsService {
                     "AI_KNOWLEDGE_PROVIDER_NOT_READY",
                     "Spring AI / DeepSeek 文本能力尚未启用或配置完整，不能开启知识问答");
         }
-        repository.update(
-                autoInferenceOnUpload,
-                intelligentWorkflowEnabled,
-                knowledgeQaEnabled,
-                effectiveModelId,
-                updatedBy);
-        return get();
-    }
-
-    public boolean intelligentWorkflowEnabled() {
-        return repository.findIntelligentWorkflowEnabled();
-    }
-
-    public boolean knowledgeQaEnabled() {
-        return repository.findKnowledgeQaEnabled();
     }
 
     private void requireSelectableVisionModel(String modelId) {

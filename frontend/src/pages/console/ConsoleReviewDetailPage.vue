@@ -21,6 +21,7 @@ import AppPageHeader from '@/shared/components/layout/AppPageHeader.vue'
 import AiInsightCard from '@/shared/components/ai/AiInsightCard.vue'
 import AiDetectionOverlay from '@/pages/AiDetectionOverlay.vue'
 import { resolveModelAttribution } from '@/pages/console/reviewModelAttribution'
+import { resolveReviewOverlayDetections } from '@/pages/console/reviewDetectionOverlay'
 
 const route = useRoute()
 const router = useRouter()
@@ -28,6 +29,10 @@ const appStore = useAppStore()
 const inferenceId = computed(() => String(route.params.inferenceId ?? ''))
 const task = ref<AiInferenceTask | null>(null)
 const structured = computed(() => task.value?.structuredResult ?? null)
+const overlayDetections = computed(() => resolveReviewOverlayDetections(
+  structured.value?.detections ?? [],
+  task.value?.detections ?? [],
+))
 const imageUrl = ref('')
 const loading = ref(false)
 const imageLoading = ref(false)
@@ -304,10 +309,10 @@ onBeforeUnmount(() => {
             <AppLoading :visible="imageLoading" inline text="加载原始图片中…" />
             <AppError v-if="imageErrorMessage" :message="imageErrorMessage" />
             <AiDetectionOverlay
-              v-if="imageUrl && showAiOverlay && (structured?.detections?.length || task.detections?.length)"
-              :detections="structured?.detections?.length ? structured.detections : task.detections"
-              :image-width="task.imageWidth || 1"
-              :image-height="task.imageHeight || 1"
+              v-if="imageUrl && showAiOverlay && overlayDetections.length"
+              :detections="overlayDetections"
+              :image-width="task.imageWidth"
+              :image-height="task.imageHeight"
               :image-src="imageUrl"
             />
             <img v-else-if="imageUrl" :src="imageUrl" class="review-image" alt="巡检原始证据" />

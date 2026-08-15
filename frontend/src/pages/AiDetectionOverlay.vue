@@ -1,39 +1,65 @@
 <script setup lang="ts">
 /**
  * 归一化检测框 + SAM2 分割多边形画布叠加层。
- * 根据原图尺寸与容器实际渲染区域计算归一化坐标在屏幕上的像素位置，
- * 正确处理 object-fit:contain 的留白偏移，并监听 ResizeObserver 跟随容器缩放，
- * 避免标注漂移。segmentation 为可选字段（旧数据忽略）；缺少 boundingBox 的纯语义项不绘制。
+ * 优先使用接口返回的原图尺寸；历史/编排链路缺少宽高时，自动读取浏览器已加载图片的
+ * naturalWidth / naturalHeight 作为兜底，再根据 object-fit:contain 的实际渲染区域换算坐标。
+ * 同时兼容历史演示数据中的 bbox / polygon 字段，统一转换为 boundingBox / segmentation 后绘制。
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { AiDetection, AiStructuredDetection } from '@/shared/api/endpoints/ai-inference'
 import { computeContainRect } from '@/pages/containRect'
 import { formatDetectionLabel } from '@/pages/detectionLabel'
+import { resolveReviewOverlayDetections } from '@/pages/console/reviewDetectionOverlay'
 
 type OverlayDetection = AiDetection | AiStructuredDetection
 
 const props = withDefaults(
   defineProps<{
     detections?: OverlayDetection[]
-    imageWidth: number
-    imageHeight: number
+    imageWidth?: number
+    imageHeight?: number
     imageSrc: string
     /** 是否显示 AI 标注（检测框 + 分割多边形），默认开启。 */
     visible?: boolean
   }>(),
-  { detections: () => [], visible: true },
+  { detections: () => [], imageWidth: 0, imageHeight: 0, visible: true },
 )
 
 const container = ref<HTMLDivElement>()
+const image = ref<HTMLImageElement>()
 const canvas = ref<HTMLCanvasElement>()
 const containerW = ref(0)
 const containerH = ref(0)
+const naturalImageW = ref(0)
+const naturalImageH = ref(0)
 
 let resizeObserver: ResizeObserver | null = null
 
-const renderRect = computed(() =>
-  computeContainRect(containerW.value, containerH.value, props.imageWidth, props.imageHeight),
+const effectiveImageWidth = computed(() =>
+  props.imageWidth && props.imageWidth > 1 ? props.imageWidth : naturalImageW.value || 1,
 )
+const effectiveImageHeight = computed(() =>
+  props.imageHeight && props.imageHeight > 1 ? props.imageHeight : naturalImageH.value || 1,
+)
+const drawableDetections = computed(() => resolveReviewOverlayDetections(props.detections, []))
+
+const renderRect = computed(() =>
+  computeContainRect(
+    containerW.value,
+    containerH.value,
+    effectiveImageWidth.value,
+    effectiveImageHeight.value,
+  ),
+)
+
+function syncNaturalImageSize(): void {
+  const element = image.value
+  if (!element) return
+  if (element.naturalWidth > 0 && element.naturalHeight > 0) {
+    naturalImageW.value = element.naturalWidth
+    naturalImageH.value = element.naturalHeight
+  }
+}
 
 function draw() {
   const cvs = canvas.value
@@ -53,7 +79,7 @@ function draw() {
 
   if (!props.visible) return
 
-  for (const d of props.detections) {
+  for (const d of drawableDetections.value) {
     const box = d.boundingBox
     if (!box) continue
     const left = ox + box.x * rw
@@ -94,7 +120,13 @@ function draw() {
   }
 }
 
+function handleImageLoad(): void {
+  syncNaturalImageSize()
+  requestAnimationFrame(draw)
+}
+
 onMounted(() => {
+  syncNaturalImageSize()
   if (container.value) {
     containerW.value = container.value.clientWidth
     containerH.value = container.value.clientHeight
@@ -114,14 +146,30 @@ onUnmounted(() => {
   resizeObserver?.disconnect()
 })
 
-watch(() => [props.detections, props.imageSrc], () => {
-  requestAnimationFrame(draw)
-}, { deep: true })
+watch(
+  () => [
+    props.detections,
+    props.imageSrc,
+    props.imageWidth,
+    props.imageHeight,
+    props.visible,
+    naturalImageW.value,
+    naturalImageH.value,
+  ],
+  () => requestAnimationFrame(draw),
+  { deep: true },
+)
 </script>
 
 <template>
   <div ref="container" class="detection-overlay">
-    <img :src="imageSrc" alt="AI 检测图片" class="overlay-image" />
+    <img
+      ref="image"
+      :src="imageSrc"
+      alt="AI 检测图片"
+      class="overlay-image"
+      @load="handleImageLoad"
+    />
     <canvas ref="canvas" class="overlay-canvas" />
   </div>
 </template>

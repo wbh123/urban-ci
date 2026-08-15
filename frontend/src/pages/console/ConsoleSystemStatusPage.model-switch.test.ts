@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import pageSource from './ConsoleSystemStatusPage.vue?raw'
 
+// RED contract: production page intentionally lacks these capabilities before implementation.
 describe('AI 运行状态默认视觉模型切换', () => {
   it('加载模型目录并展示默认视觉模型选择器', () => {
     expect(pageSource).toContain('listAiModels')

@@ -9,6 +9,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import type { AiDetection, AiStructuredDetection } from '@/shared/api/endpoints/ai-inference'
 import { computeContainRect } from '@/pages/containRect'
 import { formatDetectionLabel } from '@/pages/detectionLabel'
+import { resolveReviewOverlayDetections } from '@/pages/console/reviewDetectionOverlay'
 
 type OverlayDetection = AiDetection | AiStructuredDetection
 
@@ -34,6 +35,7 @@ let resizeObserver: ResizeObserver | null = null
 const renderRect = computed(() =>
   computeContainRect(containerW.value, containerH.value, props.imageWidth, props.imageHeight),
 )
+const drawableDetections = computed(() => resolveReviewOverlayDetections(props.detections, []))
 
 function draw() {
   const cvs = canvas.value
@@ -53,7 +55,7 @@ function draw() {
 
   if (!props.visible) return
 
-  for (const d of props.detections) {
+  for (const d of drawableDetections.value) {
     const box = d.boundingBox
     if (!box) continue
     const left = ox + box.x * rw

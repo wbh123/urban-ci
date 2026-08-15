@@ -17,6 +17,7 @@ public class AiAutomationSettingsRepository {
     static final String INTELLIGENT_WORKFLOW_ENABLED = "INTELLIGENT_WORKFLOW_ENABLED";
     static final String KNOWLEDGE_QA_ENABLED = "KNOWLEDGE_QA_ENABLED";
     static final String DEFAULT_VISION_MODEL_ID = "DEFAULT_VISION_MODEL_ID";
+    private static final String FALLBACK_VISION_MODEL_ID = "AI-VISION-LOCAL-001";
 
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -65,6 +66,21 @@ public class AiAutomationSettingsRepository {
                         DEFAULT_VISION_MODEL_ID)),
                 (rs, rowNum) -> rs.getObject("updated_at", OffsetDateTime.class));
         return values.isEmpty() ? null : values.get(0);
+    }
+
+    /** 旧调用兼容：只更新三个布尔开关时保持当前默认视觉模型不变。 */
+    @Transactional
+    public void update(
+            boolean autoInferenceOnUpload,
+            boolean intelligentWorkflowEnabled,
+            boolean knowledgeQaEnabled,
+            UUID updatedBy) {
+        update(
+                autoInferenceOnUpload,
+                intelligentWorkflowEnabled,
+                knowledgeQaEnabled,
+                findDefaultVisionModelId(FALLBACK_VISION_MODEL_ID),
+                updatedBy);
     }
 
     @Transactional

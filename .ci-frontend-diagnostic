@@ -1,8 +1,8 @@
-source_ref=b38cda934acccfe6e73af922729d71ccb4a1c577
-run_id=31864556942
+source_ref=6011049a287db535e0808514e1cb786b78205c56
+run_id=31864793209
 --- frontend-npm-ci.log tail ---
 
-added 422 packages in 10s
+added 422 packages in 7s
 
 107 packages are looking for funding
   run `npm fund` for details
@@ -17,7 +17,7 @@ npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to revi
 > node scripts/generate-api.mjs
 
 ✨ openapi-typescript 7.13.0
-🚀 /home/runner/work/urban-ci/urban-ci/mirror/backend-java/model/src/main/resources/openapi-interface.yaml → /home/runner/work/urban-ci/urban-ci/mirror/frontend/src/shared/api/generated/schema.d.ts [220.6ms]
+🚀 /home/runner/work/urban-ci/urban-ci/mirror/backend-java/model/src/main/resources/openapi-interface.yaml → /home/runner/work/urban-ci/urban-ci/mirror/frontend/src/shared/api/generated/schema.d.ts [188.6ms]
 [api:generate] 已生成类型: /home/runner/work/urban-ci/urban-ci/mirror/frontend/src/shared/api/generated/schema.d.ts
 [api:generate] 已刷新 R2 空间契约指纹: /home/runner/work/urban-ci/urban-ci/mirror/frontend/src/shared/api/generated/spatial-contract.gitblob
 [api:generate] 已刷新可视化建档契约指纹: /home/runner/work/urban-ci/urban-ci/mirror/frontend/src/shared/api/generated/archive-contract.gitblob
@@ -40,154 +40,162 @@ npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to revi
 
 [1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90m/home/runner/work/urban-ci/urban-ci/mirror/frontend[39m
 
- [32m✓[39m src/shared/map/spatial-amap.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 18[2mms[22m[39m
- [32m✓[39m src/shared/map/spatial-amap-visual-regression.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 425[2mms[22m[39m
+ [32m✓[39m src/shared/map/spatial-amap.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m src/shared/map/spatial-amap-visual-regression.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 423[2mms[22m[39m
+ [32m✓[39m src/features/building-detail/building-detail-loader.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 11[2mms[22m[39m
  [32m✓[39m src/shared/map/spatial-amap-building-click.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 857[2mms[22m[39m
      [33m[2m✓[22m[39m dismisses on a confirmed blank DOM click instead of inventing an unregistered building [33m 438[2mms[22m[39m
- [32m✓[39m src/features/building-detail/building-detail-loader.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 19[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleDashboardPage.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 18[2mms[22m[39m
- [32m✓[39m src/stores/spatial-map.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 26[2mms[22m[39m
- [32m✓[39m src/__tests__/MockAuthHandlerTest.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 507[2mms[22m[39m
-     [33m[2m✓[22m[39m 提供 mock health 端点 [33m 374[2mms[22m[39m
- [32m✓[39m src/shared/composables/useSpatialObjectSelector.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 36[2mms[22m[39m
- [32m✓[39m src/shared/components/business/building-lifecycle.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 13[2mms[22m[39m
- [32m✓[39m src/shared/components/business/BuildingBusinessComponents.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 143[2mms[22m[39m
- [32m✓[39m src/mocks/archive-mock-flow.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 242[2mms[22m[39m
- [32m✓[39m src/shared/map/spatial-amap-highlight-fallback.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 13[2mms[22m[39m
- [32m✓[39m src/shared/map/spatial-boundary-editor.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 18[2mms[22m[39m
- [32m✓[39m src/shared/map/spatial-amap-gesture.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 31[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleSpatialArchivePage.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 12[2mms[22m[39m
- [32m✓[39m src/shared/map/spatial-amap-community-point-focus.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleDashboardPage.test.ts [2m([22m[2m13 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m src/stores/spatial-map.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m src/__tests__/MockAuthHandlerTest.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 381[2mms[22m[39m
+     [33m[2m✓[22m[39m 提供 mock health 端点 [33m 320[2mms[22m[39m
+ [32m✓[39m src/shared/composables/useSpatialObjectSelector.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m src/shared/components/business/building-lifecycle.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/shared/components/business/BuildingBusinessComponents.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 99[2mms[22m[39m
+ [32m✓[39m src/mocks/archive-mock-flow.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 256[2mms[22m[39m
+ [32m✓[39m src/shared/map/spatial-amap-highlight-fallback.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m src/shared/map/spatial-boundary-editor.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m src/shared/map/spatial-amap-gesture.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 24[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleSpatialArchivePage.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/shared/map/spatial-amap-community-point-focus.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 12[2mms[22m[39m
  [32m✓[39m src/shared/navigation/console-menu.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 11[2mms[22m[39m
- [32m✓[39m src/__tests__/router.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 28[2mms[22m[39m
- [32m✓[39m src/shared/map/spatial-amap-native-status-markers.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 10[2mms[22m[39m
- [32m✓[39m src/shared/api/endpoints/spatial.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 14[2mms[22m[39m
- [32m✓[39m src/shared/api/endpoints/ai-inference.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 12[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleSpatialMapPage.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 9[2mms[22m[39m
- [32m✓[39m src/shared/components/__tests__/R1SharedComponents.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 105[2mms[22m[39m
- [32m✓[39m src/shared/api/__tests__/interceptors.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 75[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleBuildingAssessmentStaleState.spec.ts [2m([22m[2m1 test[22m[2m)[22m[32m 279[2mms[22m[39m
- [32m✓[39m src/shared/map/spatial-amap-community-marker-shape.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 11[2mms[22m[39m
- [32m✓[39m src/shared/api/endpoints/assets.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 15[2mms[22m[39m
- [32m✓[39m src/shared/api/__tests__/error.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 10[2mms[22m[39m
- [32m✓[39m src/shared/map/spatial-boundary-candidate-preview.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 12[2mms[22m[39m
- [32m✓[39m src/stores/__tests__/spatial-map.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 17[2mms[22m[39m
- [32m✓[39m src/shared/components/browser-acceptance-round2.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 6[2mms[22m[39m
- [32m✓[39m src/shared/map/spatial-amap-overview-presentation.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 11[2mms[22m[39m
- [32m✓[39m src/stores/__tests__/auth.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 16[2mms[22m[39m
- [32m✓[39m src/components/workbench/ai-wall/ai-wall.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/__tests__/router.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 23[2mms[22m[39m
+ [32m✓[39m src/shared/map/spatial-amap-native-status-markers.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32m✓[39m src/shared/api/endpoints/spatial.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/shared/api/endpoints/ai-inference.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleSpatialMapPage.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/shared/components/__tests__/R1SharedComponents.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 86[2mms[22m[39m
+ [32m✓[39m src/shared/api/__tests__/interceptors.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 67[2mms[22m[39m
+ [32m✓[39m src/shared/map/spatial-amap-community-marker-shape.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleBuildingAssessmentStaleState.spec.ts [2m([22m[2m1 test[22m[2m)[22m[33m 341[2mms[22m[39m
+     [33m[2m✓[22m[39m 展示 STALE 警示并保留过期评分可读 [33m 337[2mms[22m[39m
+ [32m✓[39m src/shared/api/endpoints/assets.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m✓[39m src/shared/map/spatial-boundary-candidate-preview.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32m✓[39m src/shared/api/__tests__/error.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/stores/__tests__/spatial-map.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m src/shared/components/browser-acceptance-round2.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/shared/map/spatial-amap-overview-presentation.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/stores/__tests__/auth.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m src/components/workbench/ai-wall/ai-wall.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
  [32m✓[39m src/shared/map/archive-point-picker.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
- [32m✓[39m src/shared/api/endpoints/inspection-image-analysis.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 11[2mms[22m[39m
- [32m✓[39m src/shared/components/__tests__/AppStatusTag.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 85[2mms[22m[39m
- [32m✓[39m src/__tests__/access.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 9[2mms[22m[39m
- [32m✓[39m src/components/workbench/WorkbenchDataWallMap.stability.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
- [32m✓[39m src/shared/styles/__tests__/design-system.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
- [32m✓[39m src/components/workbench/WorkbenchDataWallMap.presentation.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 10[2mms[22m[39m
- [32m✓[39m src/shared/components/__tests__/AppFilterBar.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 114[2mms[22m[39m
- [32m✓[39m src/shared/components/__tests__/GovernanceFlowHints.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/pages/InspectionWorkspacePage.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/shared/components/__tests__/AppStatusTag.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 72[2mms[22m[39m
+ [32m✓[39m src/components/workbench/WorkbenchDataWallMap.presentation.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/shared/api/endpoints/inspection-image-analysis.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/__tests__/access.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/components/workbench/WorkbenchDataWallMap.stability.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/components/workbench/ai-wall/AiWallMap.stability.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/shared/styles/__tests__/design-system.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/shared/components/__tests__/GovernanceFlowHints.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32m✓[39m src/shared/components/__tests__/AppFilterBar.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 72[2mms[22m[39m
+ [32m✓[39m src/components/workbench/ai-wall/AiWallMap.presentation.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/pages/InspectionWorkspacePage.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/__tests__/MockBootstrapTest.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 26[2mms[22m[39m
+ [32m✓[39m src/app/routes.spec.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 7[2mms[22m[39m
  [32m✓[39m src/__tests__/phase2-response-contract.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
- [32m✓[39m src/__tests__/MockBootstrapTest.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 30[2mms[22m[39m
- [32m✓[39m src/app/routes.spec.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
- [32m✓[39m src/shared/components/inspection/InspectionImageGallery.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 9[2mms[22m[39m
- [32m✓[39m src/__tests__/AiOrchestrationMockTest.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 250[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleInspectionPage.management-v2.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 8[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleReviewDetailPage.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
- [32m✓[39m src/shared/components/inspection/detection-display.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/shared/components/inspection/InspectionImageGallery.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleInspectionPage.management-v2.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/__tests__/AiOrchestrationMockTest.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 216[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleReviewDetailPage.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/shared/components/inspection/detection-display.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
  [32m✓[39m src/shared/ai/archive-hints.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/features/building-detail/BuildingDetailDrawer.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 101[2mms[22m[39m
- [32m✓[39m src/shared/components/SpatialObjectSelector.contract.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
- [32m✓[39m src/__tests__/AiGovernanceMockTest.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 259[2mms[22m[39m
- [32m✓[39m src/shared/api/endpoints/reports.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/pages/containRect.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/features/building-detail/BuildingDetailDrawer.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 74[2mms[22m[39m
+ [32m✓[39m src/shared/components/SpatialObjectSelector.contract.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/__tests__/AiGovernanceMockTest.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 197[2mms[22m[39m
+ [32m✓[39m src/shared/api/endpoints/reports.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m src/pages/containRect.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
  [32m✓[39m src/pages/knowledge/KnowledgeQaFeature.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/pages/console/reviewModelAttribution.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 6[2mms[22m[39m
  [32m✓[39m src/components/workbench/ai-wall/browser-acceptance-hardening.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/pages/console/reviewModelAttribution.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/components/workbench/ai-wall/legacy-isolation.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
  [32m✓[39m src/shared/components/browser-acceptance-filters.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/pages/mobile/MobileBuildingAssessmentStaleState.spec.ts [2m([22m[2m1 test[22m[2m)[22m[32m 140[2mms[22m[39m
  [32m✓[39m src/pages/console/ConsoleDashboardPage.ai-first.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
- [32m✓[39m src/pages/mobile/MobileBuildingAssessmentStaleState.spec.ts [2m([22m[2m1 test[22m[2m)[22m[32m 224[2mms[22m[39m
- [32m✓[39m src/layouts/__tests__/AppLayout.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 105[2mms[22m[39m
- [32m✓[39m src/shared/api/endpoints/archive.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
- [32m✓[39m src/shared/auth/access.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 8[2mms[22m[39m
- [32m✓[39m src/app/knowledge-routes.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
- [32m✓[39m src/shared/map/amap-loader.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 13[2mms[22m[39m
- [32m✓[39m src/shared/components/__tests__/AppNotice.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 78[2mms[22m[39m
+ [32m✓[39m src/shared/api/endpoints/archive.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/shared/auth/access.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/layouts/__tests__/AppLayout.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 82[2mms[22m[39m
+ [32m✓[39m src/app/knowledge-routes.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/components/workbench/ai-wall/AiWall.navigation.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/shared/components/__tests__/AppNotice.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 58[2mms[22m[39m
+ [32m✓[39m src/shared/map/amap-loader.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/shared/api/endpoints/ai-inference-async.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/components/assessment/__tests__/OfficialRankingTable.spec.ts [2m([22m[2m1 test[22m[2m)[22m[32m 28[2mms[22m[39m
  [32m✓[39m src/pages/console/ConsoleArchiveManagementPage.query-flow.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/shared/api/endpoints/ai-inference-async.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
- [32m✓[39m src/components/assessment/__tests__/OfficialRankingTable.spec.ts [2m([22m[2m1 test[22m[2m)[22m[32m 50[2mms[22m[39m
- [32m✓[39m src/shared/api/endpoints/archive-create.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
- [32m✓[39m src/__tests__/AssetImageEndpointTest.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 40[2mms[22m[39m
- [32m✓[39m src/shared/components/ai/AiPageBrief.adoption.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/shared/api/endpoints/archive-create.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/__tests__/AssetImageEndpointTest.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 33[2mms[22m[39m
+ [32m✓[39m src/shared/components/ai/AiPageBrief.adoption.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
  [32m✓[39m src/shared/map/spatial-geojson.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
- [32m✓[39m src/shared/composables/useAppConfirm.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
- [32m✓[39m src/shared/api/endpoints/ai-governance.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 9[2mms[22m[39m
- [32m✓[39m src/shared/components/ai/ai-components.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
- [32m✓[39m src/app/building-detail-route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/components/workbench/WorkbenchDataWall.navigation.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
- [32m✓[39m src/layouts/ConsoleLayout.ai-runtime.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleSpatialMapPage-native-status.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/shared/components/__tests__/AppBusinessControls.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleSpatialArchivePage.layout-v2.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/shared/ai/ai-display.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleSystemStatusPage.ai-routing.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
- [32m✓[39m src/shared/components/__tests__/AppError.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 103[2mms[22m[39m
- [32m✓[39m src/shared/api/__tests__/request-id.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 19[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleFeedbackPage.ai-assist.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
- [32m✓[39m src/features/archive/archive-duplicate.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/shared/ai/ai-status.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleFeedbackPage.management-v2.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleRiskReportsPage.selector-v2.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
- [32m✓[39m src/components/workbench/WorkbenchDataWallMap.status-aggregation.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleArchiveManagementPage.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
- [32m✓[39m src/pages/mobile/MobileDisposalPage.closure.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/shared/ai/ai-copy.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleSpatialArchivePage.layout.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/shared/api/endpoints/knowledge.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
- [32m✓[39m src/shared/components/__tests__/AppLoading.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 58[2mms[22m[39m
- [32m✓[39m src/pages/console/BuildingDetailPage.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleInspectionPage.ai-summary.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleRiskReportsPage.auto-download.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/shared/api/archive-contract-fingerprint.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleInspectionPage.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/pages/mobile/MobileTaskDetailPage.image-analysis.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
- [32m✓[39m src/shared/ai/ai-inspection-summary.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/shared/composables/useAppConfirm.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/shared/api/endpoints/ai-governance.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/shared/components/ai/ai-components.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/app/building-detail-route.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/layouts/ConsoleLayout.ai-runtime.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleSpatialMapPage-native-status.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/shared/components/__tests__/AppBusinessControls.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleSpatialArchivePage.layout-v2.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/shared/ai/ai-display.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleSystemStatusPage.ai-routing.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/shared/api/__tests__/request-id.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m src/shared/components/__tests__/AppError.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 73[2mms[22m[39m
+ [32m✓[39m src/components/workbench/ai-wall/WorkbenchAiDataWall.resilience.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleFeedbackPage.ai-assist.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/shared/ai/ai-status.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/features/archive/archive-duplicate.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/components/workbench/WorkbenchDataWallMap.status-aggregation.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleFeedbackPage.management-v2.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/components/workbench/WorkbenchDataWall.navigation.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleRiskReportsPage.selector-v2.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/components/workbench/ai-wall/AiWallMap.status-aggregation.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleArchiveManagementPage.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/shared/ai/ai-copy.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleSpatialArchivePage.layout.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/shared/api/endpoints/knowledge.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m src/components/workbench/ai-wall/AiWallBuildingDrawer.governance.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/shared/components/__tests__/AppLoading.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+ [32m✓[39m src/pages/console/BuildingDetailPage.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleInspectionPage.ai-summary.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleRiskReportsPage.auto-download.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleInspectionPage.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/shared/api/archive-contract-fingerprint.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/pages/mobile/MobileTaskDetailPage.image-analysis.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/shared/ai/ai-inspection-summary.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
  [32m✓[39m src/pages/console/ConsoleArchiveManagementPage.pagination.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
  [32m✓[39m src/pages/console/ConsoleSpatialMapPage.explorer-v2.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
- [32m✓[39m src/shared/api/endpoints/ai-dashboard.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleRiskReportsPage.pagination.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
- [32m✓[39m src/pages/console/BuildingDetailPage.ai-governance.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleRiskReportsPage.pagination.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/shared/api/endpoints/ai-dashboard.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/pages/console/BuildingDetailPage.ai-governance.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
  [32m✓[39m src/pages/console/ConsoleArchiveManagementPage.ai-hints.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleReviewDetailPage.ai-first.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleReviewDetailPage.ai-first.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
  [32m✓[39m src/shared/components/__tests__/AppEmpty.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 47[2mms[22m[39m
- [32m✓[39m src/shared/components/layout/console-inline-header.contract.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/shared/components/layout/console-inline-header.contract.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 12[2mms[22m[39m
  [32m✓[39m src/pages/console/ConsoleReviewQueuePage.pagination.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
  [32m✓[39m src/shared/components/layout/AppPageHeader.ai-runtime.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
- [32m✓[39m src/shared/components/ai/AiPageBrief.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/shared/map/spatial-amap.ai-layer.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
- [32m✓[39m src/shared/components/AppTablePager.contract.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/app/showcase-assessment-success-rate.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
- [32m✓[39m src/app/archive-management-route.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/features/archive/archive-code.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/pages/citizen/CitizenReportPage.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/shared/components/business/building-components.contract.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 10[2mms[22m[39m
- [32m✓[39m src/__tests__/mock-init.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/shared/components/ai/AiPageBrief.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/shared/map/spatial-amap.ai-layer.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/shared/components/AppTablePager.contract.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/app/showcase-assessment-success-rate.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/app/archive-management-route.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/features/archive/archive-code.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/pages/citizen/CitizenReportPage.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/pages/console/__tests__/console-dashboard-ai-wall.spec.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/shared/components/business/building-components.contract.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/__tests__/mock-init.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 6[2mms[22m[39m
  [32m✓[39m src/shared/map/amap-loader-adoption.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
- [32m✓[39m src/__tests__/ViteConfigTest.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/features/knowledge/KnowledgeQaPanel.ai-first.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleSystemStatusPage.business-first.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/features/knowledge/KnowledgeQaPanel.ai-first.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m src/__tests__/ViteConfigTest.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleSystemStatusPage.business-first.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
  [32m✓[39m src/pages/console/ConsoleReviewQueuePage.ai-first.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/shared/api/endpoints/ai-runtime.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
- [32m✓[39m src/pages/console/ConsoleRiskReportsPage.ai-interpretation.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
- [32m✓[39m src/pages/mobile/MobileDisposalPage.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 7[2mms[22m[39m
- [32m✓[39m src/pages/detectionLabel.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/shared/api/endpoints/ai-runtime.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/pages/console/ConsoleRiskReportsPage.ai-interpretation.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32m✓[39m src/pages/mobile/MobileDisposalPage.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/pages/detectionLabel.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
  [32m✓[39m src/pages/console/ConsoleKnowledgePage.ai-first.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
- [32m✓[39m src/layouts/ConsoleLayout.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
- [32m✓[39m src/app/bootstrap-status-rings.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/app/bootstrap-status-rings.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32m✓[39m src/layouts/ConsoleLayout.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 8[2mms[22m[39m
 
-[2m Test Files [22m [1m[32m141 passed[39m[22m[90m (141)[39m
-[2m      Tests [22m [1m[32m451 passed[39m[22m[90m (451)[39m
-[2m   Start at [22m 04:31:04
-[2m   Duration [22m 61.45s[2m (transform 3.09s, setup 14.16s, import 14.58s, tests 5.25s, environment 124.56s)[22m
+[2m Test Files [22m [1m[32m148 passed[39m[22m[90m (148)[39m
+[2m      Tests [22m [1m[32m471 passed[39m[22m[90m (471)[39m
+[2m   Start at [22m 04:35:47
+[2m   Duration [22m 50.79s[2m (transform 2.92s, setup 12.05s, import 11.20s, tests 4.58s, environment 102.54s)[22m
 
 --- frontend-build.log tail ---
 
@@ -222,7 +230,8 @@ dist/assets/HomePage-tZ0tOzdq.css                        1.13 kB │ gzip:   0.5
 dist/assets/MobileHomePage-BW-wwlFb.css                  1.23 kB │ gzip:   0.51 kB
 dist/assets/CitizenHomePage-JfnSuqF7.css                 1.33 kB │ gzip:   0.53 kB
 dist/assets/LoginPage-OvUGW3vy.css                       1.33 kB │ gzip:   0.62 kB
-dist/assets/MobileTasksPage-BnGBqIrJ.css                 1.40 kB │ gzip:   0.51 kB
+dist/assets/MobileDisposalPage-V4JhCBPY.css              1.38 kB │ gzip:   0.51 kB
+dist/assets/MobileTasksPage-UaDS65Vj.css                 1.40 kB │ gzip:   0.51 kB
 dist/assets/SpatialObjectSelector-CxNgxvFT.css           1.43 kB │ gzip:   0.43 kB
 dist/assets/CitizenReportPage-gTSVi3Ai.css               1.47 kB │ gzip:   0.59 kB
 dist/assets/AppFilterField-DwdzEHce.css                  1.55 kB │ gzip:   0.48 kB
@@ -232,7 +241,6 @@ dist/assets/ConsoleFeedbackPage-Co34u4zB.css             1.99 kB │ gzip:   0.6
 dist/assets/KnowledgeQaPanel-DYvgLgWV.css                2.21 kB │ gzip:   0.71 kB
 dist/assets/AiPageBrief-eVJJH52Q.css                     2.22 kB │ gzip:   0.64 kB
 dist/assets/InspectionImageGallery-VRq4aW0n.css          2.28 kB │ gzip:   0.74 kB
-dist/assets/MobileDisposalPage-BktMLmlO.css              2.40 kB │ gzip:   0.75 kB
 dist/assets/RiskSummaryPanel-Dy8AAx6C.css                2.40 kB │ gzip:   0.67 kB
 dist/assets/MobileTaskDetailPage-NlaSeMhW.css            2.68 kB │ gzip:   0.87 kB
 dist/assets/ConsoleSystemStatusPage-CdYPnbwc.css         3.64 kB │ gzip:   0.98 kB
@@ -245,86 +253,86 @@ dist/assets/ConsoleSpatialMapPage-dRAQ8Ykw.css           5.51 kB │ gzip:   1.3
 dist/assets/ConsoleSpatialArchivePage-Cxa061o-.css       5.70 kB │ gzip:   1.34 kB
 dist/assets/ConsoleInspectionPage-Bysq1d5G.css           5.73 kB │ gzip:   1.23 kB
 dist/assets/ConsoleArchiveManagementPage-CqfJP600.css    5.77 kB │ gzip:   1.34 kB
-dist/assets/ConsoleDashboardPage-DJt6-Tjz.css           40.85 kB │ gzip:   7.50 kB
+dist/assets/ConsoleDashboardPage-DKVzVmGa.css           41.49 kB │ gzip:   7.61 kB
 dist/assets/index-BSMJtYEr.css                         362.63 kB │ gzip:  49.34 kB
 dist/assets/ai-runtime-context-BZLDVX2_.js               0.05 kB │ gzip:   0.07 kB
 dist/assets/ai-display-C6QCAHJ2.js                       0.23 kB │ gzip:   0.20 kB
 dist/assets/AppEmpty-C2sDn_2K.js                         0.37 kB │ gzip:   0.30 kB
 dist/assets/ai-inspection-summary-CHzRi67S.js            0.53 kB │ gzip:   0.47 kB
 dist/assets/AppActionButton-B5GHBNAG.js                  0.53 kB │ gzip:   0.35 kB
-dist/assets/app-QnqKb9Fm.js                              0.53 kB │ gzip:   0.36 kB
+dist/assets/app-CsEkVMT9.js                              0.53 kB │ gzip:   0.36 kB
 dist/assets/AppDateTime-DAoeUaKp.js                      0.56 kB │ gzip:   0.38 kB
 dist/assets/AppLoading-DT0JbvNK.js                       0.59 kB │ gzip:   0.41 kB
 dist/assets/NotFoundPage-22p0wP7q.js                     0.60 kB │ gzip:   0.48 kB
 dist/assets/AppError-JnV8_aVU.js                         0.63 kB │ gzip:   0.47 kB
-dist/assets/MobileKnowledgePage-CiLmlxze.js              0.68 kB │ gzip:   0.57 kB
-dist/assets/UnauthorizedPage-BW1HQZBh.js                 0.70 kB │ gzip:   0.56 kB
+dist/assets/MobileKnowledgePage-DY96BwBn.js              0.68 kB │ gzip:   0.56 kB
+dist/assets/UnauthorizedPage-m7CjyGCo.js                 0.70 kB │ gzip:   0.56 kB
 dist/assets/AppQueryField-DYM6xhTG.js                    0.72 kB │ gzip:   0.48 kB
 dist/assets/ClientMismatchPage-RINXFb3n.js               0.80 kB │ gzip:   0.60 kB
 dist/assets/AiInsightCard-DtgGkCuj.js                    0.80 kB │ gzip:   0.49 kB
 dist/assets/AppTablePager-CF-8e_U8.js                    0.81 kB │ gzip:   0.48 kB
 dist/assets/useApi-CROJJdhE-D7Ogevy5.js                  0.83 kB │ gzip:   0.45 kB
 dist/assets/CitizenLayout-B5j9M5OY.js                    0.90 kB │ gzip:   0.58 kB
-dist/assets/spatial-E-91lkzn.js                          0.99 kB │ gzip:   0.27 kB
-dist/assets/RoleEntryPage-qZ4ShgYU.js                    1.04 kB │ gzip:   0.71 kB
+dist/assets/spatial-CEhbZdmx.js                          0.99 kB │ gzip:   0.27 kB
+dist/assets/RoleEntryPage-ItjLhV5k.js                    1.04 kB │ gzip:   0.71 kB
 dist/assets/AiPageBrief-YMEOOJMX.js                      1.09 kB │ gzip:   0.66 kB
 dist/assets/amap-loader-CZiqJWvf.js                      1.11 kB │ gzip:   0.71 kB
 dist/assets/AppStatusTag-D5ue_RmW.js                     1.18 kB │ gzip:   0.68 kB
-dist/assets/HomePage-C5_4FDgm.js                         1.26 kB │ gzip:   0.82 kB
+dist/assets/HomePage-BCwYVME_.js                         1.26 kB │ gzip:   0.82 kB
 dist/assets/AppFilterField-DOPwThtJ.js                   1.47 kB │ gzip:   0.81 kB
-dist/assets/MobileLayout-6Ss86Rlx.js                     1.56 kB │ gzip:   0.93 kB
-dist/assets/MobileHomePage-C7ZSxd5A.js                   1.56 kB │ gzip:   1.07 kB
-dist/assets/spatial-map-BkRkurVD.js                      2.13 kB │ gzip:   0.96 kB
-dist/assets/CitizenHomePage-Y-VYW_cM.js                  2.16 kB │ gzip:   1.20 kB
-dist/assets/MobileTasksPage-BNlKmhx9.js                  2.27 kB │ gzip:   1.38 kB
+dist/assets/MobileLayout-DjZj0D3d.js                     1.56 kB │ gzip:   0.93 kB
+dist/assets/MobileHomePage-DeP_537J.js                   1.56 kB │ gzip:   1.07 kB
+dist/assets/spatial-map-vtxVmvI-.js                      2.13 kB │ gzip:   0.96 kB
+dist/assets/MobileTasksPage-BcZpvQ8c.js                  2.14 kB │ gzip:   1.29 kB
+dist/assets/CitizenHomePage-C0tApSk3.js                  2.16 kB │ gzip:   1.20 kB
 dist/assets/AiDetectionOverlay-rgQszZf1.js               2.28 kB │ gzip:   1.28 kB
-dist/assets/CitizenTrackPage-QONF0sf9.js                 2.66 kB │ gzip:   1.42 kB
-dist/assets/LoginPage-d7QaM9tl.js                        2.76 kB │ gzip:   1.68 kB
-dist/assets/MobileBuildingAssessmentPage-BR6cQXCg.js     2.76 kB │ gzip:   1.41 kB
-dist/assets/auth-C7JnXLbF.js                             3.95 kB │ gzip:   1.72 kB
-dist/assets/AppPageHeader-CwZ9TGpu.js                    4.06 kB │ gzip:   1.96 kB
-dist/assets/CitizenReportDetailPage-B5MyEaix.js          4.20 kB │ gzip:   2.16 kB
+dist/assets/CitizenTrackPage-DBeuiK9o.js                 2.66 kB │ gzip:   1.42 kB
+dist/assets/LoginPage-xPuFjByB.js                        2.76 kB │ gzip:   1.68 kB
+dist/assets/MobileBuildingAssessmentPage-BltGhCnC.js     2.76 kB │ gzip:   1.41 kB
+dist/assets/auth-CfecdQQL.js                             3.95 kB │ gzip:   1.72 kB
+dist/assets/AppPageHeader-DuNfSzWF.js                    4.06 kB │ gzip:   1.96 kB
+dist/assets/CitizenReportDetailPage-Ompoctqq.js          4.20 kB │ gzip:   2.16 kB
 dist/assets/notification-BfVFe-U5.js                     4.63 kB │ gzip:   2.24 kB
-dist/assets/ConsoleLayout-BuDGziIL.js                    4.86 kB │ gzip:   2.19 kB
-dist/assets/ConsoleAssessmentRulesPage-Js9nPZQe.js       5.22 kB │ gzip:   2.17 kB
-dist/assets/KnowledgeQaPanel-DM-s-HqU.js                 5.31 kB │ gzip:   2.62 kB
+dist/assets/ConsoleLayout-Cb3bNom4.js                    4.86 kB │ gzip:   2.19 kB
+dist/assets/ConsoleAssessmentRulesPage-eyzc4_jq.js       5.22 kB │ gzip:   2.17 kB
+dist/assets/KnowledgeQaPanel-CBDpmjhm.js                 5.31 kB │ gzip:   2.63 kB
+dist/assets/MobileDisposalPage-BiLYx8-4.js               5.60 kB │ gzip:   2.51 kB
 dist/assets/pinia-D_04_o56.js                            6.06 kB │ gzip:   2.86 kB
-dist/assets/ConsoleReviewQueuePage-PBSD0IN_.js           6.59 kB │ gzip:   3.21 kB
-dist/assets/MobileTaskDetailPage-DhqmHz2H.js             6.71 kB │ gzip:   3.19 kB
-dist/assets/ConsoleKnowledgePage-BUjMM6xF.js             6.77 kB │ gzip:   2.71 kB
+dist/assets/ConsoleReviewQueuePage-DB1UmDPk.js           6.59 kB │ gzip:   3.21 kB
+dist/assets/MobileTaskDetailPage-BmQkDda_.js             6.71 kB │ gzip:   3.18 kB
+dist/assets/ConsoleKnowledgePage-D7urSeyI.js             6.77 kB │ gzip:   2.70 kB
 dist/assets/message-B6_4Zl_L.js                          7.97 kB │ gzip:   3.44 kB
-dist/assets/InspectionImageGallery-CYGI7auw.js           8.95 kB │ gzip:   3.74 kB
-dist/assets/SpatialObjectSelector-CK54iC-a.js            9.88 kB │ gzip:   3.32 kB
-dist/assets/MobileDisposalPage-BeYKO2ss.js              10.67 kB │ gzip:   4.22 kB
-dist/assets/CitizenReportPage-_Dbpgxp7.js               10.68 kB │ gzip:   4.40 kB
-dist/assets/ConsoleSystemStatusPage-CInlrFkA.js         10.69 kB │ gzip:   3.88 kB
-dist/assets/RiskSummaryPanel-BSw12NJz.js                12.67 kB │ gzip:   4.79 kB
-dist/assets/BuildingDetailPage-nElgKa76.js              13.20 kB │ gzip:   4.94 kB
-dist/assets/ConsoleSpatialMapPage-r41LSd02.js           13.40 kB │ gzip:   5.30 kB
-dist/assets/ConsoleReviewDetailPage-CXr0ra51.js         14.16 kB │ gzip:   5.67 kB
+dist/assets/InspectionImageGallery-BMb26R9t.js           8.93 kB │ gzip:   3.73 kB
+dist/assets/SpatialObjectSelector-BnNgaNnv.js            9.88 kB │ gzip:   3.32 kB
+dist/assets/CitizenReportPage-Bw8S7rXv.js               10.68 kB │ gzip:   4.40 kB
+dist/assets/ConsoleSystemStatusPage-CjvhQ10E.js         10.69 kB │ gzip:   3.88 kB
+dist/assets/RiskSummaryPanel-2zXeAXha.js                11.84 kB │ gzip:   4.57 kB
+dist/assets/BuildingDetailPage-De8LKIWo.js              13.20 kB │ gzip:   4.94 kB
+dist/assets/ConsoleSpatialMapPage-C-VzV1G1.js           13.40 kB │ gzip:   5.30 kB
+dist/assets/ConsoleReviewDetailPage-B_tiacNC.js         14.16 kB │ gzip:   5.67 kB
 dist/assets/spatial-amap-DpK6F8Dg.js                    15.12 kB │ gzip:   5.38 kB
 dist/assets/runtime-dom.esm-bundler-BtCy6ePO.js         15.25 kB │ gzip:   6.50 kB
-dist/assets/ConsoleRiskReportsPage-BovJYMLn.js          15.87 kB │ gzip:   5.64 kB
-dist/assets/ConsoleFeedbackPage-CPa5q5h4.js             16.01 kB │ gzip:   5.56 kB
-dist/assets/ConsoleSpatialArchivePage-B6J_jRfH.js       18.28 kB │ gzip:   6.67 kB
-dist/assets/ConsoleInspectionPage-q1I_Zej9.js           19.42 kB │ gzip:   7.04 kB
+dist/assets/ConsoleRiskReportsPage-f8BQa1vg.js          15.87 kB │ gzip:   5.63 kB
+dist/assets/ConsoleFeedbackPage-a90Ch8lq.js             16.01 kB │ gzip:   5.55 kB
+dist/assets/ConsoleSpatialArchivePage-BFnxmcv2.js       18.28 kB │ gzip:   6.67 kB
+dist/assets/ConsoleInspectionPage-D1vFpoGu.js           19.42 kB │ gzip:   7.05 kB
 dist/assets/dist-B7sfFtO_.js                            21.07 kB │ gzip:   5.13 kB
 dist/assets/vue-router-NeZkaM3E.js                      22.29 kB │ gzip:   8.89 kB
-dist/assets/ConsoleArchiveManagementPage-DT6-pD1G.js    28.55 kB │ gzip:   8.85 kB
+dist/assets/ConsoleArchiveManagementPage-BNqkGrUg.js    28.55 kB │ gzip:   8.83 kB
 dist/assets/use-global-config-CjO8XTOt.js               39.65 kB │ gzip:  15.64 kB
-dist/assets/ConsoleDashboardPage-DuqwN23r.js            53.26 kB │ gzip:  15.83 kB
-dist/assets/api-rZyi5m5u.js                             56.35 kB │ gzip:  21.08 kB
+dist/assets/ConsoleDashboardPage-D5KTWw7b.js            55.54 kB │ gzip:  16.57 kB
+dist/assets/api-CQnJlMgP.js                             56.09 kB │ gzip:  21.02 kB
 dist/assets/message-box-B4Odk5Cq.js                     60.09 kB │ gzip:  21.08 kB
 dist/assets/_plugin-vue_export-helper-oNGHHsLc.js       65.48 kB │ gzip:  25.68 kB
-dist/assets/browser-D1O0emxM.js                        464.81 kB │ gzip: 170.32 kB
-dist/assets/index-BU6pvtvN.js                          776.08 kB │ gzip: 245.01 kB
+dist/assets/browser-DkkkqHX6.js                        464.81 kB │ gzip: 170.32 kB
+dist/assets/index-TX-ALrrf.js                          776.08 kB │ gzip: 245.00 kB
 
+[32m✓ built in 1.78s[39m
 [33m[plugin builtin:vite-reporter] 
 (!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application
 - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
-[32m✓ built in 2.09s[39m
 --- frontend-lint.log tail ---
 
 /home/runner/work/urban-ci/urban-ci/mirror/frontend/src/shared/components/ai/AiInspectionCombinedSummary.vue
@@ -503,6 +511,6 @@ dist/assets/index-BU6pvtvN.js                          776.08 kB │ gzip: 245.0
 /home/runner/work/urban-ci/urban-ci/mirror/frontend/src/shared/components/overlay/AppDrawer.vue
   38:36  warning  '#footer' should be on a new line  vue/max-attributes-per-line
 
-✖ 2595 problems (0 errors, 2595 warnings)
-  0 errors and 2004 warnings potentially fixable with the `--fix` option.
+✖ 2786 problems (0 errors, 2786 warnings)
+  0 errors and 2143 warnings potentially fixable with the `--fix` option.
 

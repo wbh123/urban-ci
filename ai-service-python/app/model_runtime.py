@@ -7,7 +7,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Mapping
 
-from .adapters import DeterministicMockAdapter, GroundedSam2TinyAdapter, OnnxCrackSegmentationAdapter
+from .adapters import (
+    DeterministicMockAdapter,
+    GroundedSam2TinyAdapter,
+    OnnxCrackSegmentationAdapter,
+    YoloXBuildingDefectAdapter,
+)
 from .adapters.protocol import InferenceAdapter
 from .config import Settings
 from .errors import ModelUnavailableError
@@ -19,13 +24,12 @@ from .schemas import (
     RuntimeReadiness,
 )
 from .vision_manifest import ZeroShotModelManifest
+from .yolox_manifest import YoloXModelManifest
 
 
 CUDA_ONLY_RUNTIME = "CUDA_ONLY"
 CUDA_EXECUTION_PROVIDER = "CUDAExecutionProvider"
 PY_TORCH_CUDA_PROVIDER = "PyTorch-CUDA"
-# 真实模型必须运行在 NVIDIA CUDA 上；ONNX 适配器返回 CUDAExecutionProvider，
-# Transformers 视觉适配器返回 PyTorch-CUDA。两者都不允许 CPU 回退。
 CUDA_CAPABLE_PROVIDERS = {CUDA_EXECUTION_PROVIDER, PY_TORCH_CUDA_PROVIDER}
 
 
@@ -47,7 +51,8 @@ class RuntimeCatalog:
     entries: tuple[RuntimeCatalogEntry, ...]
 
 
-AdapterFactory = Callable[[ModelManifest | ZeroShotModelManifest], InferenceAdapter]
+RuntimeManifest = ModelManifest | ZeroShotModelManifest | YoloXModelManifest
+AdapterFactory = Callable[[RuntimeManifest], InferenceAdapter]
 
 
 def load_runtime_catalog(settings: Settings) -> RuntimeCatalog:
@@ -193,14 +198,16 @@ class ModelRegistry:
             "grounded-sam2-tiny-v1": lambda manifest: GroundedSam2TinyAdapter(
                 manifest, settings=settings
             ),
-            # 中性协议；Tiny 旧 ID 保留用于向后兼容。
             "grounded-sam2-v1": lambda manifest: GroundedSam2TinyAdapter(
                 manifest, settings=settings
+            ),
+            "yolox-building-defect-v1": lambda manifest: YoloXBuildingDefectAdapter(
+                manifest, cuda_device_id=settings.cuda_device_id
             ),
         }
         self._catalog = load_runtime_catalog(settings)
         self._real_adapters: dict[str, InferenceAdapter] = {}
-        self._real_manifests: dict[str, ModelManifest | ZeroShotModelManifest] = {}
+        self._real_manifests: dict[str, RuntimeManifest] = {}
         self._default_real_model_id: str | None = None
         self._load_real_models()
 

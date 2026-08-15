@@ -1,46 +1,46 @@
-source_ref=6011049a287db535e0808514e1cb786b78205c56
-run_id=31864793209
+source_ref=10d78c5284cb8bf8c05927ee8bb28e85cd5402b6
+run_id=31864955600
 --- Maven tail ---
-2026-08-15T04:38:39.996Z  INFO 3843 --- [           main] b.m.s.MybatisPlusApplicationContextAware : Register ApplicationContext instances org.springframework.web.context.support.GenericWebApplicationContext@2028ad07
-2026-08-15T04:38:40.023Z  INFO 3843 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
-2026-08-15T04:38:40.023Z  INFO 3843 --- [           main] o.s.t.w.s.TestDispatcherServlet          : Initializing Servlet ''
-2026-08-15T04:38:40.024Z  INFO 3843 --- [           main] o.s.t.w.s.TestDispatcherServlet          : Completed initialization in 1 ms
-2026-08-15T04:38:40.039Z  INFO 3843 --- [           main] p.a.g.AiAutomationSettingsControllerTest : Started AiAutomationSettingsControllerTest in 0.596 seconds (process running for 81.397)
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.626 s - in org.urbansafe.priority.ai.governance.AiAutomationSettingsControllerTest
+2026-08-15T04:42:40.139Z  INFO 4111 --- [           main] b.m.s.MybatisPlusApplicationContextAware : Register ApplicationContext instances org.springframework.web.context.support.GenericWebApplicationContext@135ede29
+2026-08-15T04:42:40.173Z  INFO 4111 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-08-15T04:42:40.173Z  INFO 4111 --- [           main] o.s.t.w.s.TestDispatcherServlet          : Initializing Servlet ''
+2026-08-15T04:42:40.174Z  INFO 4111 --- [           main] o.s.t.w.s.TestDispatcherServlet          : Completed initialization in 1 ms
+2026-08-15T04:42:40.196Z  INFO 4111 --- [           main] p.a.g.AiAutomationSettingsControllerTest : Started AiAutomationSettingsControllerTest in 0.805 seconds (process running for 66.963)
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.838 s - in org.urbansafe.priority.ai.governance.AiAutomationSettingsControllerTest
 [INFO] Running org.urbansafe.priority.ai.governance.AiProviderProbeServiceTest
-[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s - in org.urbansafe.priority.ai.governance.AiProviderProbeServiceTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s - in org.urbansafe.priority.ai.governance.AiProviderProbeServiceTest
 [INFO] Running org.urbansafe.priority.ai.governance.AiAutomationSettingsTransitionTest
 [INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.ai.governance.AiAutomationSettingsTransitionTest
 [INFO] Running org.urbansafe.priority.ai.governance.AiGovernanceControllerMappingTest
 [INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s - in org.urbansafe.priority.ai.governance.AiGovernanceControllerMappingTest
 [INFO] Running org.urbansafe.priority.ai.governance.AiProviderStatusServiceTest
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s - in org.urbansafe.priority.ai.governance.AiProviderStatusServiceTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.01 s - in org.urbansafe.priority.ai.governance.AiProviderStatusServiceTest
 [INFO] Running org.urbansafe.priority.ai.execution.AiExecutionTaskServiceTest
-[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s - in org.urbansafe.priority.ai.execution.AiExecutionTaskServiceTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.022 s - in org.urbansafe.priority.ai.execution.AiExecutionTaskServiceTest
 [INFO] Running org.urbansafe.priority.ai.execution.AiExecutionMigrationIntegrationTest
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s - in org.urbansafe.priority.ai.execution.AiExecutionMigrationIntegrationTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.023 s - in org.urbansafe.priority.ai.execution.AiExecutionMigrationIntegrationTest
 [INFO] Running org.urbansafe.priority.ai.execution.AiAgentExecutionRepositoryTest
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.039 s - in org.urbansafe.priority.ai.execution.AiAgentExecutionRepositoryTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.052 s - in org.urbansafe.priority.ai.execution.AiAgentExecutionRepositoryTest
 [INFO] Running org.urbansafe.priority.ai.policy.AiAssessmentEvidencePolicyTest
-[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s - in org.urbansafe.priority.ai.policy.AiAssessmentEvidencePolicyTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.ai.policy.AiAssessmentEvidencePolicyTest
 [INFO] Running org.urbansafe.priority.ai.tools.VisionAnalysisToolPrecisionProfileTest
-[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s - in org.urbansafe.priority.ai.tools.VisionAnalysisToolPrecisionProfileTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s - in org.urbansafe.priority.ai.tools.VisionAnalysisToolPrecisionProfileTest
 [INFO] Running org.urbansafe.priority.ai.tools.DifyReviewAssistToolTest
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.01 s - in org.urbansafe.priority.ai.tools.DifyReviewAssistToolTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s - in org.urbansafe.priority.ai.tools.DifyReviewAssistToolTest
 [INFO] Running org.urbansafe.priority.ai.tools.BuildingOverviewToolTest
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s - in org.urbansafe.priority.ai.tools.BuildingOverviewToolTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.ai.tools.BuildingOverviewToolTest
 [INFO] Running org.urbansafe.priority.ai.tools.VisionAnalysisToolTest
-[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s - in org.urbansafe.priority.ai.tools.VisionAnalysisToolTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s - in org.urbansafe.priority.ai.tools.VisionAnalysisToolTest
 [INFO] Running org.urbansafe.priority.ai.security.AiVisionAssetAccessServiceTest
 [INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.ai.security.AiVisionAssetAccessServiceTest
 [INFO] Running org.urbansafe.priority.ai.provider.FastApiAiInferenceProviderPrecisionProfileTest
 [INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.ai.provider.FastApiAiInferenceProviderPrecisionProfileTest
 [INFO] Running org.urbansafe.priority.ai.provider.SpringAiDirectProviderTest
-[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s - in org.urbansafe.priority.ai.provider.SpringAiDirectProviderTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.014 s - in org.urbansafe.priority.ai.provider.SpringAiDirectProviderTest
 [INFO] Running org.urbansafe.priority.ai.provider.DifyWorkflowProviderTest
-[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.023 s - in org.urbansafe.priority.ai.provider.DifyWorkflowProviderTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.019 s - in org.urbansafe.priority.ai.provider.DifyWorkflowProviderTest
 [INFO] Running org.urbansafe.priority.ai.provider.FastApiAiInferenceProviderRiskSignalTest
-[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s - in org.urbansafe.priority.ai.provider.FastApiAiInferenceProviderRiskSignalTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s - in org.urbansafe.priority.ai.provider.FastApiAiInferenceProviderRiskSignalTest
 [INFO] Running org.urbansafe.priority.ai.provider.AiInferenceProviderContractTest
 [INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.ai.provider.AiInferenceProviderContractTest
 [INFO] Running org.urbansafe.priority.ai.config.DifyPropertiesTest
@@ -50,23 +50,23 @@ run_id=31864793209
 [INFO] Running org.urbansafe.priority.ai.config.AiServiceConfigurationTest
 [INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.ai.config.AiServiceConfigurationTest
 [INFO] Running org.urbansafe.priority.ai.runtime.AiRuntimeSummaryServiceTest
-[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.ai.runtime.AiRuntimeSummaryServiceTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s - in org.urbansafe.priority.ai.runtime.AiRuntimeSummaryServiceTest
 [INFO] Running org.urbansafe.priority.ai.runtime.AiRuntimeSummaryControllerTest
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.048 s - in org.urbansafe.priority.ai.runtime.AiRuntimeSummaryControllerTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s - in org.urbansafe.priority.ai.runtime.AiRuntimeSummaryControllerTest
 [INFO] Running org.urbansafe.priority.ai.dashboard.AiDashboardServiceTest
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.015 s - in org.urbansafe.priority.ai.dashboard.AiDashboardServiceTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.026 s - in org.urbansafe.priority.ai.dashboard.AiDashboardServiceTest
 [INFO] Running org.urbansafe.priority.ai.dashboard.AiDashboardControllerTest
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.02 s - in org.urbansafe.priority.ai.dashboard.AiDashboardControllerTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s - in org.urbansafe.priority.ai.dashboard.AiDashboardControllerTest
 [INFO] Running org.urbansafe.priority.ai.automation.AiUploadAutomationServiceTest
-2026-08-15T04:38:40.359Z  WARN 3843 --- [           main] o.u.p.a.a.AiUploadAutomationService      : Automatic inference could not be queued for asset c7480bb9-ef22-41b9-9df6-34f2e1db12c3: database unavailable
-2026-08-15T04:38:40.361Z  WARN 3843 --- [           main] o.u.p.a.a.AiUploadAutomationService      : Automatic inference settings unavailable for asset a7dad0db-d6eb-4563-a179-54139644d131: setting unavailable
-[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s - in org.urbansafe.priority.ai.automation.AiUploadAutomationServiceTest
+2026-08-15T04:42:40.487Z  WARN 4111 --- [           main] o.u.p.a.a.AiUploadAutomationService      : Automatic inference could not be queued for asset fe5793ea-c08e-4bbe-90db-cb1dd9903ba0: database unavailable
+2026-08-15T04:42:40.490Z  WARN 4111 --- [           main] o.u.p.a.a.AiUploadAutomationService      : Automatic inference settings unavailable for asset bfb3905e-812e-404a-9db2-df6e772059d8: setting unavailable
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s - in org.urbansafe.priority.ai.automation.AiUploadAutomationServiceTest
 [INFO] Running org.urbansafe.priority.ai.automation.AiUploadAutomationAccuracyRoutingTest
-[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.ai.automation.AiUploadAutomationAccuracyRoutingTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s - in org.urbansafe.priority.ai.automation.AiUploadAutomationAccuracyRoutingTest
 [INFO] Running org.urbansafe.priority.ai.vision.VisionAnalysisOrchestratorTest
-[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s - in org.urbansafe.priority.ai.vision.VisionAnalysisOrchestratorTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.014 s - in org.urbansafe.priority.ai.vision.VisionAnalysisOrchestratorTest
 [INFO] Running org.urbansafe.priority.ai.review.AiReviewApplicationServiceTest
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s - in org.urbansafe.priority.ai.review.AiReviewApplicationServiceTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s - in org.urbansafe.priority.ai.review.AiReviewApplicationServiceTest
 [INFO] Running org.urbansafe.priority.ai.controller.AiInferenceControllerTest
 
   .   ____          _            __ _ _
@@ -78,21 +78,21 @@ run_id=31864793209
 
  :: Spring Boot ::                (v4.0.0)
 
-2026-08-15T04:38:40.410Z  INFO 3843 --- [           main] o.u.p.a.c.AiInferenceControllerTest      : Starting AiInferenceControllerTest using Java 21.0.12 with PID 3843 (started by runner in /home/runner/work/urban-ci/urban-ci/mirror/backend-java/server)
-2026-08-15T04:38:40.411Z  INFO 3843 --- [           main] o.u.p.a.c.AiInferenceControllerTest      : The following 1 profile is active: "test"
-2026-08-15T04:38:40.615Z  INFO 3843 --- [           main] o.s.c.c.s.GenericScope                   : BeanFactory id=8c570ccf-660b-39ba-809d-b26611c0a3b3
-2026-08-15T04:38:40.658Z  INFO 3843 --- [           main] c.z.h.HikariDataSource                   : HikariPool-12 - Starting...
-2026-08-15T04:38:40.667Z  INFO 3843 --- [           main] c.z.h.HikariDataSource                   : HikariPool-12 - Start completed.
-2026-08-15T04:38:40.675Z  INFO 3843 --- [           main] o.f.c.FlywayExecutor                     : Database: jdbc:postgresql://localhost:32769/urban_safe_priority?loggerLevel=OFF (PostgreSQL 17.7)
-2026-08-15T04:38:40.694Z  INFO 3843 --- [           main] o.f.c.i.c.DbValidate                     : Successfully validated 37 migrations (execution time 00:00.013s)
-2026-08-15T04:38:40.713Z  INFO 3843 --- [           main] o.f.c.i.c.DbMigrate                      : Current version of schema "public": 37
-2026-08-15T04:38:40.714Z  INFO 3843 --- [           main] o.f.c.i.c.DbMigrate                      : Schema "public" is up to date. No migration necessary.
-2026-08-15T04:38:40.996Z  INFO 3843 --- [           main] b.m.s.MybatisPlusApplicationContextAware : Register ApplicationContext instances org.springframework.web.context.support.GenericWebApplicationContext@3c1475a6
-2026-08-15T04:38:41.014Z  INFO 3843 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
-2026-08-15T04:38:41.014Z  INFO 3843 --- [           main] o.s.t.w.s.TestDispatcherServlet          : Initializing Servlet ''
-2026-08-15T04:38:41.014Z  INFO 3843 --- [           main] o.s.t.w.s.TestDispatcherServlet          : Completed initialization in 0 ms
-2026-08-15T04:38:41.030Z  INFO 3843 --- [           main] o.u.p.a.c.AiInferenceControllerTest      : Started AiInferenceControllerTest in 0.642 seconds (process running for 82.387)
-[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.693 s - in org.urbansafe.priority.ai.controller.AiInferenceControllerTest
+2026-08-15T04:42:40.558Z  INFO 4111 --- [           main] o.u.p.a.c.AiInferenceControllerTest      : Starting AiInferenceControllerTest using Java 21.0.12 with PID 4111 (started by runner in /home/runner/work/urban-ci/urban-ci/mirror/backend-java/server)
+2026-08-15T04:42:40.558Z  INFO 4111 --- [           main] o.u.p.a.c.AiInferenceControllerTest      : The following 1 profile is active: "test"
+2026-08-15T04:42:40.755Z  INFO 4111 --- [           main] o.s.c.c.s.GenericScope                   : BeanFactory id=89da920e-5e7d-3998-8bb4-ce04f2dc8eb4
+2026-08-15T04:42:40.797Z  INFO 4111 --- [           main] c.z.h.HikariDataSource                   : HikariPool-12 - Starting...
+2026-08-15T04:42:40.807Z  INFO 4111 --- [           main] c.z.h.HikariDataSource                   : HikariPool-12 - Start completed.
+2026-08-15T04:42:40.819Z  INFO 4111 --- [           main] o.f.c.FlywayExecutor                     : Database: jdbc:postgresql://localhost:32769/urban_safe_priority?loggerLevel=OFF (PostgreSQL 17.7)
+2026-08-15T04:42:40.840Z  INFO 4111 --- [           main] o.f.c.i.c.DbValidate                     : Successfully validated 37 migrations (execution time 00:00.015s)
+2026-08-15T04:42:40.858Z  INFO 4111 --- [           main] o.f.c.i.c.DbMigrate                      : Current version of schema "public": 37
+2026-08-15T04:42:40.858Z  INFO 4111 --- [           main] o.f.c.i.c.DbMigrate                      : Schema "public" is up to date. No migration necessary.
+2026-08-15T04:42:41.191Z  INFO 4111 --- [           main] b.m.s.MybatisPlusApplicationContextAware : Register ApplicationContext instances org.springframework.web.context.support.GenericWebApplicationContext@39ba9a01
+2026-08-15T04:42:41.218Z  INFO 4111 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-08-15T04:42:41.218Z  INFO 4111 --- [           main] o.s.t.w.s.TestDispatcherServlet          : Initializing Servlet ''
+2026-08-15T04:42:41.219Z  INFO 4111 --- [           main] o.s.t.w.s.TestDispatcherServlet          : Completed initialization in 1 ms
+2026-08-15T04:42:41.238Z  INFO 4111 --- [           main] o.u.p.a.c.AiInferenceControllerTest      : Started AiInferenceControllerTest in 0.71 seconds (process running for 68.004)
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.77 s - in org.urbansafe.priority.ai.controller.AiInferenceControllerTest
 [INFO] Running org.urbansafe.priority.ai.controller.AiInferenceAsyncControllerTest
 
   .   ____          _            __ _ _
@@ -104,21 +104,21 @@ run_id=31864793209
 
  :: Spring Boot ::                (v4.0.0)
 
-2026-08-15T04:38:41.107Z  INFO 3843 --- [           main] o.u.p.a.c.AiInferenceAsyncControllerTest : Starting AiInferenceAsyncControllerTest using Java 21.0.12 with PID 3843 (started by runner in /home/runner/work/urban-ci/urban-ci/mirror/backend-java/server)
-2026-08-15T04:38:41.108Z  INFO 3843 --- [           main] o.u.p.a.c.AiInferenceAsyncControllerTest : The following 1 profile is active: "test"
-2026-08-15T04:38:41.233Z  INFO 3843 --- [           main] o.s.c.c.s.GenericScope                   : BeanFactory id=8c570ccf-660b-39ba-809d-b26611c0a3b3
-2026-08-15T04:38:41.271Z  INFO 3843 --- [           main] c.z.h.HikariDataSource                   : HikariPool-13 - Starting...
-2026-08-15T04:38:41.280Z  INFO 3843 --- [           main] c.z.h.HikariDataSource                   : HikariPool-13 - Start completed.
-2026-08-15T04:38:41.286Z  INFO 3843 --- [           main] o.f.c.FlywayExecutor                     : Database: jdbc:postgresql://localhost:32769/urban_safe_priority?loggerLevel=OFF (PostgreSQL 17.7)
-2026-08-15T04:38:41.297Z  INFO 3843 --- [           main] o.f.c.i.c.DbValidate                     : Successfully validated 37 migrations (execution time 00:00.007s)
-2026-08-15T04:38:41.324Z  INFO 3843 --- [           main] o.f.c.i.c.DbMigrate                      : Current version of schema "public": 37
-2026-08-15T04:38:41.324Z  INFO 3843 --- [           main] o.f.c.i.c.DbMigrate                      : Schema "public" is up to date. No migration necessary.
-2026-08-15T04:38:41.539Z  INFO 3843 --- [           main] b.m.s.MybatisPlusApplicationContextAware : Register ApplicationContext instances org.springframework.web.context.support.GenericWebApplicationContext@1bba1a7a
-2026-08-15T04:38:41.558Z  INFO 3843 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
-2026-08-15T04:38:41.558Z  INFO 3843 --- [           main] o.s.t.w.s.TestDispatcherServlet          : Initializing Servlet ''
-2026-08-15T04:38:41.558Z  INFO 3843 --- [           main] o.s.t.w.s.TestDispatcherServlet          : Completed initialization in 0 ms
-2026-08-15T04:38:41.573Z  INFO 3843 --- [           main] o.u.p.a.c.AiInferenceAsyncControllerTest : Started AiInferenceAsyncControllerTest in 0.492 seconds (process running for 82.93)
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.513 s - in org.urbansafe.priority.ai.controller.AiInferenceAsyncControllerTest
+2026-08-15T04:42:41.319Z  INFO 4111 --- [           main] o.u.p.a.c.AiInferenceAsyncControllerTest : Starting AiInferenceAsyncControllerTest using Java 21.0.12 with PID 4111 (started by runner in /home/runner/work/urban-ci/urban-ci/mirror/backend-java/server)
+2026-08-15T04:42:41.320Z  INFO 4111 --- [           main] o.u.p.a.c.AiInferenceAsyncControllerTest : The following 1 profile is active: "test"
+2026-08-15T04:42:41.602Z  INFO 4111 --- [           main] o.s.c.c.s.GenericScope                   : BeanFactory id=89da920e-5e7d-3998-8bb4-ce04f2dc8eb4
+2026-08-15T04:42:41.665Z  INFO 4111 --- [           main] c.z.h.HikariDataSource                   : HikariPool-13 - Starting...
+2026-08-15T04:42:41.681Z  INFO 4111 --- [           main] c.z.h.HikariDataSource                   : HikariPool-13 - Start completed.
+2026-08-15T04:42:41.697Z  INFO 4111 --- [           main] o.f.c.FlywayExecutor                     : Database: jdbc:postgresql://localhost:32769/urban_safe_priority?loggerLevel=OFF (PostgreSQL 17.7)
+2026-08-15T04:42:41.718Z  INFO 4111 --- [           main] o.f.c.i.c.DbValidate                     : Successfully validated 37 migrations (execution time 00:00.015s)
+2026-08-15T04:42:41.739Z  INFO 4111 --- [           main] o.f.c.i.c.DbMigrate                      : Current version of schema "public": 37
+2026-08-15T04:42:41.740Z  INFO 4111 --- [           main] o.f.c.i.c.DbMigrate                      : Schema "public" is up to date. No migration necessary.
+2026-08-15T04:42:42.097Z  INFO 4111 --- [           main] b.m.s.MybatisPlusApplicationContextAware : Register ApplicationContext instances org.springframework.web.context.support.GenericWebApplicationContext@6fb241e9
+2026-08-15T04:42:42.119Z  INFO 4111 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-08-15T04:42:42.119Z  INFO 4111 --- [           main] o.s.t.w.s.TestDispatcherServlet          : Initializing Servlet ''
+2026-08-15T04:42:42.120Z  INFO 4111 --- [           main] o.s.t.w.s.TestDispatcherServlet          : Completed initialization in 1 ms
+2026-08-15T04:42:42.142Z  INFO 4111 --- [           main] o.u.p.a.c.AiInferenceAsyncControllerTest : Started AiInferenceAsyncControllerTest in 0.847 seconds (process running for 68.908)
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.873 s - in org.urbansafe.priority.ai.controller.AiInferenceAsyncControllerTest
 [INFO] Running org.urbansafe.priority.ai.controller.AiIntelligentAnalysisControllerTest
 [INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.ai.controller.AiIntelligentAnalysisControllerTest
 [INFO] Running org.urbansafe.priority.report.controller.ReportDashboardControllerTest
@@ -132,53 +132,53 @@ run_id=31864793209
 
  :: Spring Boot ::                (v4.0.0)
 
-2026-08-15T04:38:41.616Z  INFO 3843 --- [           main] o.u.p.r.c.ReportDashboardControllerTest  : Starting ReportDashboardControllerTest using Java 21.0.12 with PID 3843 (started by runner in /home/runner/work/urban-ci/urban-ci/mirror/backend-java/server)
-2026-08-15T04:38:41.616Z  INFO 3843 --- [           main] o.u.p.r.c.ReportDashboardControllerTest  : The following 1 profile is active: "test"
-2026-08-15T04:38:41.781Z  INFO 3843 --- [           main] o.s.c.c.s.GenericScope                   : BeanFactory id=8c570ccf-660b-39ba-809d-b26611c0a3b3
-2026-08-15T04:38:41.828Z  INFO 3843 --- [           main] c.z.h.HikariDataSource                   : HikariPool-14 - Starting...
-2026-08-15T04:38:41.837Z  INFO 3843 --- [           main] c.z.h.HikariDataSource                   : HikariPool-14 - Start completed.
-2026-08-15T04:38:41.846Z  INFO 3843 --- [           main] o.f.c.FlywayExecutor                     : Database: jdbc:postgresql://localhost:32769/urban_safe_priority?loggerLevel=OFF (PostgreSQL 17.7)
-2026-08-15T04:38:41.859Z  INFO 3843 --- [           main] o.f.c.i.c.DbValidate                     : Successfully validated 37 migrations (execution time 00:00.008s)
-2026-08-15T04:38:41.883Z  INFO 3843 --- [           main] o.f.c.i.c.DbMigrate                      : Current version of schema "public": 37
-2026-08-15T04:38:41.883Z  INFO 3843 --- [           main] o.f.c.i.c.DbMigrate                      : Schema "public" is up to date. No migration necessary.
-2026-08-15T04:38:42.225Z  INFO 3843 --- [           main] b.m.s.MybatisPlusApplicationContextAware : Register ApplicationContext instances org.springframework.web.context.support.GenericWebApplicationContext@3728c580
-2026-08-15T04:38:42.261Z  INFO 3843 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
-2026-08-15T04:38:42.261Z  INFO 3843 --- [           main] o.s.t.w.s.TestDispatcherServlet          : Initializing Servlet ''
-2026-08-15T04:38:42.262Z  INFO 3843 --- [           main] o.s.t.w.s.TestDispatcherServlet          : Completed initialization in 1 ms
-2026-08-15T04:38:42.299Z  INFO 3843 --- [           main] o.u.p.r.c.ReportDashboardControllerTest  : Started ReportDashboardControllerTest in 0.704 seconds (process running for 83.657)
-[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.741 s - in org.urbansafe.priority.report.controller.ReportDashboardControllerTest
+2026-08-15T04:42:42.207Z  INFO 4111 --- [           main] o.u.p.r.c.ReportDashboardControllerTest  : Starting ReportDashboardControllerTest using Java 21.0.12 with PID 4111 (started by runner in /home/runner/work/urban-ci/urban-ci/mirror/backend-java/server)
+2026-08-15T04:42:42.208Z  INFO 4111 --- [           main] o.u.p.r.c.ReportDashboardControllerTest  : The following 1 profile is active: "test"
+2026-08-15T04:42:42.423Z  INFO 4111 --- [           main] o.s.c.c.s.GenericScope                   : BeanFactory id=89da920e-5e7d-3998-8bb4-ce04f2dc8eb4
+2026-08-15T04:42:42.470Z  INFO 4111 --- [           main] c.z.h.HikariDataSource                   : HikariPool-14 - Starting...
+2026-08-15T04:42:42.478Z  INFO 4111 --- [           main] c.z.h.HikariDataSource                   : HikariPool-14 - Start completed.
+2026-08-15T04:42:42.486Z  INFO 4111 --- [           main] o.f.c.FlywayExecutor                     : Database: jdbc:postgresql://localhost:32769/urban_safe_priority?loggerLevel=OFF (PostgreSQL 17.7)
+2026-08-15T04:42:42.507Z  INFO 4111 --- [           main] o.f.c.i.c.DbValidate                     : Successfully validated 37 migrations (execution time 00:00.015s)
+2026-08-15T04:42:42.528Z  INFO 4111 --- [           main] o.f.c.i.c.DbMigrate                      : Current version of schema "public": 37
+2026-08-15T04:42:42.529Z  INFO 4111 --- [           main] o.f.c.i.c.DbMigrate                      : Schema "public" is up to date. No migration necessary.
+2026-08-15T04:42:42.847Z  INFO 4111 --- [           main] b.m.s.MybatisPlusApplicationContextAware : Register ApplicationContext instances org.springframework.web.context.support.GenericWebApplicationContext@365e548f
+2026-08-15T04:42:42.867Z  INFO 4111 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-08-15T04:42:42.868Z  INFO 4111 --- [           main] o.s.t.w.s.TestDispatcherServlet          : Initializing Servlet ''
+2026-08-15T04:42:42.868Z  INFO 4111 --- [           main] o.s.t.w.s.TestDispatcherServlet          : Completed initialization in 0 ms
+2026-08-15T04:42:42.886Z  INFO 4111 --- [           main] o.u.p.r.c.ReportDashboardControllerTest  : Started ReportDashboardControllerTest in 0.714 seconds (process running for 69.652)
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.75 s - in org.urbansafe.priority.report.controller.ReportDashboardControllerTest
 [INFO] Running org.urbansafe.priority.report.controller.ReportDashboardComponentTest
-[WARNING] Tests run: 6, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0.924 s - in org.urbansafe.priority.report.controller.ReportDashboardComponentTest
+[WARNING] Tests run: 6, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0.464 s - in org.urbansafe.priority.report.controller.ReportDashboardComponentTest
 [INFO] Running org.urbansafe.priority.report.controller.PdfReportRendererTest
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.report.controller.PdfReportRendererTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.report.controller.PdfReportRendererTest
 [INFO] Running org.urbansafe.priority.report.controller.ReportDashboardRepositoryIntegrationTest
-[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.028 s - in org.urbansafe.priority.report.controller.ReportDashboardRepositoryIntegrationTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.031 s - in org.urbansafe.priority.report.controller.ReportDashboardRepositoryIntegrationTest
 [INFO] Running org.urbansafe.priority.controller.SystemHealthControllerTest
 [INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s - in org.urbansafe.priority.controller.SystemHealthControllerTest
 [INFO] Running org.urbansafe.priority.map.service.R41BoundaryCandidateContractTest
 [INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.map.service.R41BoundaryCandidateContractTest
 [INFO] Running org.urbansafe.priority.map.service.Phase2MapServiceTest
-[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.028 s - in org.urbansafe.priority.map.service.Phase2MapServiceTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.031 s - in org.urbansafe.priority.map.service.Phase2MapServiceTest
 [INFO] Running org.urbansafe.priority.map.service.AmapDiscoveryGatewayTest
-[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.044 s - in org.urbansafe.priority.map.service.AmapDiscoveryGatewayTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.066 s - in org.urbansafe.priority.map.service.AmapDiscoveryGatewayTest
 [INFO] Running org.urbansafe.priority.map.service.MapDiscoveryServiceTest
-[INFO] Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s - in org.urbansafe.priority.map.service.MapDiscoveryServiceTest
+[INFO] Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.015 s - in org.urbansafe.priority.map.service.MapDiscoveryServiceTest
 [INFO] Running org.urbansafe.priority.map.service.ArchiveLocationServiceTest
-[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s - in org.urbansafe.priority.map.service.ArchiveLocationServiceTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s - in org.urbansafe.priority.map.service.ArchiveLocationServiceTest
 [INFO] Running org.urbansafe.priority.map.service.CommunityBoundaryCandidateServiceTest
-[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s - in org.urbansafe.priority.map.service.CommunityBoundaryCandidateServiceTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s - in org.urbansafe.priority.map.service.CommunityBoundaryCandidateServiceTest
 [INFO] Running org.urbansafe.priority.map.Phase2MapOpenApiContractTest
 [INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.map.Phase2MapOpenApiContractTest
 [INFO] Running org.urbansafe.priority.map.controller.ArchiveMapControllerTest
-[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.046 s - in org.urbansafe.priority.map.controller.ArchiveMapControllerTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.05 s - in org.urbansafe.priority.map.controller.ArchiveMapControllerTest
 [INFO] Running org.urbansafe.priority.map.controller.Phase2MapControllerTest
-[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s - in org.urbansafe.priority.map.controller.Phase2MapControllerTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.01 s - in org.urbansafe.priority.map.controller.Phase2MapControllerTest
 [INFO] Running org.urbansafe.priority.map.controller.ArchiveLocationControllerTest
 [INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s - in org.urbansafe.priority.map.controller.ArchiveLocationControllerTest
 [INFO] 
 [INFO] Results:
 [INFO] 
-[WARNING] Tests run: 469, Failures: 0, Errors: 0, Skipped: 1
+[WARNING] Tests run: 471, Failures: 0, Errors: 0, Skipped: 1
 [INFO] 
 [INFO] 
 [INFO] -----------------------< org.urbansafe:starter >------------------------
@@ -221,7 +221,7 @@ run_id=31864793209
 [INFO]  T E S T S
 [INFO] -------------------------------------------------------
 [INFO] Running org.urbansafe.priority.config.ApplicationYamlPersistenceConfigurationTest
-[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.402 s - in org.urbansafe.priority.config.ApplicationYamlPersistenceConfigurationTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.429 s - in org.urbansafe.priority.config.ApplicationYamlPersistenceConfigurationTest
 [INFO] 
 [INFO] Results:
 [INFO] 
@@ -231,156 +231,156 @@ run_id=31864793209
 [INFO] Reactor Summary for UrbanSafe Priority Server 1.0.0-SNAPSHOT:
 [INFO] 
 [INFO] UrbanSafe Priority Server .......................... SUCCESS [  0.002 s]
-[INFO] model .............................................. SUCCESS [  9.154 s]
-[INFO] client ............................................. SUCCESS [  1.366 s]
-[INFO] UrbanSafe Priority Server Module ................... SUCCESS [01:30 min]
-[INFO] starter ............................................ SUCCESS [  1.476 s]
+[INFO] model .............................................. SUCCESS [ 10.185 s]
+[INFO] client ............................................. SUCCESS [  1.870 s]
+[INFO] UrbanSafe Priority Server Module ................... SUCCESS [01:18 min]
+[INFO] starter ............................................ SUCCESS [  1.838 s]
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  01:42 min
-[INFO] Finished at: 2026-08-15T04:38:45Z
+[INFO] Total time:  01:32 min
+[INFO] Finished at: 2026-08-15T04:42:45Z
 [INFO] ------------------------------------------------------------------------
 --- Surefire summaries ---
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.automation.AiUploadAutomationAccuracyRoutingTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.ai.automation.AiUploadAutomationAccuracyRoutingTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.automation.AiUploadAutomationServiceTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s - in org.urbansafe.priority.ai.automation.AiUploadAutomationServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.client.AiFastApiClientTest.txt:Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.604 s - in org.urbansafe.priority.ai.client.AiFastApiClientTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.automation.AiUploadAutomationAccuracyRoutingTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s - in org.urbansafe.priority.ai.automation.AiUploadAutomationAccuracyRoutingTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.automation.AiUploadAutomationServiceTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s - in org.urbansafe.priority.ai.automation.AiUploadAutomationServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.client.AiFastApiClientTest.txt:Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.614 s - in org.urbansafe.priority.ai.client.AiFastApiClientTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.client.AiImageApplicabilityClientTest.txt:Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.542 s - in org.urbansafe.priority.ai.client.AiImageApplicabilityClientTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.client.AiImageQualityClientTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.016 s - in org.urbansafe.priority.ai.client.AiImageQualityClientTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.client.DifyApiClientTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.041 s - in org.urbansafe.priority.ai.client.DifyApiClientTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.command.CreateInferenceCommandPrecisionProfileTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.ai.command.CreateInferenceCommandPrecisionProfileTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.client.AiImageQualityClientTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.33 s - in org.urbansafe.priority.ai.client.AiImageQualityClientTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.client.DifyApiClientTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.04 s - in org.urbansafe.priority.ai.client.DifyApiClientTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.command.CreateInferenceCommandPrecisionProfileTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.ai.command.CreateInferenceCommandPrecisionProfileTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.command.ReviewCommandRiskCorrectionTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.ai.command.ReviewCommandRiskCorrectionTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.config.AiServiceConfigurationTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.ai.config.AiServiceConfigurationTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.config.DifyPropertiesTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.ai.config.DifyPropertiesTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.config.SpringAiProviderPropertiesTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.ai.config.SpringAiProviderPropertiesTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.controller.AiInferenceAsyncControllerTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.513 s - in org.urbansafe.priority.ai.controller.AiInferenceAsyncControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.controller.AiInferenceControllerTest.txt:Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.693 s - in org.urbansafe.priority.ai.controller.AiInferenceControllerTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.controller.AiInferenceAsyncControllerTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.873 s - in org.urbansafe.priority.ai.controller.AiInferenceAsyncControllerTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.controller.AiInferenceControllerTest.txt:Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.77 s - in org.urbansafe.priority.ai.controller.AiInferenceControllerTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.controller.AiIntelligentAnalysisControllerTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.ai.controller.AiIntelligentAnalysisControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.dashboard.AiDashboardControllerTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.02 s - in org.urbansafe.priority.ai.dashboard.AiDashboardControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.dashboard.AiDashboardServiceTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.015 s - in org.urbansafe.priority.ai.dashboard.AiDashboardServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.execution.AiAgentExecutionRepositoryTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.039 s - in org.urbansafe.priority.ai.execution.AiAgentExecutionRepositoryTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.execution.AiExecutionMigrationIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s - in org.urbansafe.priority.ai.execution.AiExecutionMigrationIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.execution.AiExecutionTaskServiceTest.txt:Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s - in org.urbansafe.priority.ai.execution.AiExecutionTaskServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.governance.AiAutomationSettingsControllerTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.626 s - in org.urbansafe.priority.ai.governance.AiAutomationSettingsControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.governance.AiAutomationSettingsServiceTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.01 s - in org.urbansafe.priority.ai.governance.AiAutomationSettingsServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.dashboard.AiDashboardControllerTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s - in org.urbansafe.priority.ai.dashboard.AiDashboardControllerTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.dashboard.AiDashboardServiceTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.026 s - in org.urbansafe.priority.ai.dashboard.AiDashboardServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.execution.AiAgentExecutionRepositoryTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.052 s - in org.urbansafe.priority.ai.execution.AiAgentExecutionRepositoryTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.execution.AiExecutionMigrationIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.023 s - in org.urbansafe.priority.ai.execution.AiExecutionMigrationIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.execution.AiExecutionTaskServiceTest.txt:Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.022 s - in org.urbansafe.priority.ai.execution.AiExecutionTaskServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.governance.AiAutomationSettingsControllerTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.838 s - in org.urbansafe.priority.ai.governance.AiAutomationSettingsControllerTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.governance.AiAutomationSettingsServiceTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s - in org.urbansafe.priority.ai.governance.AiAutomationSettingsServiceTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.governance.AiAutomationSettingsTransitionTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.ai.governance.AiAutomationSettingsTransitionTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.governance.AiGovernanceAuthorizationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s - in org.urbansafe.priority.ai.governance.AiGovernanceAuthorizationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.governance.AiGovernanceAuthorizationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s - in org.urbansafe.priority.ai.governance.AiGovernanceAuthorizationTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.governance.AiGovernanceControllerMappingTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s - in org.urbansafe.priority.ai.governance.AiGovernanceControllerMappingTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.governance.AiProviderProbeServiceTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s - in org.urbansafe.priority.ai.governance.AiProviderProbeServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.governance.AiProviderStatusServiceTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s - in org.urbansafe.priority.ai.governance.AiProviderStatusServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.orchestration.AiImagePrecheckServiceTest.txt:Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.038 s - in org.urbansafe.priority.ai.orchestration.AiImagePrecheckServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.orchestration.AiOrchestrationServiceTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s - in org.urbansafe.priority.ai.orchestration.AiOrchestrationServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.governance.AiProviderProbeServiceTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s - in org.urbansafe.priority.ai.governance.AiProviderProbeServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.governance.AiProviderStatusServiceTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.01 s - in org.urbansafe.priority.ai.governance.AiProviderStatusServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.orchestration.AiImagePrecheckServiceTest.txt:Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.028 s - in org.urbansafe.priority.ai.orchestration.AiImagePrecheckServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.orchestration.AiOrchestrationServiceTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s - in org.urbansafe.priority.ai.orchestration.AiOrchestrationServiceTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.orchestration.AiProviderRouterTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.ai.orchestration.AiProviderRouterTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.orchestration.AiStructuredResultPrecisionDiagnosticsTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.015 s - in org.urbansafe.priority.ai.orchestration.AiStructuredResultPrecisionDiagnosticsTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.orchestration.AiStructuredResultSerializationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s - in org.urbansafe.priority.ai.orchestration.AiStructuredResultSerializationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.orchestration.AiStructuredResultValidatorTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.ai.orchestration.AiStructuredResultValidatorTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.orchestration.SpringAiLocalVisionOrchestratorTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.01 s - in org.urbansafe.priority.ai.orchestration.SpringAiLocalVisionOrchestratorTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.orchestration.SpringAiOrchestrationServiceTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.083 s - in org.urbansafe.priority.ai.orchestration.SpringAiOrchestrationServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.policy.AiAssessmentEvidencePolicyTest.txt:Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s - in org.urbansafe.priority.ai.policy.AiAssessmentEvidencePolicyTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.orchestration.AiStructuredResultPrecisionDiagnosticsTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.01 s - in org.urbansafe.priority.ai.orchestration.AiStructuredResultPrecisionDiagnosticsTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.orchestration.AiStructuredResultSerializationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.022 s - in org.urbansafe.priority.ai.orchestration.AiStructuredResultSerializationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.orchestration.AiStructuredResultValidatorTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s - in org.urbansafe.priority.ai.orchestration.AiStructuredResultValidatorTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.orchestration.SpringAiLocalVisionOrchestratorTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s - in org.urbansafe.priority.ai.orchestration.SpringAiLocalVisionOrchestratorTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.orchestration.SpringAiOrchestrationServiceTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.113 s - in org.urbansafe.priority.ai.orchestration.SpringAiOrchestrationServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.policy.AiAssessmentEvidencePolicyTest.txt:Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.ai.policy.AiAssessmentEvidencePolicyTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.provider.AiInferenceProviderContractTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.ai.provider.AiInferenceProviderContractTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.provider.DifyWorkflowProviderTest.txt:Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.023 s - in org.urbansafe.priority.ai.provider.DifyWorkflowProviderTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.provider.DifyWorkflowProviderTest.txt:Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.019 s - in org.urbansafe.priority.ai.provider.DifyWorkflowProviderTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.provider.FastApiAiInferenceProviderPrecisionProfileTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.ai.provider.FastApiAiInferenceProviderPrecisionProfileTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.provider.FastApiAiInferenceProviderRiskSignalTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s - in org.urbansafe.priority.ai.provider.FastApiAiInferenceProviderRiskSignalTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.provider.SpringAiDirectProviderTest.txt:Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s - in org.urbansafe.priority.ai.provider.SpringAiDirectProviderTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.repository.AiInferenceRepositoryIntegrationTest.txt:Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.116 s - in org.urbansafe.priority.ai.repository.AiInferenceRepositoryIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.review.AiReviewApplicationServiceTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s - in org.urbansafe.priority.ai.review.AiReviewApplicationServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.runtime.AiRuntimeSummaryControllerTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.048 s - in org.urbansafe.priority.ai.runtime.AiRuntimeSummaryControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.runtime.AiRuntimeSummaryServiceTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.ai.runtime.AiRuntimeSummaryServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.provider.FastApiAiInferenceProviderRiskSignalTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s - in org.urbansafe.priority.ai.provider.FastApiAiInferenceProviderRiskSignalTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.provider.SpringAiDirectProviderTest.txt:Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.014 s - in org.urbansafe.priority.ai.provider.SpringAiDirectProviderTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.repository.AiInferenceRepositoryIntegrationTest.txt:Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.117 s - in org.urbansafe.priority.ai.repository.AiInferenceRepositoryIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.review.AiReviewApplicationServiceTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s - in org.urbansafe.priority.ai.review.AiReviewApplicationServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.runtime.AiRuntimeSummaryControllerTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s - in org.urbansafe.priority.ai.runtime.AiRuntimeSummaryControllerTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.runtime.AiRuntimeSummaryServiceTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s - in org.urbansafe.priority.ai.runtime.AiRuntimeSummaryServiceTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.security.AiVisionAssetAccessServiceTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.ai.security.AiVisionAssetAccessServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.service.AiInferenceRealModelPreflightTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.03 s - in org.urbansafe.priority.ai.service.AiInferenceRealModelPreflightTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.service.AiInferenceServiceTest.txt:Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.022 s - in org.urbansafe.priority.ai.service.AiInferenceServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.service.AiInferenceRealModelPreflightTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.026 s - in org.urbansafe.priority.ai.service.AiInferenceRealModelPreflightTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.service.AiInferenceServiceTest.txt:Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.025 s - in org.urbansafe.priority.ai.service.AiInferenceServiceTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.service.AiModelCatalogServiceTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.017 s - in org.urbansafe.priority.ai.service.AiModelCatalogServiceTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.service.AiRichDetectionDetailServiceTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.ai.service.AiRichDetectionDetailServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.tools.BuildingOverviewToolTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s - in org.urbansafe.priority.ai.tools.BuildingOverviewToolTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.tools.DifyReviewAssistToolTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.01 s - in org.urbansafe.priority.ai.tools.DifyReviewAssistToolTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.tools.VisionAnalysisToolPrecisionProfileTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s - in org.urbansafe.priority.ai.tools.VisionAnalysisToolPrecisionProfileTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.tools.VisionAnalysisToolTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s - in org.urbansafe.priority.ai.tools.VisionAnalysisToolTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.vision.VisionAnalysisOrchestratorTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s - in org.urbansafe.priority.ai.vision.VisionAnalysisOrchestratorTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.tools.BuildingOverviewToolTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.ai.tools.BuildingOverviewToolTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.tools.DifyReviewAssistToolTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s - in org.urbansafe.priority.ai.tools.DifyReviewAssistToolTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.tools.VisionAnalysisToolPrecisionProfileTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s - in org.urbansafe.priority.ai.tools.VisionAnalysisToolPrecisionProfileTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.tools.VisionAnalysisToolTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s - in org.urbansafe.priority.ai.tools.VisionAnalysisToolTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.vision.VisionAnalysisOrchestratorTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.014 s - in org.urbansafe.priority.ai.vision.VisionAnalysisOrchestratorTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.ai.workflow.AiWorkflowRegistryTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s - in org.urbansafe.priority.ai.workflow.AiWorkflowRegistryTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.architecture.Phase1ArchitectureTest.txt:Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 10.998 s - in org.urbansafe.priority.architecture.Phase1ArchitectureTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.AssessmentApplicationConcurrencyIntegrationTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.161 s - in org.urbansafe.priority.assessment.AssessmentApplicationConcurrencyIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.AssessmentCurrentStateIntegrationTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.059 s - in org.urbansafe.priority.assessment.AssessmentCurrentStateIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.AssessmentDependencyConsistencyIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.05 s - in org.urbansafe.priority.assessment.AssessmentDependencyConsistencyIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.calculator.CompletenessCalculatorTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s - in org.urbansafe.priority.assessment.calculator.CompletenessCalculatorTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.calculator.CompletenessRuleDrivenCalculationTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s - in org.urbansafe.priority.assessment.calculator.CompletenessRuleDrivenCalculationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.architecture.Phase1ArchitectureTest.txt:Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 13.643 s - in org.urbansafe.priority.architecture.Phase1ArchitectureTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.AssessmentApplicationConcurrencyIntegrationTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.152 s - in org.urbansafe.priority.assessment.AssessmentApplicationConcurrencyIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.AssessmentCurrentStateIntegrationTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.077 s - in org.urbansafe.priority.assessment.AssessmentCurrentStateIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.AssessmentDependencyConsistencyIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.036 s - in org.urbansafe.priority.assessment.AssessmentDependencyConsistencyIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.calculator.CompletenessCalculatorTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.assessment.calculator.CompletenessCalculatorTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.calculator.CompletenessRuleDrivenCalculationTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.018 s - in org.urbansafe.priority.assessment.calculator.CompletenessRuleDrivenCalculationTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.calculator.FeedbackSignalCalculatorTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s - in org.urbansafe.priority.assessment.calculator.FeedbackSignalCalculatorTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.calculator.RenewalPriorityCalculatorTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s - in org.urbansafe.priority.assessment.calculator.RenewalPriorityCalculatorTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.calculator.RiskCalculatorTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s - in org.urbansafe.priority.assessment.calculator.RiskCalculatorTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.checksum.AssessmentChecksumServiceTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s - in org.urbansafe.priority.assessment.checksum.AssessmentChecksumServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.controller.AssessmentControllerContractTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.022 s - in org.urbansafe.priority.assessment.controller.AssessmentControllerContractTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.calculator.RenewalPriorityCalculatorTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.018 s - in org.urbansafe.priority.assessment.calculator.RenewalPriorityCalculatorTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.calculator.RiskCalculatorTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.01 s - in org.urbansafe.priority.assessment.calculator.RiskCalculatorTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.checksum.AssessmentChecksumServiceTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s - in org.urbansafe.priority.assessment.checksum.AssessmentChecksumServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.controller.AssessmentControllerContractTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.028 s - in org.urbansafe.priority.assessment.controller.AssessmentControllerContractTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.controller.AssessmentControllerPermissionTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.assessment.controller.AssessmentControllerPermissionTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.controller.AssessmentControllerSecurityIntegrationTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.245 s - in org.urbansafe.priority.assessment.controller.AssessmentControllerSecurityIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.input.AssessmentInputRepositoryIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.038 s - in org.urbansafe.priority.assessment.input.AssessmentInputRepositoryIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.migration.Phase4MigrationContractTest.txt:Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s - in org.urbansafe.priority.assessment.migration.Phase4MigrationContractTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.migration.Phase4V20DataMigrationIntegrationTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.039 s - in org.urbansafe.priority.assessment.migration.Phase4V20DataMigrationIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.migration.Phase4V20MigrationContractTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s - in org.urbansafe.priority.assessment.migration.Phase4V20MigrationContractTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.openapi.AssessmentOpenApiContractTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s - in org.urbansafe.priority.assessment.openapi.AssessmentOpenApiContractTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.rule.AssessmentRuleStrictValidationTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s - in org.urbansafe.priority.assessment.rule.AssessmentRuleStrictValidationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.rule.AssessmentRuleTypeValidationTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.01 s - in org.urbansafe.priority.assessment.rule.AssessmentRuleTypeValidationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.rule.AssessmentRuleValidatorTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s - in org.urbansafe.priority.assessment.rule.AssessmentRuleValidatorTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.rule.RuleChecksumServiceTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s - in org.urbansafe.priority.assessment.rule.RuleChecksumServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.service.AssessmentApplicationServiceAcceptanceTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.171 s - in org.urbansafe.priority.assessment.service.AssessmentApplicationServiceAcceptanceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.controller.AssessmentControllerSecurityIntegrationTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.391 s - in org.urbansafe.priority.assessment.controller.AssessmentControllerSecurityIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.input.AssessmentInputRepositoryIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.058 s - in org.urbansafe.priority.assessment.input.AssessmentInputRepositoryIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.migration.Phase4MigrationContractTest.txt:Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s - in org.urbansafe.priority.assessment.migration.Phase4MigrationContractTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.migration.Phase4V20DataMigrationIntegrationTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.029 s - in org.urbansafe.priority.assessment.migration.Phase4V20DataMigrationIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.migration.Phase4V20MigrationContractTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.assessment.migration.Phase4V20MigrationContractTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.openapi.AssessmentOpenApiContractTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.019 s - in org.urbansafe.priority.assessment.openapi.AssessmentOpenApiContractTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.rule.AssessmentRuleStrictValidationTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s - in org.urbansafe.priority.assessment.rule.AssessmentRuleStrictValidationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.rule.AssessmentRuleTypeValidationTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s - in org.urbansafe.priority.assessment.rule.AssessmentRuleTypeValidationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.rule.AssessmentRuleValidatorTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s - in org.urbansafe.priority.assessment.rule.AssessmentRuleValidatorTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.rule.RuleChecksumServiceTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s - in org.urbansafe.priority.assessment.rule.RuleChecksumServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.service.AssessmentApplicationServiceAcceptanceTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.211 s - in org.urbansafe.priority.assessment.service.AssessmentApplicationServiceAcceptanceTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.assessment.service.RankingTieBreakerTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.assessment.service.RankingTieBreakerTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.asset.config.StoragePropertiesTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s - in org.urbansafe.priority.asset.config.StoragePropertiesTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.asset.controller.Phase2AssetControllerTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.727 s - in org.urbansafe.priority.asset.controller.Phase2AssetControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.audit.AuditAsyncWorkerIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 50.523 s - in org.urbansafe.priority.audit.AuditAsyncWorkerIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.asset.controller.Phase2AssetControllerTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.91 s - in org.urbansafe.priority.asset.controller.Phase2AssetControllerTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.audit.AuditAsyncWorkerIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 32.145 s - in org.urbansafe.priority.audit.AuditAsyncWorkerIntegrationTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.audit.AuditAuthorizationTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.222 s - in org.urbansafe.priority.audit.AuditAuthorizationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.auth.AuthLoginControllerTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.304 s - in org.urbansafe.priority.auth.AuthLoginControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.auth.AuthServiceTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.299 s - in org.urbansafe.priority.auth.AuthServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.auth.BootstrapAdminInitializerTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.028 s - in org.urbansafe.priority.auth.BootstrapAdminInitializerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.auth.JwtSecurityTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.046 s - in org.urbansafe.priority.auth.JwtSecurityTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.building.BuildingControllerSecurityIntegrationTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.918 s - in org.urbansafe.priority.building.BuildingControllerSecurityIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.building.BuildingControllerTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.985 s - in org.urbansafe.priority.building.BuildingControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.building.BuildingMapperIntegrationTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.081 s - in org.urbansafe.priority.building.BuildingMapperIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.building.BuildingPaginationIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.19 s - in org.urbansafe.priority.building.BuildingPaginationIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.building.BuildingServiceTest.txt:Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.401 s - in org.urbansafe.priority.building.BuildingServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.common.pagination.PageAdapterTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s - in org.urbansafe.priority.common.pagination.PageAdapterTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.common.security.BusinessAccessServiceIntegrationTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.062 s - in org.urbansafe.priority.common.security.BusinessAccessServiceIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.common.security.ScopedArchiveQueryServiceIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.041 s - in org.urbansafe.priority.common.security.ScopedArchiveQueryServiceIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.common.security.SecurityConfigTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s - in org.urbansafe.priority.common.security.SecurityConfigTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.community.CommunityControllerSecurityIntegrationTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.853 s - in org.urbansafe.priority.community.CommunityControllerSecurityIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.community.CommunityControllerTest.txt:Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.767 s - in org.urbansafe.priority.community.CommunityControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.community.CommunityMapperIntegrationTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.054 s - in org.urbansafe.priority.community.CommunityMapperIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.community.CommunityPaginationIntegrationTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.075 s - in org.urbansafe.priority.community.CommunityPaginationIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.community.CommunityServiceTest.txt:Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.03 s - in org.urbansafe.priority.community.CommunityServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.auth.AuthLoginControllerTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.426 s - in org.urbansafe.priority.auth.AuthLoginControllerTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.auth.AuthServiceTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.324 s - in org.urbansafe.priority.auth.AuthServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.auth.BootstrapAdminInitializerTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.049 s - in org.urbansafe.priority.auth.BootstrapAdminInitializerTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.auth.JwtSecurityTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.067 s - in org.urbansafe.priority.auth.JwtSecurityTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.building.BuildingControllerSecurityIntegrationTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.071 s - in org.urbansafe.priority.building.BuildingControllerSecurityIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.building.BuildingControllerTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.062 s - in org.urbansafe.priority.building.BuildingControllerTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.building.BuildingMapperIntegrationTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.086 s - in org.urbansafe.priority.building.BuildingMapperIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.building.BuildingPaginationIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.201 s - in org.urbansafe.priority.building.BuildingPaginationIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.building.BuildingServiceTest.txt:Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.474 s - in org.urbansafe.priority.building.BuildingServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.common.pagination.PageAdapterTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s - in org.urbansafe.priority.common.pagination.PageAdapterTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.common.security.BusinessAccessServiceIntegrationTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.072 s - in org.urbansafe.priority.common.security.BusinessAccessServiceIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.common.security.ScopedArchiveQueryServiceIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.049 s - in org.urbansafe.priority.common.security.ScopedArchiveQueryServiceIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.common.security.SecurityConfigTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s - in org.urbansafe.priority.common.security.SecurityConfigTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.community.CommunityControllerSecurityIntegrationTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.826 s - in org.urbansafe.priority.community.CommunityControllerSecurityIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.community.CommunityControllerTest.txt:Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.929 s - in org.urbansafe.priority.community.CommunityControllerTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.community.CommunityMapperIntegrationTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.044 s - in org.urbansafe.priority.community.CommunityMapperIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.community.CommunityPaginationIntegrationTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.055 s - in org.urbansafe.priority.community.CommunityPaginationIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.community.CommunityServiceTest.txt:Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.031 s - in org.urbansafe.priority.community.CommunityServiceTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.controller.SystemHealthControllerTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s - in org.urbansafe.priority.controller.SystemHealthControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.evidence.BuildingEvidenceControllerTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.915 s - in org.urbansafe.priority.evidence.BuildingEvidenceControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.evidence.BuildingEvidenceMapperIntegrationTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.042 s - in org.urbansafe.priority.evidence.BuildingEvidenceMapperIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.evidence.BuildingEvidencePaginationIntegrationTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.062 s - in org.urbansafe.priority.evidence.BuildingEvidencePaginationIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.feedback.FeedbackClosureServiceTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.026 s - in org.urbansafe.priority.feedback.FeedbackClosureServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.feedback.FeedbackServiceTest.txt:Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.018 s - in org.urbansafe.priority.feedback.FeedbackServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.evidence.BuildingEvidenceControllerTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.989 s - in org.urbansafe.priority.evidence.BuildingEvidenceControllerTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.evidence.BuildingEvidenceMapperIntegrationTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.043 s - in org.urbansafe.priority.evidence.BuildingEvidenceMapperIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.evidence.BuildingEvidencePaginationIntegrationTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.091 s - in org.urbansafe.priority.evidence.BuildingEvidencePaginationIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.feedback.FeedbackClosureServiceTest.txt:Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.033 s - in org.urbansafe.priority.feedback.FeedbackClosureServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.feedback.FeedbackServiceTest.txt:Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.025 s - in org.urbansafe.priority.feedback.FeedbackServiceTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.feedback.controller.FeedbackAiAssistControllerTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0 s - in org.urbansafe.priority.feedback.controller.FeedbackAiAssistControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.feedback.service.FeedbackAiAssistServiceTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s - in org.urbansafe.priority.feedback.service.FeedbackAiAssistServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.feedback.service.FeedbackAiAssistServiceTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s - in org.urbansafe.priority.feedback.service.FeedbackAiAssistServiceTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.inspection.InspectionStateRulesTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.inspection.InspectionStateRulesTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.inspection.service.InspectionAiSummaryServiceTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s - in org.urbansafe.priority.inspection.service.InspectionAiSummaryServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.knowledge.KnowledgeQaControllerTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.748 s - in org.urbansafe.priority.knowledge.KnowledgeQaControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.knowledge.KnowledgeQaServiceTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.022 s - in org.urbansafe.priority.knowledge.KnowledgeQaServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.knowledge.KnowledgeQaSwitchTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.008 s - in org.urbansafe.priority.knowledge.KnowledgeQaSwitchTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.knowledge.KnowledgeRepositoryIntegrationTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.032 s - in org.urbansafe.priority.knowledge.KnowledgeRepositoryIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.inspection.service.InspectionAiSummaryServiceTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s - in org.urbansafe.priority.inspection.service.InspectionAiSummaryServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.knowledge.KnowledgeQaControllerTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.921 s - in org.urbansafe.priority.knowledge.KnowledgeQaControllerTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.knowledge.KnowledgeQaServiceTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.027 s - in org.urbansafe.priority.knowledge.KnowledgeQaServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.knowledge.KnowledgeQaSwitchTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s - in org.urbansafe.priority.knowledge.KnowledgeQaSwitchTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.knowledge.KnowledgeRepositoryIntegrationTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.03 s - in org.urbansafe.priority.knowledge.KnowledgeRepositoryIntegrationTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.knowledge.KnowledgeTextScorerTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s - in org.urbansafe.priority.knowledge.KnowledgeTextScorerTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.Phase2MapOpenApiContractTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.map.Phase2MapOpenApiContractTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.controller.ArchiveLocationControllerTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s - in org.urbansafe.priority.map.controller.ArchiveLocationControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.controller.ArchiveMapControllerTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.046 s - in org.urbansafe.priority.map.controller.ArchiveMapControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.controller.Phase2MapControllerTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s - in org.urbansafe.priority.map.controller.Phase2MapControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.service.AmapDiscoveryGatewayTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.044 s - in org.urbansafe.priority.map.service.AmapDiscoveryGatewayTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.service.ArchiveLocationServiceTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s - in org.urbansafe.priority.map.service.ArchiveLocationServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.service.CommunityBoundaryCandidateServiceTest.txt:Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.016 s - in org.urbansafe.priority.map.service.CommunityBoundaryCandidateServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.service.MapDiscoveryServiceTest.txt:Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s - in org.urbansafe.priority.map.service.MapDiscoveryServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.service.Phase2MapServiceTest.txt:Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.028 s - in org.urbansafe.priority.map.service.Phase2MapServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.controller.ArchiveMapControllerTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.05 s - in org.urbansafe.priority.map.controller.ArchiveMapControllerTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.controller.Phase2MapControllerTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.01 s - in org.urbansafe.priority.map.controller.Phase2MapControllerTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.service.AmapDiscoveryGatewayTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.066 s - in org.urbansafe.priority.map.service.AmapDiscoveryGatewayTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.service.ArchiveLocationServiceTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s - in org.urbansafe.priority.map.service.ArchiveLocationServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.service.CommunityBoundaryCandidateServiceTest.txt:Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s - in org.urbansafe.priority.map.service.CommunityBoundaryCandidateServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.service.MapDiscoveryServiceTest.txt:Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.015 s - in org.urbansafe.priority.map.service.MapDiscoveryServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.service.Phase2MapServiceTest.txt:Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.031 s - in org.urbansafe.priority.map.service.Phase2MapServiceTest
 ../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.map.service.R41BoundaryCandidateContractTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.map.service.R41BoundaryCandidateContractTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.persistence.BuildingLocationMigrationIntegrationTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s - in org.urbansafe.priority.persistence.BuildingLocationMigrationIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.persistence.BuildingLocationRepositoryIntegrationTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.018 s - in org.urbansafe.priority.persistence.BuildingLocationRepositoryIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.persistence.DatabasePlatformIntegrationTest.txt:Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.056 s - in org.urbansafe.priority.persistence.DatabasePlatformIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.persistence.DifyWorkflowRegistryMigrationIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.01 s - in org.urbansafe.priority.persistence.DifyWorkflowRegistryMigrationIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.report.controller.PdfReportRendererTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.report.controller.PdfReportRendererTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.report.controller.ReportDashboardComponentTest.txt:Tests run: 6, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0.924 s - in org.urbansafe.priority.report.controller.ReportDashboardComponentTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.report.controller.ReportDashboardControllerTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.741 s - in org.urbansafe.priority.report.controller.ReportDashboardControllerTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.report.controller.ReportDashboardRepositoryIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.028 s - in org.urbansafe.priority.report.controller.ReportDashboardRepositoryIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.spatial.SpatialBoundaryMigrationIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.047 s - in org.urbansafe.priority.spatial.SpatialBoundaryMigrationIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.spatial.SpatialBoundaryRepositoryIntegrationTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.052 s - in org.urbansafe.priority.spatial.SpatialBoundaryRepositoryIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.spatial.SpatialBoundaryServiceTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s - in org.urbansafe.priority.spatial.SpatialBoundaryServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.spatial.SpatialControllerContractTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.015 s - in org.urbansafe.priority.spatial.SpatialControllerContractTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.spatial.SpatialGeoJsonRepositoryIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.032 s - in org.urbansafe.priority.spatial.SpatialGeoJsonRepositoryIntegrationTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.spatial.SpatialGeoJsonServiceTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.025 s - in org.urbansafe.priority.spatial.SpatialGeoJsonServiceTest
-../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.spatial.SpatialOpenApiContractTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.001 s - in org.urbansafe.priority.spatial.SpatialOpenApiContractTest
-../mirror/backend-java/starter/target/surefire-reports/org.urbansafe.priority.config.ApplicationYamlPersistenceConfigurationTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.402 s - in org.urbansafe.priority.config.ApplicationYamlPersistenceConfigurationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.persistence.BuildingLocationMigrationIntegrationTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.019 s - in org.urbansafe.priority.persistence.BuildingLocationMigrationIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.persistence.BuildingLocationRepositoryIntegrationTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.026 s - in org.urbansafe.priority.persistence.BuildingLocationRepositoryIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.persistence.DatabasePlatformIntegrationTest.txt:Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.062 s - in org.urbansafe.priority.persistence.DatabasePlatformIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.persistence.DifyWorkflowRegistryMigrationIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.018 s - in org.urbansafe.priority.persistence.DifyWorkflowRegistryMigrationIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.report.controller.PdfReportRendererTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.report.controller.PdfReportRendererTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.report.controller.ReportDashboardComponentTest.txt:Tests run: 6, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0.464 s - in org.urbansafe.priority.report.controller.ReportDashboardComponentTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.report.controller.ReportDashboardControllerTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.75 s - in org.urbansafe.priority.report.controller.ReportDashboardControllerTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.report.controller.ReportDashboardRepositoryIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.031 s - in org.urbansafe.priority.report.controller.ReportDashboardRepositoryIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.spatial.SpatialBoundaryMigrationIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.03 s - in org.urbansafe.priority.spatial.SpatialBoundaryMigrationIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.spatial.SpatialBoundaryRepositoryIntegrationTest.txt:Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.041 s - in org.urbansafe.priority.spatial.SpatialBoundaryRepositoryIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.spatial.SpatialBoundaryServiceTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.018 s - in org.urbansafe.priority.spatial.SpatialBoundaryServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.spatial.SpatialControllerContractTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s - in org.urbansafe.priority.spatial.SpatialControllerContractTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.spatial.SpatialGeoJsonRepositoryIntegrationTest.txt:Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.031 s - in org.urbansafe.priority.spatial.SpatialGeoJsonRepositoryIntegrationTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.spatial.SpatialGeoJsonServiceTest.txt:Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.027 s - in org.urbansafe.priority.spatial.SpatialGeoJsonServiceTest
+../mirror/backend-java/server/target/surefire-reports/org.urbansafe.priority.spatial.SpatialOpenApiContractTest.txt:Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.002 s - in org.urbansafe.priority.spatial.SpatialOpenApiContractTest
+../mirror/backend-java/starter/target/surefire-reports/org.urbansafe.priority.config.ApplicationYamlPersistenceConfigurationTest.txt:Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.429 s - in org.urbansafe.priority.config.ApplicationYamlPersistenceConfigurationTest

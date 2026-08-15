@@ -20,7 +20,16 @@ public class FeedbackClosureRepository {
             return Optional.ofNullable(jdbc.queryForObject("""
                     SELECT t.id AS "taskId", t.task_code AS "taskCode", t.building_id AS "buildingId",
                            t.inspection_type AS "inspectionType", t.status AS "status", t.planned_at AS "plannedAt",
-                           t.started_at AS "startedAt", t.completed_at AS "completedAt", e.created_at AS "linkedAt"
+                           t.started_at AS "startedAt", t.completed_at AS "completedAt",
+                           EXISTS (
+                             SELECT 1
+                             FROM core.resident_report_event result_event
+                             WHERE result_event.resident_report_id=e.resident_report_id
+                               AND result_event.event_type IN ('REINSPECTION_PASSED','REINSPECTION_FAILED')
+                               AND COALESCE(result_event.event_data->>'taskId','')=COALESCE(e.event_data->>'taskId','')
+                               AND result_event.created_at>=e.created_at
+                           ) AS "resultRecorded",
+                           e.created_at AS "linkedAt"
                     FROM core.resident_report_event e
                     JOIN core.inspection_task t
                       ON t.id=CASE

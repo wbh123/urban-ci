@@ -137,8 +137,7 @@ class AiAutomationSettingsServiceTest {
 
         AiAutomationSettings settings = service.update(false, false, false, operatorId);
 
-        verify(repository).update(
-                false, false, false, "AI-VISION-LOCAL-001", operatorId);
+        verify(repository).update(false, false, false, operatorId);
         assertThat(settings.autoInferenceOnUpload()).isFalse();
         assertThat(settings.intelligentWorkflowEnabled()).isFalse();
         assertThat(settings.knowledgeQaEnabled()).isFalse();

@@ -125,6 +125,11 @@ public class FeedbackClosureService {
         Map<String, Object> task = closureRepository.latestReinspection(reportId)
                 .orElseThrow(() -> new ResourceConflictException("FEEDBACK_REINSPECTION_REQUIRED",
                         "请先创建并完成复查任务后再提交复验结论"));
+        if (Boolean.TRUE.equals(task.get("resultRecorded"))) {
+            throw new ResourceConflictException(
+                    "FEEDBACK_REINSPECTION_RESULT_ALREADY_RECORDED",
+                    "该复查任务已提交复验结论，请发起新一轮复查任务");
+        }
         if (!"COMPLETED".equals(String.valueOf(task.get("status")))) {
             throw new ResourceConflictException("FEEDBACK_REINSPECTION_NOT_COMPLETED",
                     "请等待复查任务完成后再提交复验结论");

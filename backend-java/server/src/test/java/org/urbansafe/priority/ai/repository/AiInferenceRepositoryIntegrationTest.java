@@ -125,6 +125,16 @@ class AiInferenceRepositoryIntegrationTest extends PostgreSqlIntegrationTestBase
         List<Map<String, Object>> detections = (List<Map<String, Object>>) detail.get().get("detections");
         assertThat(detections).hasSize(1);
         assertThat(detections.get(0).get("classCode")).isEqualTo("CRACK");
+
+        Object boundingBox = detections.get(0).get("boundingBox");
+        assertThat(boundingBox).isInstanceOf(Map.class);
+        Map<?, ?> box = (Map<?, ?>) boundingBox;
+        assertThat(box.get("x")).isInstanceOf(Number.class);
+        assertThat(((Number) box.get("x")).doubleValue()).isEqualTo(0.1d);
+        assertThat(((Number) box.get("y")).doubleValue()).isEqualTo(0.1d);
+        assertThat(((Number) box.get("width")).doubleValue()).isEqualTo(0.2d);
+        assertThat(((Number) box.get("height")).doubleValue()).isEqualTo(0.2d);
+        assertThat(box.get("coordinateType")).isEqualTo("NORMALIZED_XYWH");
     }
 
     @Test

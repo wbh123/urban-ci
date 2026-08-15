@@ -1,5 +1,5 @@
-source_ref=62b47855b593e1bc9517b1d28efa761339eaebaf
-run_id=31869116290
+source_ref=1b3c97c48131ededd347c3a3538400434dcae3be
+run_id=31869559708
 --- Maven tail ---
 [INFO] Processing operation uploadPhase2InspectionImage
 [INFO] Processing operation listPhase2Assets
@@ -187,15 +187,15 @@ run_id=31869116290
 [INFO] Reactor Summary for UrbanSafe Priority Server 1.0.0-SNAPSHOT:
 [INFO] 
 [INFO] UrbanSafe Priority Server .......................... SUCCESS [  0.002 s]
-[INFO] model .............................................. SUCCESS [  8.901 s]
-[INFO] client ............................................. FAILURE [  1.200 s]
+[INFO] model .............................................. SUCCESS [ 12.509 s]
+[INFO] client ............................................. FAILURE [  1.866 s]
 [INFO] UrbanSafe Priority Server Module ................... SKIPPED
 [INFO] starter ............................................ SKIPPED
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD FAILURE
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  10.533 s
-[INFO] Finished at: 2026-08-15T06:20:25Z
+[INFO] Total time:  14.776 s
+[INFO] Finished at: 2026-08-15T06:31:32Z
 [INFO] ------------------------------------------------------------------------
 [ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:compile (default-compile) on project client: Compilation failure: Compilation failure: 
 [ERROR] /home/runner/work/urban-ci/urban-ci/mirror/backend-java/client/target/generated-sources/openapi/src/main/java/org/urbansafe/priority/client/feign/DefaultApi.java:[8,40] cannot find symbol

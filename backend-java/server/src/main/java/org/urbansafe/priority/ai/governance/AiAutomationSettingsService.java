@@ -3,15 +3,18 @@ package org.urbansafe.priority.ai.governance;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.urbansafe.priority.ai.orchestration.AiCapabilityProvider;
 import org.urbansafe.priority.ai.orchestration.AiCapabilityType;
+import org.urbansafe.priority.ai.service.AiModelCatalogService;
 import org.urbansafe.priority.common.exception.ResourceConflictException;
 
-/** 管理视觉自动识别、智能工作流与知识问答的业务开关。 */
+/** 管理视觉自动识别、智能工作流、知识问答与默认视觉模型。 */
 @Service
 public class AiAutomationSettingsService {
 
+    /** 历史默认模型，同时作为数据库设置缺失时的安全回退值。 */
     public static final String AUTO_MODEL_ID = "AI-VISION-LOCAL-001";
     public static final String AUTO_PROVIDER_CODE = "FAST_API";
     public static final String AUTO_CAPABILITY_TYPE = "VISION_INFERENCE";
@@ -20,12 +23,25 @@ public class AiAutomationSettingsService {
 
     private final AiAutomationSettingsRepository repository;
     private final List<AiCapabilityProvider> providers;
+    private final AiModelCatalogService modelCatalogService;
 
+    @Autowired
+    public AiAutomationSettingsService(
+            AiAutomationSettingsRepository repository,
+            List<AiCapabilityProvider> providers,
+            AiModelCatalogService modelCatalogService) {
+        this.repository = repository;
+        this.providers = List.copyOf(providers);
+        this.modelCatalogService = modelCatalogService;
+    }
+
+    /** 测试与旧调用兼容构造器；生产 Spring 容器使用三参数构造器。 */
     public AiAutomationSettingsService(
             AiAutomationSettingsRepository repository,
             List<AiCapabilityProvider> providers) {
         this.repository = repository;
         this.providers = List.copyOf(providers);
+        this.modelCatalogService = null;
     }
 
     public AiAutomationSettings get() {
@@ -33,7 +49,7 @@ public class AiAutomationSettingsService {
                 repository.findAutoInferenceOnUpload(),
                 repository.findIntelligentWorkflowEnabled(),
                 repository.findKnowledgeQaEnabled(),
-                AUTO_MODEL_ID,
+                repository.findDefaultVisionModelId(AUTO_MODEL_ID),
                 AUTO_PROVIDER_CODE,
                 AUTO_CAPABILITY_TYPE,
                 repository.findUpdatedAt());
@@ -44,10 +60,30 @@ public class AiAutomationSettingsService {
             boolean intelligentWorkflowEnabled,
             boolean knowledgeQaEnabled,
             UUID updatedBy) {
+        return update(
+                autoInferenceOnUpload,
+                intelligentWorkflowEnabled,
+                knowledgeQaEnabled,
+                repository.findDefaultVisionModelId(AUTO_MODEL_ID),
+                updatedBy);
+    }
+
+    public AiAutomationSettings update(
+            boolean autoInferenceOnUpload,
+            boolean intelligentWorkflowEnabled,
+            boolean knowledgeQaEnabled,
+            String requestedModelId,
+            UUID updatedBy) {
         boolean currentAutoInference = repository.findAutoInferenceOnUpload();
         boolean currentWorkflow = repository.findIntelligentWorkflowEnabled();
         boolean currentKnowledgeQa = repository.findKnowledgeQaEnabled();
+        String currentModelId = repository.findDefaultVisionModelId(AUTO_MODEL_ID);
+        String effectiveModelId = normalizeModelId(requestedModelId, currentModelId);
 
+        if ((autoInferenceOnUpload && !currentAutoInference)
+                || !effectiveModelId.equals(currentModelId)) {
+            requireSelectableVisionModel(effectiveModelId);
+        }
         if (autoInferenceOnUpload
                 && !currentAutoInference
                 && !providerReady(AUTO_PROVIDER_CODE, AiCapabilityType.VISION_INFERENCE)) {
@@ -73,6 +109,7 @@ public class AiAutomationSettingsService {
                 autoInferenceOnUpload,
                 intelligentWorkflowEnabled,
                 knowledgeQaEnabled,
+                effectiveModelId,
                 updatedBy);
         return get();
     }
@@ -85,12 +122,25 @@ public class AiAutomationSettingsService {
         return repository.findKnowledgeQaEnabled();
     }
 
+    private void requireSelectableVisionModel(String modelId) {
+        if (modelCatalogService != null) {
+            modelCatalogService.requireSelectableVisionModel(modelId);
+        }
+    }
+
     private boolean providerReady(String providerCode, AiCapabilityType capabilityType) {
         return providers.stream().anyMatch(provider ->
                 providerCode.equals(normalize(provider.providerCode()))
                         && provider.enabled()
                         && provider.configured()
                         && provider.supports(capabilityType));
+    }
+
+    private static String normalizeModelId(String requestedModelId, String currentModelId) {
+        if (requestedModelId == null || requestedModelId.isBlank()) {
+            return currentModelId;
+        }
+        return requestedModelId.trim();
     }
 
     private static String normalize(String value) {

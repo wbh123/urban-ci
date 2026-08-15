@@ -45,7 +45,17 @@ public class FeedbackManagementQueryService {
                     SELECT CASE WHEN COALESCE(e.event_data->>'taskId','') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
                                 THEN (e.event_data->>'taskId')::uuid ELSE NULL END AS task_id
                     FROM core.resident_report_event e
-                    WHERE e.resident_report_id=r.id AND e.event_type='REINSPECTION_CREATED' AND jsonb_exists(e.event_data,'taskId')
+                    WHERE e.resident_report_id=r.id
+                      AND e.event_type='REINSPECTION_CREATED'
+                      AND jsonb_exists(e.event_data,'taskId')
+                      AND NOT EXISTS (
+                        SELECT 1
+                        FROM core.resident_report_event result_event
+                        WHERE result_event.resident_report_id=e.resident_report_id
+                          AND result_event.event_type IN ('REINSPECTION_PASSED','REINSPECTION_FAILED')
+                          AND COALESCE(result_event.event_data->>'taskId','')=COALESCE(e.event_data->>'taskId','')
+                          AND result_event.created_at>=e.created_at
+                      )
                     ORDER BY e.created_at DESC,e.id DESC LIMIT 1
                 ) latest_reinspection ON TRUE
                 LEFT JOIN core.inspection_task rt ON rt.id=latest_reinspection.task_id AND rt.deleted_at IS NULL

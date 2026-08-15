@@ -34,7 +34,7 @@ class DatabasePlatformIntegrationTest extends PostgreSqlIntegrationTestBase {
     @Autowired
     private OperationLogRepository operationLogRepository;
 
-    /** 验证 V1 至当前最新 V38 均已成功执行。 */
+    /** 验证 V1 至当前最新 V39 均已成功执行。 */
     @Test
     void flywayShouldApplyThroughLatestVersion() {
         List<String> versions = jdbcTemplate.queryForList(
@@ -45,8 +45,8 @@ class DatabasePlatformIntegrationTest extends PostgreSqlIntegrationTestBase {
                 "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
                 "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
                 "21", "22", "23", "24", "25", "26", "27", "28", "29", "30",
-                "31", "32", "33", "34", "35", "36", "37", "38");
-        assertThat(versions.getLast()).isEqualTo("38");
+                "31", "32", "33", "34", "35", "36", "37", "38", "39");
+        assertThat(versions.getLast()).isEqualTo("39");
     }
 
     @Test

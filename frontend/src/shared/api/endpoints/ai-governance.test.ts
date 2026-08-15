@@ -17,37 +17,44 @@ describe('AI automation settings endpoints', () => {
     vi.clearAllMocks()
   })
 
-  it('loads the upload auto-inference switch', async () => {
+  it('loads the persisted default vision model', async () => {
     mocks.apiGet.mockResolvedValue({
       autoInferenceOnUpload: false,
-      modelId: 'AI-DIFY-WORKFLOW-001',
-      providerCode: 'DIFY',
-      capabilityType: 'WORKFLOW',
+      intelligentWorkflowEnabled: true,
+      knowledgeQaEnabled: true,
+      modelId: 'AI-VISION-LOCAL-001',
+      providerCode: 'FAST_API',
+      capabilityType: 'VISION_INFERENCE',
     })
 
-    await getAiAutomationSettings()
+    const settings = await getAiAutomationSettings()
 
     expect(mocks.apiGet).toHaveBeenCalledWith('/api/v1/ai-governance/automation-settings')
+    expect(settings.modelId).toBe('AI-VISION-LOCAL-001')
   })
 
-  it('updates the upload auto-inference switch', async () => {
+  it('updates switches together with the selected default vision model', async () => {
     mocks.apiPut.mockResolvedValue({
       autoInferenceOnUpload: true,
-      modelId: 'AI-DIFY-WORKFLOW-001',
-      providerCode: 'DIFY',
-      capabilityType: 'WORKFLOW',
+      intelligentWorkflowEnabled: false,
+      knowledgeQaEnabled: false,
+      modelId: 'AI-CRACK-HF-UNET-001',
+      providerCode: 'FAST_API',
+      capabilityType: 'VISION_INFERENCE',
     })
 
     await updateAiAutomationSettings({
       autoInferenceOnUpload: true,
       intelligentWorkflowEnabled: false,
       knowledgeQaEnabled: false,
+      modelId: 'AI-CRACK-HF-UNET-001',
     })
 
     expect(mocks.apiPut).toHaveBeenCalledWith('/api/v1/ai-governance/automation-settings', {
       autoInferenceOnUpload: true,
       intelligentWorkflowEnabled: false,
       knowledgeQaEnabled: false,
+      modelId: 'AI-CRACK-HF-UNET-001',
     })
   })
 })

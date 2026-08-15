@@ -24,25 +24,26 @@ class AiAutomationSettingsControllerTest extends PostgreSqlIntegrationTestBase {
 
     @Test
     @WithMockUser(username = "admin", roles = "ADMIN")
-    void adminShouldReadAndUpdateAutomationSettings() throws Exception {
-        AiAutomationSettings disabled = new AiAutomationSettings(
-                false, false, false, "AI-DIFY-WORKFLOW-001", "DIFY", "WORKFLOW", null);
-        AiAutomationSettings enabled = new AiAutomationSettings(
-                true, false, false, "AI-DIFY-WORKFLOW-001", "DIFY", "WORKFLOW", null);
-        when(service.get()).thenReturn(disabled);
-        when(service.update(true, false, false, null)).thenReturn(enabled);
+    void adminShouldReadAndUpdateAutomationSettingsWithDefaultModel() throws Exception {
+        AiAutomationSettings current = new AiAutomationSettings(
+                false, false, false, "AI-VISION-LOCAL-001", "FAST_API", "VISION_INFERENCE", null);
+        AiAutomationSettings updated = new AiAutomationSettings(
+                true, false, false, "AI-CRACK-HF-UNET-001", "FAST_API", "VISION_INFERENCE", null);
+        when(service.get()).thenReturn(current);
+        when(service.update(true, false, false, "AI-CRACK-HF-UNET-001", null)).thenReturn(updated);
 
         mockMvc.perform(get("/api/v1/ai-governance/automation-settings"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.autoInferenceOnUpload").value(false))
-                .andExpect(jsonPath("$.data.providerCode").value("DIFY"));
+                .andExpect(jsonPath("$.data.modelId").value("AI-VISION-LOCAL-001"));
 
         mockMvc.perform(put("/api/v1/ai-governance/automation-settings")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"autoInferenceOnUpload\":true,\"intelligentWorkflowEnabled\":false,\"knowledgeQaEnabled\":false}"))
+                        .content("{\"autoInferenceOnUpload\":true,\"intelligentWorkflowEnabled\":false,"
+                                + "\"knowledgeQaEnabled\":false,\"modelId\":\"AI-CRACK-HF-UNET-001\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.autoInferenceOnUpload").value(true))
-                .andExpect(jsonPath("$.data.modelId").value("AI-DIFY-WORKFLOW-001"));
+                .andExpect(jsonPath("$.data.modelId").value("AI-CRACK-HF-UNET-001"));
     }
 
     @Test

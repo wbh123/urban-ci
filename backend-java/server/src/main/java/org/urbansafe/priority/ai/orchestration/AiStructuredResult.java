@@ -2,6 +2,7 @@ package org.urbansafe.priority.ai.orchestration;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import java.util.List;
+import java.util.Map;
 import org.apache.ibatis.type.Alias;
 
 /**
@@ -79,11 +80,34 @@ public class AiStructuredResult {
     public String rawResponseReference() { return rawResponseReference; }
     public long durationMs() { return durationMs; }
 
+    /**
+     * 统一 Detection。PRECISION 新字段全部可选，旧快照和旧调用方仍可使用五参数构造器。
+     * trustLevel 只表示视觉候选可信度，不等同于正式房屋风险等级。
+     */
     public record Detection(
             String classCode,
             String className,
             Double confidence,
-            BoundingBox boundingBox) {
+            BoundingBox boundingBox,
+            Segmentation segmentation,
+            String trustLevel,
+            List<String> trustReasons,
+            Map<String, Object> diagnostics) {
+
+        public Detection(
+                String classCode,
+                String className,
+                Double confidence,
+                BoundingBox boundingBox,
+                Segmentation segmentation) {
+            this(classCode, className, confidence, boundingBox, segmentation,
+                    null, List.of(), Map.of());
+        }
+
+        public Detection {
+            trustReasons = trustReasons == null ? List.of() : List.copyOf(trustReasons);
+            diagnostics = diagnostics == null ? Map.of() : Map.copyOf(diagnostics);
+        }
     }
 
     public record BoundingBox(
@@ -92,6 +116,10 @@ public class AiStructuredResult {
             Double width,
             Double height,
             String coordinateType) {
+    }
+
+    /** SAM2 掩膜简化后的归一化轮廓多边形（可选，旧数据兼容）。 */
+    public record Segmentation(String type, List<List<Double>> points) {
     }
 
     public record RiskSignal(

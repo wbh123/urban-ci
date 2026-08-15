@@ -12,15 +12,25 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.urbansafe.priority.assessment.checksum.AssessmentChecksumService;
 import org.urbansafe.priority.assessment.service.AssessmentApplicationService;
+import org.urbansafe.priority.common.exception.DependencyUnavailableException;
 import org.urbansafe.priority.common.exception.InvalidRequestException;
 
 class ReportDashboardComponentTest {
 
     @Test
-    void pdfRendererProducesStandardPdfEnvelope() {
+    void pdfRendererProducesStandardPdfEnvelopeWhenRuntimeHasChineseFont() {
+        try {
+            PdfReportRenderer.resolveChineseFontFamily();
+        } catch (IllegalStateException ex) {
+            Assumptions.assumeTrue(
+                    false,
+                    "运行环境未安装中文字体，跳过实际 PDF 光栅渲染；字体选择策略由 PdfReportRendererTest 覆盖。");
+        }
+
         PdfReportRenderer renderer = new PdfReportRenderer();
         byte[] pdf = renderer.render(
                 "RPT-TEST-001",
@@ -45,6 +55,29 @@ class ReportDashboardComponentTest {
         assertThat(prefix).isEqualTo("%PDF-1.4");
         assertThat(suffix).contains("%%EOF");
         assertThat(pdf.length).isGreaterThan(1_000);
+    }
+
+    @Test
+    void reportGenerationFailureTranslatesMissingChineseFontIntoActionableDependencyError() {
+        RuntimeException translated = ReportDashboardService.translateGenerationFailure(
+                new IllegalStateException("未检测到可用于风险报告的中文字体。请安装 Noto Sans CJK SC。"));
+
+        assertThat(translated).isInstanceOf(DependencyUnavailableException.class);
+        DependencyUnavailableException error = (DependencyUnavailableException) translated;
+        assertThat(error.getErrorCode()).isEqualTo("REPORT_CJK_FONT_UNAVAILABLE");
+        assertThat(error.getMessage()).contains("中文字体");
+    }
+
+    @Test
+    void reportGenerationFailureDoesNotExposeRawInternalStorageDetails() {
+        RuntimeException translated = ReportDashboardService.translateGenerationFailure(
+                new IllegalStateException("Connection refused: http://minio-secret-host:9000/private"));
+
+        assertThat(translated).isInstanceOf(DependencyUnavailableException.class);
+        DependencyUnavailableException error = (DependencyUnavailableException) translated;
+        assertThat(error.getErrorCode()).isEqualTo("REPORT_GENERATION_DEPENDENCY_UNAVAILABLE");
+        assertThat(error.getMessage()).contains("报告存储或运行环境");
+        assertThat(error.getMessage()).doesNotContain("minio-secret-host");
     }
 
     @Test

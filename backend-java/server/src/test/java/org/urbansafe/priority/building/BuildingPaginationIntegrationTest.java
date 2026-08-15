@@ -19,7 +19,7 @@ import org.urbansafe.priority.persistence.mapper.BuildingMapper;
 import org.urbansafe.priority.persistence.mapper.CommunityMapper;
 import org.urbansafe.priority.support.PostgreSqlIntegrationTestBase;
 
-/** 验证楼栋列表通过统一适配层向前端暴露零基分页。 */
+/** 验证楼栋列表通过统一适配层向前端暴露零基分页与目录排序。 */
 @WithMockUser(username = "building-pagination-test", roles = "ADMIN")
 class BuildingPaginationIntegrationTest extends PostgreSqlIntegrationTestBase {
 
@@ -32,31 +32,9 @@ class BuildingPaginationIntegrationTest extends PostgreSqlIntegrationTestBase {
     @Test
     void listBuildingsShouldUseZeroBasedPagesWithoutRepeatingFirstRecord() throws Exception {
         String runToken = "PAGE-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        CommunityEntity community = new CommunityEntity();
-        community.setId(UUID.randomUUID());
-        community.setCommunityCode(runToken);
-        community.setCommunityName("楼栋分页测试小区");
-        community.setBuildingCount(0);
-        community.setHouseholdCount(0);
-        community.setResidentCount(0);
-        community.setStatus("ACTIVE");
-        communityMapper.insert(community);
+        CommunityEntity community = createCommunity(runToken);
         for (int index = 0; index < 3; index++) {
-            BuildingEntity building = new BuildingEntity();
-            building.setId(UUID.randomUUID());
-            building.setCommunityId(community.getId());
-            building.setBuildingCode(runToken + "-" + index);
-            building.setBuildingName(runToken + "楼栋" + index);
-            building.setConstructionYear((short) (2000 + index));
-            building.setHouseholdCount(0);
-            building.setResidentCount(0);
-            building.setElderlyCount(0);
-            building.setChildCount(0);
-            building.setHasElevator(false);
-            building.setHasIllegalModification(false);
-            building.setHasGroundFloorBusiness(false);
-            building.setStatus("ACTIVE");
-            buildingMapper.insert(building);
+            createBuilding(community.getId(), runToken + "-" + index, runToken + "楼栋" + index, 2000 + index);
         }
 
         List<UUID> identifiers = new ArrayList<>();
@@ -73,5 +51,56 @@ class BuildingPaginationIntegrationTest extends PostgreSqlIntegrationTestBase {
         }
 
         assertThat(identifiers).doesNotHaveDuplicates();
+    }
+
+    @Test
+    void listBuildingsShouldSupportBuildingCodeSortUsedByArchiveDirectory() throws Exception {
+        String runToken = "CODE-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        CommunityEntity community = createCommunity(runToken);
+        createBuilding(community.getId(), runToken + "-B", "第二栋", 2001);
+        createBuilding(community.getId(), runToken + "-A", "第一栋", 2002);
+
+        JsonNode body = objectMapper.readTree(mockMvc.perform(get("/api/v1/buildings")
+                        .param("communityId", community.getId().toString())
+                        .param("sort", "buildingCode,asc")
+                        .param("page", "0")
+                        .param("size", "100"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+
+        assertThat(body.at("/data/content/0/buildingCode").asText()).isEqualTo(runToken + "-A");
+        assertThat(body.at("/data/content/1/buildingCode").asText()).isEqualTo(runToken + "-B");
+    }
+
+    private CommunityEntity createCommunity(String code) {
+        CommunityEntity community = new CommunityEntity();
+        community.setId(UUID.randomUUID());
+        community.setCommunityCode(code);
+        community.setCommunityName("楼栋分页测试小区");
+        community.setBuildingCount(0);
+        community.setHouseholdCount(0);
+        community.setResidentCount(0);
+        community.setStatus("ACTIVE");
+        communityMapper.insert(community);
+        return community;
+    }
+
+    private BuildingEntity createBuilding(UUID communityId, String code, String name, int constructionYear) {
+        BuildingEntity building = new BuildingEntity();
+        building.setId(UUID.randomUUID());
+        building.setCommunityId(communityId);
+        building.setBuildingCode(code);
+        building.setBuildingName(name);
+        building.setConstructionYear((short) constructionYear);
+        building.setHouseholdCount(0);
+        building.setResidentCount(0);
+        building.setElderlyCount(0);
+        building.setChildCount(0);
+        building.setHasElevator(false);
+        building.setHasIllegalModification(false);
+        building.setHasGroundFloorBusiness(false);
+        building.setStatus("ACTIVE");
+        buildingMapper.insert(building);
+        return building;
     }
 }

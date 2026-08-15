@@ -76,7 +76,16 @@
                             <skipIfSpecIsUnchanged>true</skipIfSpecIsUnchanged>
                             <inlineSchemaNameMappings>
                                 <inlineSchemaNameMapping>createAiInference_201_response=AiInferenceSuccessResponse</inlineSchemaNameMapping>
+                                <inlineSchemaNameMapping>createAiInference_202_response=AiAsyncInferenceSubmissionResponse</inlineSchemaNameMapping>
+                                <inlineSchemaNameMapping>listAiInferenceExecutions_200_response=AiInferenceExecutionListResponse</inlineSchemaNameMapping>
+                                <inlineSchemaNameMapping>getAiInferenceExecution_200_response=AiInferenceExecutionResponse</inlineSchemaNameMapping>
                             </inlineSchemaNameMappings>
+                            <modelNameMappings>
+                                <modelNameMapping>CreateAiInference201Response=AiInferenceSuccessResponse</modelNameMapping>
+                                <modelNameMapping>CreateAiInference202Response=AiAsyncInferenceSubmissionResponse</modelNameMapping>
+                                <modelNameMapping>ListAiInferenceExecutions200Response=AiInferenceExecutionListResponse</modelNameMapping>
+                                <modelNameMapping>GetAiInferenceExecution200Response=AiInferenceExecutionResponse</modelNameMapping>
+                            </modelNameMappings>
                             <configOptions>
                                 <useJakartaEe>true</useJakartaEe>
                                 <dateLibrary>java8</dateLibrary>
@@ -95,6 +104,93 @@
                         <goals><goal>generate</goal></goals>
                         <configuration>
                             <inputSpec>${project.basedir}/src/main/resources/ai-governance/openapi-ai-governance.yaml</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <invokerPackage>org.urbansafe.priority.model.invoker</invokerPackage>
+                            <apiPackage>org.urbansafe.priority.model.api</apiPackage>
+                            <modelPackage>org.urbansafe.priority.model.dto</modelPackage>
+                            <generateApis>true</generateApis>
+                            <generateModels>true</generateModels>
+                            <generateApiDocumentation>false</generateApiDocumentation>
+                            <generateApiTests>false</generateApiTests>
+                            <generateModelDocumentation>false</generateModelDocumentation>
+                            <generateModelTests>false</generateModelTests>
+                            <skipIfSpecIsUnchanged>true</skipIfSpecIsUnchanged>
+                            <configOptions>
+                                <useJakartaEe>true</useJakartaEe>
+                                <dateLibrary>java8</dateLibrary>
+                                <interfaceOnly>true</interfaceOnly>
+                                <useTags>true</useTags>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                                <requestMappingMode>none</requestMappingMode>
+                                <skipDefaultInterface>true</skipDefaultInterface>
+                                <serializationLibrary>jackson</serializationLibrary>
+                                <openApiNullable>false</openApiNullable>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-ai-dashboard-contract</id>
+                        <goals><goal>generate</goal></goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/src/main/resources/ai-dashboard/openapi-ai-dashboard.yaml</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <invokerPackage>org.urbansafe.priority.model.invoker</invokerPackage>
+                            <apiPackage>org.urbansafe.priority.model.api</apiPackage>
+                            <modelPackage>org.urbansafe.priority.model.dto</modelPackage>
+                            <generateApis>true</generateApis>
+                            <generateModels>true</generateModels>
+                            <generateApiDocumentation>false</generateApiDocumentation>
+                            <generateApiTests>false</generateApiTests>
+                            <generateModelDocumentation>false</generateModelDocumentation>
+                            <generateModelTests>false</generateModelTests>
+                            <skipIfSpecIsUnchanged>true</skipIfSpecIsUnchanged>
+                            <configOptions>
+                                <useJakartaEe>true</useJakartaEe>
+                                <dateLibrary>java8</dateLibrary>
+                                <interfaceOnly>true</interfaceOnly>
+                                <useTags>true</useTags>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                                <requestMappingMode>none</requestMappingMode>
+                                <skipDefaultInterface>true</skipDefaultInterface>
+                                <serializationLibrary>jackson</serializationLibrary>
+                                <openApiNullable>false</openApiNullable>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-ai-runtime-contract</id>
+                        <goals><goal>generate</goal></goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/src/main/resources/ai-runtime/openapi-ai-runtime.yaml</inputSpec>
+                            <generatorName>spring</generatorName>
+                            <invokerPackage>org.urbansafe.priority.model.invoker</invokerPackage>
+                            <apiPackage>org.urbansafe.priority.model.api</apiPackage>
+                            <modelPackage>org.urbansafe.priority.model.dto</modelPackage>
+                            <generateApis>true</generateApis>
+                            <generateModels>true</generateModels>
+                            <generateApiDocumentation>false</generateApiDocumentation>
+                            <generateApiTests>false</generateApiTests>
+                            <generateModelDocumentation>false</generateModelDocumentation>
+                            <generateModelTests>false</generateModelTests>
+                            <skipIfSpecIsUnchanged>true</skipIfSpecIsUnchanged>
+                            <configOptions>
+                                <useJakartaEe>true</useJakartaEe>
+                                <dateLibrary>java8</dateLibrary>
+                                <interfaceOnly>true</interfaceOnly>
+                                <useTags>true</useTags>
+                                <hideGenerationTimestamp>true</hideGenerationTimestamp>
+                                <requestMappingMode>none</requestMappingMode>
+                                <skipDefaultInterface>true</skipDefaultInterface>
+                                <serializationLibrary>jackson</serializationLibrary>
+                                <openApiNullable>false</openApiNullable>
+                            </configOptions>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>generate-inspection-ai-contract</id>
+                        <goals><goal>generate</goal></goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/src/main/resources/inspection-ai/openapi-inspection-ai.yaml</inputSpec>
                             <generatorName>spring</generatorName>
                             <invokerPackage>org.urbansafe.priority.model.invoker</invokerPackage>
                             <apiPackage>org.urbansafe.priority.model.api</apiPackage>

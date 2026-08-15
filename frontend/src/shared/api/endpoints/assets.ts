@@ -3,7 +3,9 @@ import { apiGet, apiPost, request } from '../client'
 export interface AssetAutoInferenceResult {
   enabled: boolean
   triggered: boolean
+  queued?: boolean
   modelId: string
+  executionTaskId?: string | null
   inferenceId?: string | null
   status?: string | null
   message: string
@@ -51,9 +53,9 @@ export function uploadImage(input: UploadImageInput): Promise<AssetImageUploadRe
   form.append('businessType', input.businessType)
   form.append('businessId', input.businessId)
   if (input.bindingRole) form.append('bindingRole', input.bindingRole)
-  // 自动识别开启时，上传请求会同步等待 Dify 工作流；超时应覆盖后端 30 秒读取上限。
+  // 图片上传只负责持久化资产并可选创建后台 AI 任务，不等待分钟级模型执行。
   // FormData 不显式设置 Content-Type，交由浏览器附加 multipart 边界。
-  return apiPost<AssetImageUploadResult>('/api/v1/assets/images', form, { timeout: 45_000 })
+  return apiPost<AssetImageUploadResult>('/api/v1/assets/images', form)
 }
 
 /** 按业务对象查询已上传图片列表。后端第二阶段接口当前直接返回数组，同时兼容未来分页结构。 */

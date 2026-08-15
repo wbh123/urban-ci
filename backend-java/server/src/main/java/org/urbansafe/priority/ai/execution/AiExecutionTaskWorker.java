@@ -15,15 +15,18 @@ public class AiExecutionTaskWorker {
 
     private final AiExecutionTaskRepository repository;
     private final AiExecutionTaskService service;
+    private final AiAccuracyExecutionTaskExecutor accuracyExecutor;
     private final AiExecutionProperties properties;
     private final String workerId;
 
     public AiExecutionTaskWorker(
             AiExecutionTaskRepository repository,
             AiExecutionTaskService service,
+            AiAccuracyExecutionTaskExecutor accuracyExecutor,
             AiExecutionProperties properties) {
         this.repository = repository;
         this.service = service;
+        this.accuracyExecutor = accuracyExecutor;
         this.properties = properties;
         this.workerId = properties.getWorkerId() + "-" + UUID.randomUUID().toString().substring(0, 8);
     }
@@ -40,7 +43,13 @@ public class AiExecutionTaskWorker {
                 return;
             }
             try {
-                service.executeClaimed(claimed.get());
+                AiExecutionTask task = claimed.get();
+                Object profile = task.inputs().get("inferenceProfile");
+                if (profile != null && "ACCURACY".equalsIgnoreCase(String.valueOf(profile))) {
+                    accuracyExecutor.execute(task);
+                } else {
+                    service.executeClaimed(task);
+                }
             } catch (RuntimeException ex) {
                 log.error("AI execution worker failed for task {}", claimed.get().id(), ex);
             }

@@ -241,7 +241,8 @@ class AiInferenceServiceTest {
         for (int i = 0; i < detectionCount; i++) {
             detections.add(new AiInferenceResponse.Detection(
                     i + 1, "CRACK", "裂缝", 0.82,
-                    new AiInferenceResponse.BoundingBox(0.1, 0.1, 0.2, 0.2, "NORMALIZED_XYWH")));
+                    new AiInferenceResponse.BoundingBox(0.1, 0.1, 0.2, 0.2, "NORMALIZED_XYWH"),
+                    null));
         }
         return new AiInferenceResponse(
                 "UNKNOWN", status, "MOCK",

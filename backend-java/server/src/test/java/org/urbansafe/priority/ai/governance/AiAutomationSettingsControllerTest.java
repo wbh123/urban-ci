@@ -26,11 +26,11 @@ class AiAutomationSettingsControllerTest extends PostgreSqlIntegrationTestBase {
     @WithMockUser(username = "admin", roles = "ADMIN")
     void adminShouldReadAndUpdateAutomationSettings() throws Exception {
         AiAutomationSettings disabled = new AiAutomationSettings(
-                false, "AI-DIFY-WORKFLOW-001", "DIFY", "WORKFLOW", null);
+                false, false, false, "AI-DIFY-WORKFLOW-001", "DIFY", "WORKFLOW", null);
         AiAutomationSettings enabled = new AiAutomationSettings(
-                true, "AI-DIFY-WORKFLOW-001", "DIFY", "WORKFLOW", null);
+                true, false, false, "AI-DIFY-WORKFLOW-001", "DIFY", "WORKFLOW", null);
         when(service.get()).thenReturn(disabled);
-        when(service.update(true, null)).thenReturn(enabled);
+        when(service.update(true, false, false, null)).thenReturn(enabled);
 
         mockMvc.perform(get("/api/v1/ai-governance/automation-settings"))
                 .andExpect(status().isOk())
@@ -39,7 +39,7 @@ class AiAutomationSettingsControllerTest extends PostgreSqlIntegrationTestBase {
 
         mockMvc.perform(put("/api/v1/ai-governance/automation-settings")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"autoInferenceOnUpload\":true}"))
+                        .content("{\"autoInferenceOnUpload\":true,\"intelligentWorkflowEnabled\":false,\"knowledgeQaEnabled\":false}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.autoInferenceOnUpload").value(true))
                 .andExpect(jsonPath("$.data.modelId").value("AI-DIFY-WORKFLOW-001"));

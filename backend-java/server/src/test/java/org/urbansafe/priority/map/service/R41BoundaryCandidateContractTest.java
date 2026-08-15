@@ -19,6 +19,14 @@ class R41BoundaryCandidateContractTest {
     }
 
     @Test
+    void enablesBoundaryCandidateByDefaultForCompetitionDemo() throws Exception {
+        Path application = Path.of("../starter/src/main/resources/application.yaml");
+        String source = Files.readString(application);
+        assertTrue(source.contains("${URBAN_SAFE_AMAP_BOUNDARY_CANDIDATE_ENABLED:true}"),
+                "competition demo baseline should enable boundary candidates unless explicitly overridden");
+    }
+
+    @Test
     void publishesBoundaryCandidatePreviewInTheCurrentArchiveContract() throws Exception {
         Path contract = Path.of("../model/src/main/resources/archive/openapi-archive.yaml");
         String source = Files.readString(contract);

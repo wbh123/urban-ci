@@ -16,6 +16,7 @@ public final class AiErrorCodes {
     public static final String AI_UNSUPPORTED_CAPABILITY = "AI_UNSUPPORTED_CAPABILITY";
     public static final String AI_IMAGE_LOW_QUALITY = "AI_IMAGE_LOW_QUALITY";
     public static final String AI_IMAGE_NOT_APPLICABLE = "AI_IMAGE_NOT_APPLICABLE";
+    public static final String AI_EXECUTION_NOT_FOUND = "AI_EXECUTION_NOT_FOUND";
 
     private AiErrorCodes() {
     }

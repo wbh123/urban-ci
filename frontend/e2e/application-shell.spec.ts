@@ -1,10 +1,20 @@
 import { test, expect, type Page } from '@playwright/test'
 
-async function login(page: Page, entry: '/console/login' | '/mobile/login', username: string, password: string) {
+async function login(
+  page: Page,
+  entry: '/console/login' | '/mobile/login',
+  username: string,
+  password: string,
+  acceptRiskNotice = true,
+) {
   await page.goto(entry)
   await page.getByPlaceholder('请输入用户名').fill(username)
   await page.getByPlaceholder('请输入密码').fill(password)
   await page.getByRole('button', { name: '登录', exact: true }).click()
+  if (acceptRiskNotice) {
+    await expect(page.getByRole('button', { name: '我已了解', exact: true })).toBeVisible()
+    await page.getByRole('button', { name: '我已了解', exact: true }).click()
+  }
   await expect(page).not.toHaveURL(/\/(console|mobile)\/login/)
 }
 
@@ -32,22 +42,24 @@ test.describe('应用壳与角色入口', () => {
     await expect(page.getByRole('menuitem', { name: '管理总览' })).toBeVisible()
   })
 
-  test('社区管理员默认进入巡检组织管理', async ({ page }) => {
+  test('社区管理员默认进入社区巡检工作台', async ({ page }) => {
     await login(page, '/console/login', 'manager', 'demo123')
-    await expect(page).toHaveURL(/\/console\/inspections/)
+    await expect(page).toHaveURL(/\/console\/?$/)
+    await expect(page.getByRole('heading', { name: '社区巡检工作台' })).toBeVisible()
     await expect(page.getByRole('menuitem', { name: '巡检管理' })).toBeVisible()
   })
 
-  test('专家默认进入专业复核', async ({ page }) => {
+  test('专家默认进入专业复核工作台', async ({ page }) => {
     await login(page, '/console/login', 'expert', 'demo123')
-    await expect(page).toHaveURL(/\/console\/review/)
-    await expect(page.getByRole('menuitem', { name: '专业复核' })).toBeVisible()
+    await expect(page).toHaveURL(/\/console\/?$/)
+    await expect(page.getByRole('heading', { name: '专业复核工作台' })).toBeVisible()
+    await expect(page.getByRole('menuitem', { name: 'AI 人工复核' })).toBeVisible()
   })
 
   test('住建管理人员可进入电脑端风险入口', async ({ page }) => {
     await login(page, '/console/login', 'government', 'demo123')
     await expect(page).toHaveURL(/\/console\/?$/)
-    await expect(page.getByRole('menuitem', { name: '更新优先级' })).toBeVisible()
+    await expect(page.getByRole('menuitem', { name: '风险总览与报告' })).toBeVisible()
   })
 
   test('巡检人员默认进入移动端巡检任务', async ({ page }) => {
@@ -63,7 +75,7 @@ test.describe('应用壳与角色入口', () => {
   })
 
   test('移动角色从电脑登录入口登录会被入口隔离', async ({ page }) => {
-    await login(page, '/console/login', 'inspector', 'demo123')
+    await login(page, '/console/login', 'inspector', 'demo123', false)
     await expect(page).toHaveURL(/\/client-mismatch\?expected=CONSOLE/)
   })
 

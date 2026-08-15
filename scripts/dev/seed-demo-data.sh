@@ -7,6 +7,7 @@ compose_file="${repository_root}/docker/docker-compose.yml"
 base_sql_file="${repository_root}/scripts/dev/seed-demo-data.sql"
 spatial_boundary_sql_file="${repository_root}/scripts/dev/seed-spatial-boundary-demo.sql"
 feedback_sql_file="${repository_root}/scripts/dev/seed-feedback-demo-data.sql"
+knowledge_sql_file="${repository_root}/scripts/dev/seed-demo-knowledge.sql"
 assessment_input_sql_file="${repository_root}/scripts/dev/seed-assessment-input-data.sql"
 assessment_calculate_script="${repository_root}/scripts/dev/calculate-assessment-demo.sh"
 assessment_verify_sql_file="${repository_root}/scripts/dev/verify-assessment-demo.sql"
@@ -17,6 +18,7 @@ for required_file in \
   "${base_sql_file}" \
   "${spatial_boundary_sql_file}" \
   "${feedback_sql_file}" \
+  "${knowledge_sql_file}" \
   "${assessment_input_sql_file}" \
   "${assessment_calculate_script}" \
   "${assessment_verify_sql_file}"; do
@@ -50,6 +52,7 @@ run_sql_file() {
 run_sql_file "${base_sql_file}"
 run_sql_file "${spatial_boundary_sql_file}"
 run_sql_file "${feedback_sql_file}"
+run_sql_file "${knowledge_sql_file}"
 run_sql_file "${assessment_input_sql_file}"
 "${assessment_calculate_script}" "${env_file}"
 run_sql_file "${assessment_verify_sql_file}"
@@ -69,6 +72,13 @@ echo "公众反馈查询演示："
 printf '%-28s %s\n' 'DEMO-FEEDBACK-WEB-001' 'demo-track-001'
 printf '%-28s %s\n' 'DEMO-FEEDBACK-PHONE-001' 'demo-track-002'
 printf '%-28s %s\n' 'DEMO-FEEDBACK-SMS-001' 'demo-track-003'
+
+echo
+echo "AI 知识问答演示："
+printf '%-28s %s\n' '已审核内部知识' '6 份 ACTIVE 文档 / 11 个知识片段'
+printf '%-28s %s\n' '推荐问题 1' '建筑外墙发现裂缝时，现场巡检应该重点记录哪些信息？'
+printf '%-28s %s\n' '推荐问题 2' '处置整改和复查复验应该如何形成闭环？'
+printf '%-28s %s\n' '推荐问题 3' 'AI 可以直接修改正式风险评分吗？为什么？'
 
 echo
 echo "第四阶段评分演示："
@@ -127,6 +137,15 @@ SELECT 'demo_feedback_events', count(*)
 FROM core.resident_report_event events
 JOIN core.resident_report reports ON reports.id=events.resident_report_id
 WHERE reports.report_code LIKE 'DEMO-FEEDBACK-%'
+UNION ALL
+SELECT 'demo_knowledge_documents', count(*)
+FROM knowledge.document
+WHERE document_code LIKE 'DEMO-KNOWLEDGE-%' AND status='ACTIVE'
+UNION ALL
+SELECT 'demo_knowledge_chunks', count(*)
+FROM knowledge.chunk c
+JOIN knowledge.document d ON d.id=c.document_id
+WHERE d.document_code LIKE 'DEMO-KNOWLEDGE-%' AND d.status='ACTIVE'
 UNION ALL
 SELECT 'demo_completeness_current', count(*)
 FROM core.completeness_assessment

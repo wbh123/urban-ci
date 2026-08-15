@@ -5,10 +5,11 @@ import type { UploadFile } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import {
   toAppError,
-  type CommunityPoint,
+  type AiInferenceTask,
   type BuildingListRow,
-  type InspectionTask,
+  type CommunityPoint,
   type InspectionRecord,
+  type InspectionTask,
   type InspectionType,
   type Severity,
 } from '@/shared/api'
@@ -17,8 +18,13 @@ import AppLoading from '@/shared/components/AppLoading.vue'
 import AppEmpty from '@/shared/components/AppEmpty.vue'
 import AppError from '@/shared/components/AppError.vue'
 import AppStatusTag from '@/shared/components/AppStatusTag.vue'
+import InspectionImageGallery from '@/shared/components/inspection/InspectionImageGallery.vue'
 import AiDetectionOverlay from '@/pages/AiDetectionOverlay.vue'
-import type { AssetImageRow, AiInferenceTask, AiModelCatalogItem } from '@/shared/api'
+
+type InspectionGalleryHandle = {
+  refresh: () => Promise<void>
+  trackExecution: (assetId: string, taskId: string) => void
+}
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -46,20 +52,13 @@ const suggestion = ref('')
 const photo = ref<File | null>(null)
 const photoPreviewUrl = ref('')
 
-// ---- AI 推理 ----
-const aiModels = ref<AiModelCatalogItem[]>([])
-const aiSelectedModelId = ref('')
-const aiImages = ref<AssetImageRow[]>([])
-const aiSelectedAssetId = ref('')
+const galleryRef = ref<InspectionGalleryHandle | null>(null)
+const galleryRefreshKey = ref(0)
 const aiInference = ref<AiInferenceTask | null>(null)
 const aiImageBlobUrl = ref('')
 const aiBusy = ref(false)
 const aiReviewComment = ref('')
-const aiBlobUrls: string[] = []
 
-const selectedAiModel = computed(
-  () => aiModels.value.find((model) => model.modelId === aiSelectedModelId.value) ?? null,
-)
 const structuredResult = computed(() => aiInference.value?.structuredResult ?? null)
 const resultSummary = computed(() =>
   structuredResult.value?.summary
@@ -68,13 +67,7 @@ const resultSummary = computed(() =>
 )
 const resultDetections = computed(() => {
   const structured = structuredResult.value?.detections ?? []
-  if (structured.length) return structured
-  return (aiInference.value?.detections ?? []).map((item) => ({
-    classCode: item.classCode,
-    className: item.className,
-    confidence: item.confidence,
-    boundingBox: item.boundingBox,
-  }))
+  return structured.length ? structured : aiInference.value?.detections ?? []
 })
 const resultRiskSignals = computed(() => structuredResult.value?.riskSignals ?? [])
 const resultRecommendations = computed(() => structuredResult.value?.recommendations ?? [])
@@ -94,88 +87,15 @@ function riskTagType(level: string | undefined): 'success' | 'warning' | 'danger
   return 'info'
 }
 
-async function loadAiModels(): Promise<void> {
-  const response = await api.listAiModels()
-  aiModels.value = response.content ?? []
-  const current = aiModels.value.find(
-    (model) => model.modelId === aiSelectedModelId.value && model.selectable,
-  )
-  if (current) return
-  aiSelectedModelId.value =
-    aiModels.value.find((model) => model.mode === 'REAL' && model.selectable)?.modelId
-    ?? aiModels.value.find((model) => model.selectable)?.modelId
-    ?? ''
-}
-
-async function loadAiImages(): Promise<void> {
-  aiImages.value = []
-  if (!selectedTask.value) return
-  try {
-    const res = await api.listImages({
-      businessType: 'INSPECTION_TASK',
-      businessId: selectedTask.value,
-    })
-    aiImages.value = res.content ?? []
-  } catch (error) {
-    notice.value = `巡检图片加载失败：${toAppError(error).message}`
-  }
-}
-
-async function displayInferenceResult(
-  assetId: string,
-  inferenceId: string,
-  modelId?: string | null,
-): Promise<void> {
-  aiSelectedAssetId.value = assetId
-  if (modelId && aiModels.value.some((model) => model.modelId === modelId)) {
-    aiSelectedModelId.value = modelId
-  }
-  releaseBlobUrl()
-  aiImageBlobUrl.value = await api.fetchImageBlobUrl(assetId)
-  aiBlobUrls.push(aiImageBlobUrl.value)
-  aiInference.value = await api.getAiInference(inferenceId)
-}
-
-async function runAiInference(assetId: string): Promise<void> {
-  const model = selectedAiModel.value
-  if (!model || !model.selectable) {
-    notice.value = '当前没有可用的推理模型，请检查真实模型服务状态。'
-    return
-  }
-  aiSelectedAssetId.value = assetId
-  aiInference.value = null
-  releaseBlobUrl()
+async function displayInferenceResult(assetId: string, inferenceId: string): Promise<void> {
   aiBusy.value = true
   try {
+    releaseBlobUrl()
     aiImageBlobUrl.value = await api.fetchImageBlobUrl(assetId)
-    aiBlobUrls.push(aiImageBlobUrl.value)
-    const task = await api.createAiInference({
-      assetId,
-      mode: model.mode,
-      modelId: model.modelId,
-      idempotencyKey: `ws-${assetId}-${model.modelId}-${Date.now()}`,
-    })
-    aiInference.value = task
-    notice.value = `AI 推理完成：${task.status}`
+    aiInference.value = await api.getInspectionImageRichResult(inferenceId)
+    notice.value = '已加载高精度识别结果，可结合原图进行人工复核。'
   } catch (error) {
-    notice.value = toAppError(error).message
-  } finally {
-    aiBusy.value = false
-  }
-}
-
-async function retryInference(): Promise<void> {
-  if (!aiInference.value) return
-  aiBusy.value = true
-  try {
-    const task = await api.retryAiInference(
-      aiInference.value.inferenceId,
-      aiSelectedModelId.value || undefined,
-    )
-    aiInference.value = task
-    notice.value = `重试结果：${task.status}`
-  } catch (error) {
-    notice.value = toAppError(error).message
+    notice.value = `AI 结果加载失败：${toAppError(error).message}`
   } finally {
     aiBusy.value = false
   }
@@ -192,8 +112,8 @@ async function submitReview(): Promise<void> {
       aiReviewComment.value || undefined,
     )
     aiReviewComment.value = ''
-    aiInference.value = await api.getAiInference(inferenceId)
-    notice.value = '复核已提交，评分证据资格已刷新'
+    aiInference.value = await api.getInspectionImageRichResult(inferenceId)
+    notice.value = '复核已提交，评分证据资格已刷新。'
   } catch (error) {
     notice.value = toAppError(error).message
   } finally {
@@ -216,7 +136,6 @@ function releasePhotoPreview(): void {
 }
 
 const SEVERITIES: Severity[] = ['LOW', 'MEDIUM', 'HIGH']
-
 const currentTask = computed(
   () => tasks.value.find((t) => t.taskId === selectedTask.value) ?? null,
 )
@@ -238,6 +157,8 @@ async function loadBuildings(): Promise<void> {
   records.value = []
   selectedBuilding.value = ''
   selectedTask.value = ''
+  aiInference.value = null
+  releaseBlobUrl()
   if (!selectedCommunity.value) return
   const res = await api.listBuildings({ communityId: selectedCommunity.value, size: 100 })
   buildings.value = res.content ?? []
@@ -257,7 +178,7 @@ async function loadTasks(): Promise<void> {
     selectedTask.value = tasks.value[0]?.taskId ?? ''
   }
   await loadRecords()
-  await loadAiImages()
+  galleryRefreshKey.value += 1
 }
 
 async function loadAll(): Promise<void> {
@@ -265,13 +186,12 @@ async function loadAll(): Promise<void> {
   busy.value = true
   try {
     communities.value = await api.listCommunityPoints()
-    await loadAiModels()
     if (!selectedCommunity.value && communities.value.length) {
       selectedCommunity.value = communities.value[0].communityId
     }
     await loadBuildings()
     await loadTasks()
-    notice.value = '数据加载完成；小区与楼栋空间展示请使用正式空间地图。'
+    notice.value = '数据加载完成；巡检图片上传成功后会立即进入历史图库。'
   } catch (error) {
     loadError.value = toAppError(error)
     notice.value = loadError.value.message
@@ -303,13 +223,12 @@ async function handleLogout(): Promise<void> {
   buildings.value = []
   tasks.value = []
   records.value = []
-  aiModels.value = []
-  aiSelectedModelId.value = ''
   aiInference.value = null
   selectedCommunity.value = ''
   selectedBuilding.value = ''
   selectedTask.value = ''
   photo.value = null
+  releaseBlobUrl()
   releasePhotoPreview()
   notice.value = '已退出登录。'
   loadError.value = null
@@ -325,15 +244,17 @@ function selectCommunity(id: string): void {
 
 function selectTask(id: string): void {
   selectedTask.value = id
+  aiInference.value = null
+  releaseBlobUrl()
   void run(async () => {
     await loadRecords()
-    await loadAiImages()
+    galleryRefreshKey.value += 1
   })
 }
 
 async function createTask(): Promise<void> {
   if (!selectedBuilding.value) {
-    notice.value = '请先选择楼栋'
+    notice.value = '请先选择楼栋。'
     return
   }
   await run(async () => {
@@ -359,7 +280,7 @@ async function transition(action: 'start' | 'complete' | 'cancel'): Promise<void
 
 async function createRecord(): Promise<void> {
   if (!selectedTask.value || !summary.value.trim()) {
-    notice.value = '请选择任务并填写巡检摘要'
+    notice.value = '请选择任务并填写巡检摘要。'
     return
   }
   await run(async () => {
@@ -387,7 +308,7 @@ function onFileChange(uploadFile: UploadFile): void {
 async function uploadPhoto(): Promise<void> {
   const file = photo.value
   if (!file || !selectedTask.value) {
-    notice.value = '请选择任务和图片'
+    notice.value = '请选择任务和图片。'
     return
   }
   const taskId = selectedTask.value
@@ -400,21 +321,17 @@ async function uploadPhoto(): Promise<void> {
     })
     photo.value = null
     releasePhotoPreview()
-    await loadAiImages()
+    galleryRefreshKey.value += 1
 
     const automatic = result.autoInference
-    if (automatic?.triggered && automatic.inferenceId) {
-      try {
-        await displayInferenceResult(result.assetId, automatic.inferenceId, automatic.modelId)
-        notice.value = `图片上传完成并已自动识别：${automatic.status ?? '已完成'}`
-      } catch (error) {
-        notice.value = `图片已上传，但自动识别结果加载失败：${toAppError(error).message}`
-      }
+    if (automatic?.triggered && automatic.executionTaskId) {
+      galleryRef.value?.trackExecution(result.assetId, automatic.executionTaskId)
+      notice.value = `图片已上传：${result.originalFilename}；AI 正在后台分析，可继续巡检或离开页面。`
       return
     }
     notice.value = automatic?.enabled
-      ? `图片上传完成：${result.originalFilename}；${automatic.message}`
-      : `图片上传完成：${result.originalFilename}`
+      ? `图片已上传：${result.originalFilename}；${automatic.message}`
+      : `图片已上传：${result.originalFilename}；当前未自动分析，可在图库中手动启动 AI 分析。`
   })
 }
 
@@ -442,7 +359,6 @@ onMounted(() => {
 onUnmounted(() => {
   releaseBlobUrl()
   releasePhotoPreview()
-  for (const url of aiBlobUrls) URL.revokeObjectURL(url)
 })
 
 function onLoginKeydown(e: KeyboardEvent): void {
@@ -455,7 +371,7 @@ function onLoginKeydown(e: KeyboardEvent): void {
     <header class="workspace-head">
       <div>
         <p class="eyebrow">UrbanSafe Priority · Phase 2</p>
-        <h1>巡检与图片闭环兼容工作台</h1>
+        <h1>巡检与图片闭环工作台</h1>
       </div>
       <div v-if="!authStore.isAuthenticated" class="auth" @keydown="onLoginKeydown">
         <el-input v-model="loginUsername" placeholder="用户名" clearable />
@@ -477,7 +393,7 @@ function onLoginKeydown(e: KeyboardEvent): void {
           <div class="title"><h2>小区与空间地图</h2><span>兼容入口</span></div>
           <div class="map map--mock formal-map-entry">
             <strong>正式空间地图</strong>
-            <p>小区/楼栋 Polygon、风险展示与空间筛选已迁移至正式地图，本兼容工作台不再维护旧 Marker 地图。</p>
+            <p>小区/楼栋 Polygon、风险展示与空间筛选已迁移至正式地图，本工作台不再维护旧 Marker 地图。</p>
             <el-button type="primary" @click="router.push('/console/map')">打开正式空间地图</el-button>
           </div>
           <div class="cards">
@@ -551,7 +467,7 @@ function onLoginKeydown(e: KeyboardEvent): void {
         </article>
 
         <article class="panel">
-          <div class="title"><h2>现场记录与图片</h2><span>任务 → 记录 → 归档</span></div>
+          <div class="title"><h2>现场记录与上传</h2><span>图片先保存，AI 后台处理</span></div>
           <el-form label-position="top">
             <el-form-item label="严重程度">
               <el-select v-model="severity"><el-option v-for="s in SEVERITIES" :key="s" :label="s" :value="s" /></el-select>
@@ -585,38 +501,15 @@ function onLoginKeydown(e: KeyboardEvent): void {
         </article>
       </section>
 
-      <section class="grid two">
+      <section class="grid two result-grid">
         <article class="panel">
-          <div class="title"><h2>巡检图片</h2><span>{{ aiImages.length }} 张</span></div>
-          <el-form label-position="top">
-            <el-form-item label="推理模型">
-              <el-select v-model="aiSelectedModelId" placeholder="选择可用模型" :disabled="aiBusy">
-                <el-option
-                  v-for="model in aiModels"
-                  :key="model.modelId"
-                  :value="model.modelId"
-                  :disabled="!model.selectable"
-                  :label="`${model.modelName} · ${model.mode} · v${model.modelVersion}${model.runtimeReady ? '' : '（未就绪）'}`"
-                />
-              </el-select>
-            </el-form-item>
-          </el-form>
-          <div v-if="selectedAiModel" class="model-hint">
-            <strong>{{ selectedAiModel.deploymentStage }}</strong>
-            <span>{{ selectedAiModel.executionProvider || '运行时未就绪' }}</span>
-            <span v-if="!selectedAiModel.formalEvidenceEnabled">当前模型结果不进入正式评分</span>
-          </div>
-          <div v-for="img in aiImages" :key="img.id" class="image-row">
-            <span class="image-filename">{{ img.originalFilename }}</span>
-            <el-button
-              size="small"
-              type="primary"
-              :disabled="!selectedAiModel?.selectable"
-              :loading="aiBusy && aiSelectedAssetId === img.id"
-              @click="runAiInference(img.id)"
-            >AI 识别</el-button>
-          </div>
-          <AppEmpty v-if="!aiImages.length" description="请先上传图片到巡检任务" />
+          <InspectionImageGallery
+            ref="galleryRef"
+            :task-id="selectedTask"
+            :refresh-key="galleryRefreshKey"
+            editable
+            @result-selected="displayInferenceResult"
+          />
         </article>
 
         <article class="panel result-panel">
@@ -631,8 +524,8 @@ function onLoginKeydown(e: KeyboardEvent): void {
 
           <template v-if="aiInference">
             <AiDetectionOverlay
-              v-if="aiInference.status === 'SUCCEEDED' && aiInference.detections?.length && aiImageBlobUrl"
-              :detections="aiInference.detections"
+              v-if="aiInference.status === 'SUCCEEDED' && resultDetections.length && aiImageBlobUrl"
+              :detections="resultDetections"
               :image-width="aiInference.imageWidth || 1"
               :image-height="aiInference.imageHeight || 1"
               :image-src="aiImageBlobUrl"
@@ -644,8 +537,6 @@ function onLoginKeydown(e: KeyboardEvent): void {
               <span>{{ aiInference.modelName }}</span>
               <span>v{{ aiInference.modelVersion }}</span>
               <span v-if="aiInference.providerCode">{{ aiInference.providerCode }}</span>
-              <span v-if="aiInference.capabilityType">{{ aiInference.capabilityType }}</span>
-              <span v-if="aiInference.workflowVersion">工作流 {{ aiInference.workflowVersion }}</span>
               <span v-if="aiInference.durationMs">{{ aiInference.durationMs }}ms</span>
               <span>{{ aiInference.assessmentEligibility }}</span>
             </div>
@@ -689,23 +580,18 @@ function onLoginKeydown(e: KeyboardEvent): void {
 
               <div v-if="resultRecommendations.length" class="detail-block">
                 <h3>处置与补拍建议</h3>
-                <ol>
-                  <li v-for="(item, index) in resultRecommendations" :key="index">{{ item }}</li>
-                </ol>
+                <ol><li v-for="(item, index) in resultRecommendations" :key="index">{{ item }}</li></ol>
               </div>
 
               <div v-if="resultWarnings.length" class="detail-block warning-block">
                 <h3>限制与警告</h3>
-                <ul>
-                  <li v-for="(item, index) in resultWarnings" :key="index">{{ item }}</li>
-                </ul>
+                <ul><li v-for="(item, index) in resultWarnings" :key="index">{{ item }}</li></ul>
               </div>
             </section>
 
             <div v-if="aiInference.status === 'FAILED' || aiInference.status === 'REJECTED'" class="error-info">
               <p><strong>{{ aiInference.errorCode }}</strong></p>
               <p>{{ aiInference.errorMessage }}</p>
-              <el-button v-if="aiInference.status === 'FAILED'" size="small" type="primary" @click="retryInference">重试</el-button>
             </div>
 
             <div v-if="aiInference.status === 'SUCCEEDED' || aiInference.status === 'REJECTED'" class="review">
@@ -718,8 +604,8 @@ function onLoginKeydown(e: KeyboardEvent): void {
             <div class="disclaimer"><p>{{ aiInference.disclaimer }}</p></div>
           </template>
 
-          <AppEmpty v-else-if="!aiBusy" description="选择左侧图片并点击「AI 识别」" />
-          <AppLoading v-if="aiBusy" :visible="true" inline text="AI 推理中…" />
+          <AppEmpty v-else-if="!aiBusy" description="从左侧历史图片中选择「查看结果」" />
+          <AppLoading v-if="aiBusy" :visible="true" inline text="加载 AI 结果中…" />
         </article>
       </section>
     </template>
@@ -730,55 +616,28 @@ function onLoginKeydown(e: KeyboardEvent): void {
 
 <style scoped lang="scss">
 .workspace { display: flex; flex-direction: column; gap: 18px; }
-.workspace-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 24px;
-  align-items: flex-end;
-  h1 { margin: 4px 0; font-size: clamp(24px, 3vw, 36px); letter-spacing: -0.02em; }
-}
+.workspace-head { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; }
+.workspace-head h1 { margin: 4px 0; font-size: clamp(24px, 3vw, 36px); letter-spacing: -0.02em; }
 .eyebrow { margin: 0; color: var(--usp-color-primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px; }
 .auth { display: flex; gap: 8px; min-width: min(460px, 100%); }
-.notice {
-  padding: 12px 16px;
-  border-radius: var(--usp-radius);
-  background: var(--usp-color-primary-light);
-  color: var(--usp-color-primary);
-  margin: 0;
-  &--error { background: #fef3f2; color: var(--usp-color-danger); }
-}
+.notice { padding: 12px 16px; border-radius: var(--usp-radius); background: var(--usp-color-primary-light); color: var(--usp-color-primary); margin: 0; }
+.notice--error { background: #fef3f2; color: var(--usp-color-danger); }
 .grid { display: grid; gap: 18px; }
 .grid.two { grid-template-columns: minmax(0, 1.35fr) minmax(330px, 0.65fr); }
+.result-grid { align-items: start; }
 .panel { background: var(--usp-color-surface); border: 1px solid var(--usp-color-border); border-radius: var(--usp-radius); padding: 20px; box-shadow: var(--usp-shadow); }
-.title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 14px;
-  h2 { margin: 0; font-size: 20px; }
-  span { color: var(--usp-color-text-secondary); font-size: 13px; }
-}
+.title { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 14px; }
+.title h2 { margin: 0; font-size: 20px; }
+.title span { color: var(--usp-color-text-secondary); font-size: 13px; }
 .map { min-height: 210px; border-radius: var(--usp-radius); overflow: hidden; background: #dfe9e7; margin-bottom: 12px; }
 .map--mock { display: flex; align-items: center; justify-content: center; color: var(--usp-color-text-secondary); font-size: 14px; }
 .formal-map-entry { flex-direction: column; gap: 10px; padding: 24px; text-align: center; }
 .formal-map-entry strong { color: var(--usp-color-text-primary); font-size: 18px; }
 .formal-map-entry p { max-width: 560px; margin: 0; line-height: 1.65; }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
-.community, .task {
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  width: 100%;
-  padding: 13px;
-  border: 1px solid var(--usp-color-border);
-  border-radius: 13px;
-  background: var(--usp-color-surface);
-  color: inherit;
-  &.active { border-color: var(--usp-color-primary); background: var(--usp-color-primary-light); }
-  small { color: var(--usp-color-text-secondary); }
-}
+.community, .task { text-align: left; display: flex; flex-direction: column; gap: 5px; width: 100%; padding: 13px; border: 1px solid var(--usp-color-border); border-radius: 13px; background: var(--usp-color-surface); color: inherit; }
+.community.active, .task.active { border-color: var(--usp-color-primary); background: var(--usp-color-primary-light); }
+.community small, .task small { color: var(--usp-color-text-secondary); }
 .community em { color: var(--usp-color-primary); font-style: normal; font-size: 12px; }
 .actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; align-items: center; }
 .inline-alert { margin: 0 0 14px; }
@@ -786,11 +645,9 @@ function onLoginKeydown(e: KeyboardEvent): void {
 .pending-photo-preview img { width: 100%; max-height: 280px; object-fit: contain; border-radius: 10px; background: #111; }
 .pending-photo-preview figcaption { display: flex; justify-content: space-between; gap: 12px; color: var(--usp-color-text-secondary); font-size: 12px; }
 .pending-photo-preview strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--usp-color-text-primary); }
-.record { border-top: 1px solid var(--usp-color-border); padding-top: 12px; margin-top: 12px; p { margin: 5px 0; color: var(--usp-color-text-secondary); } }
+.record { border-top: 1px solid var(--usp-color-border); padding-top: 12px; margin-top: 12px; }
+.record p { margin: 5px 0; color: var(--usp-color-text-secondary); }
 .badge { display: inline-block; margin-left: 8px; padding: 2px 10px; font-size: 11px; font-weight: 700; color: var(--usp-color-warning, #ff9800); background: #fff3e0; border: 1px solid #ffcc80; border-radius: 4px; vertical-align: middle; }
-.model-hint { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 12px; padding: 10px 12px; border-radius: var(--usp-radius); background: var(--usp-color-primary-light); font-size: 12px; color: var(--usp-color-text-secondary); }
-.image-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--usp-color-border); &:last-child { border-bottom: none; } }
-.image-filename { font-size: 13px; color: var(--usp-color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .result-panel { min-width: 0; }
 .result-image { width: 100%; max-height: 360px; border-radius: var(--usp-radius); object-fit: contain; background: #1a1a1a; }
 .meta { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 10px; font-size: 12px; color: var(--usp-color-text-secondary); }
@@ -808,9 +665,13 @@ function onLoginKeydown(e: KeyboardEvent): void {
 .risk-item p { margin-top: 6px; }
 .risk-item > span { display: inline-block; margin-top: 5px; color: var(--usp-color-text-secondary); font-size: 12px; }
 .warning-block { background: #fffcf5; border-color: #fedf89; }
-.error-info { margin-top: 10px; padding: 12px; background: #fef3f2; border-radius: var(--usp-radius); font-size: 13px; p { margin: 0 0 6px; } strong { color: var(--usp-color-danger); } }
+.error-info { margin-top: 10px; padding: 12px; background: #fef3f2; border-radius: var(--usp-radius); font-size: 13px; }
+.error-info p { margin: 0 0 6px; }
+.error-info strong { color: var(--usp-color-danger); }
 .review { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--usp-color-border); }
-.disclaimer { margin-top: 14px; padding: 10px 12px; background: var(--usp-color-primary-light); border-radius: var(--usp-radius); p { margin: 0; font-size: 12px; color: var(--usp-color-primary); } }
+.disclaimer { margin-top: 14px; padding: 10px 12px; background: var(--usp-color-primary-light); border-radius: var(--usp-radius); }
+.disclaimer p { margin: 0; font-size: 12px; color: var(--usp-color-primary); }
+.workspace :deep(.el-input__wrapper), .workspace :deep(.el-select__wrapper), .workspace :deep(.el-button) { border-radius: var(--usp-radius-lg); }
 @media (max-width: 900px) {
   .workspace-head { align-items: stretch; flex-direction: column; }
   .auth { min-width: 0; }

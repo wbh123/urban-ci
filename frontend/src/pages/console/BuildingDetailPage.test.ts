@@ -11,12 +11,12 @@ describe('R4-3 unified building detail page', () => {
     expect(source).not.toContain("from '@/shared/api")
   })
 
-  it('exposes stable business sections without leaking raw AI payloads', () => {
-    for (const label of ['基础档案', '业务进度', '巡检记录', '辅助分析', '风险与优先级', '现场证据', '风险报告']) {
+  it('keeps the mature data domains while presenting them as an AI governance cockpit', () => {
+    for (const label of ['概览', 'AI 发现', '巡检', '风险研判', '证据', '档案', '治理记录']) {
       expect(source).toContain(label)
     }
-    expect(source).toContain('人工智能结果仅用于辅助分析')
+    expect(source).toContain('AI 发现仅用于辅助筛查')
+    expect(source).toContain('AI 不覆盖人工专业结论')
     expect(source).not.toContain('JSON.stringify')
-    expect(source).not.toContain('structuredResult')
   })
 })

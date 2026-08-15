@@ -20,9 +20,24 @@ public class DifyProperties {
     private int readTimeoutMs = 300000;
     private Map<String, DifyWorkflowProperties> workflows = new LinkedHashMap<>();
 
+    /**
+     * Dify Provider 是否具备至少一个可调用的业务工作流。
+     *
+     * <p>视觉识别已经由 FastAPI 承担，因此不能再强制要求 image-analysis 才认定整个
+     * Dify Provider 已配置。复核辅助、报告草稿或知识问答中任意一个工作流配置完整，
+     * 都应允许治理状态把 Dify 识别为已配置。
+     */
     public boolean configured() {
-        DifyWorkflowProperties image = resolveWorkflow("image-analysis");
-        return notBlank(baseUrl) && image != null && image.configured();
+        if (!notBlank(baseUrl)) {
+            return false;
+        }
+        for (DifyWorkflowProperties workflow : workflows.values()) {
+            if (workflow != null && workflow.configured()) {
+                return true;
+            }
+        }
+        DifyWorkflowProperties legacyImage = resolveLegacyImageWorkflow();
+        return legacyImage != null && legacyImage.configured();
     }
 
     public DifyWorkflowProperties resolveWorkflow(String configKey) {
@@ -33,6 +48,10 @@ public class DifyProperties {
         if (!"image-analysis".equals(configKey)) {
             return null;
         }
+        return resolveLegacyImageWorkflow();
+    }
+
+    private DifyWorkflowProperties resolveLegacyImageWorkflow() {
         DifyWorkflowProperties legacy = new DifyWorkflowProperties();
         legacy.setApiKey(apiKey);
         legacy.setAppId(workflowId);

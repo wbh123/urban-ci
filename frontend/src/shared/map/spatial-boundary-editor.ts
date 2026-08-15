@@ -77,7 +77,8 @@ export function createSpatialBoundaryEditor(options: { loader?: SpatialAmapLoade
       clearPolygons()
       polygons = [polygon]
       editors = namespace && map ? [new namespace.PolygonEditor(map, polygon)] : []
-      mouseTool?.close(true)
+      // 高德 MouseTool.close(true) 会清除刚绘制的覆盖物；比赛演示需要草稿持续可见。
+      mouseTool?.close(false)
       handlers.onChange?.(exportGeometry())
     })
     return true
@@ -111,7 +112,11 @@ export function createSpatialBoundaryEditor(options: { loader?: SpatialAmapLoade
     previewPolygons = []
   }
 
-  function startEdit(): void { clearPreview(); mouseTool?.close(true); editors.forEach((editor) => editor.open()) }
+  function startEdit(): void {
+    clearPreview()
+    mouseTool?.close(false)
+    editors.forEach((editor) => editor.open())
+  }
   function startDraw(): void {
     clearPreview()
     editors.forEach((editor) => editor.close())
@@ -139,8 +144,24 @@ export function createSpatialBoundaryEditor(options: { loader?: SpatialAmapLoade
 function polygonCoordinates(polygon: PolygonLike): number[][][] {
   const raw = polygon.getPath()
   const rings = looksLikeRing(raw) ? [raw] : Array.isArray(raw) ? raw : []
-  return rings.map((ring) => Array.isArray(ring) ? ring.map(readCoordinate).filter((item): item is number[] => item !== null) : []).filter((ring) => ring.length >= 3)
+  return rings
+    .map((ring) => Array.isArray(ring)
+      ? ring.map(readCoordinate).filter((item): item is number[] => item !== null)
+      : [])
+    .map(closeRing)
+    .filter((ring) => ring.length >= 4)
 }
+
+function closeRing(ring: number[][]): number[][] {
+  if (ring.length < 3) return []
+  const first = ring[0]!
+  const last = ring[ring.length - 1]!
+  const closed = first[0] === last[0] && first[1] === last[1]
+    ? ring
+    : [...ring, [first[0]!, first[1]!]]
+  return closed.length >= 4 ? closed : []
+}
+
 function looksLikeRing(value: unknown): value is unknown[] { return Array.isArray(value) && (value.length === 0 || !Array.isArray(value[0])) }
 function readCoordinate(value: unknown): number[] | null {
   const point = value as LngLat

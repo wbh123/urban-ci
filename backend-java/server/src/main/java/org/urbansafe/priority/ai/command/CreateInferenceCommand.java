@@ -10,8 +10,23 @@ public record CreateInferenceCommand(
         String providerCode,
         String capabilityType,
         String prompt,
+        String inferenceProfile,
         String idempotencyKey,
         UUID requestedBy) {
+
+    /** 保留第七阶段既有八参数调用签名。 */
+    public CreateInferenceCommand(
+            UUID assetId,
+            String mode,
+            String modelId,
+            String providerCode,
+            String capabilityType,
+            String prompt,
+            String idempotencyKey,
+            UUID requestedBy) {
+        this(assetId, mode, modelId, providerCode, capabilityType, prompt,
+                null, idempotencyKey, requestedBy);
+    }
 
     /** 保留第三阶段调用签名，未指定提供者时由第七阶段默认路由选择。 */
     public CreateInferenceCommand(
@@ -20,6 +35,7 @@ public record CreateInferenceCommand(
             String modelId,
             String idempotencyKey,
             UUID requestedBy) {
-        this(assetId, mode, modelId, null, null, null, idempotencyKey, requestedBy);
+        this(assetId, mode, modelId, null, null, null,
+                null, idempotencyKey, requestedBy);
     }
 }

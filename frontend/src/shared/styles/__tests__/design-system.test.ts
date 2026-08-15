@@ -44,4 +44,19 @@ describe('R1 设计系统基线', () => {
     expect(index.indexOf("@use './tokens';")).toBeLessThan(index.indexOf("@use './base';"))
     expect(index.indexOf("@use './base';")).toBeLessThan(index.indexOf("@use './layout';"))
   })
+
+  it('全局圆角覆盖原生按钮、选择框弹层与组合输入控件', () => {
+    const base = source('src/shared/styles/base.scss')
+    for (const selector of [
+      'button:not(.el-button)',
+      '.el-select-dropdown',
+      '.el-dropdown-menu',
+      '.el-picker-panel',
+      '.el-segmented',
+      '.el-input-number .el-input__wrapper',
+      '.el-radio-button:first-child .el-radio-button__inner',
+    ]) {
+      expect(base).toContain(selector)
+    }
+  })
 })

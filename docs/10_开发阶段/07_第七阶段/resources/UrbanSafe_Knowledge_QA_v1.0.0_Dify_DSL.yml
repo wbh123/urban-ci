@@ -216,8 +216,8 @@ workflow:
             max_tokens: 1800
             temperature: 0
           mode: chat
-          name: gpt-4o-mini
-          provider: langgenius/openai/openai
+          name: deepseek-v4-flash
+          provider: langgenius/deepseek/deepseek
         prompt_template:
         - id: 基于授权证据回答-system
           role: system

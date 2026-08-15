@@ -34,7 +34,7 @@ class AiUploadAutomationServiceTest {
     }
 
     @Test
-    void shouldQueueDifyWorkflowWithoutRunningInferenceInUploadThread() {
+    void shouldQueueLocalAccuracyWithoutRunningInferenceInUploadThread() {
         AiAutomationSettingsService settingsService = mock(AiAutomationSettingsService.class);
         AiExecutionTaskService taskService = mock(AiExecutionTaskService.class);
         UUID assetId = UUID.randomUUID();
@@ -51,13 +51,15 @@ class AiUploadAutomationServiceTest {
         verify(taskService).enqueue(captor.capture());
         AiExecutionCommand command = captor.getValue();
         assertThat(command.assetId()).isEqualTo(assetId);
-        assertThat(command.workflowCode()).isEqualTo("DIFY-IMAGE-ANALYSIS-001");
+        assertThat(command.workflowCode()).isEqualTo("LOCAL-VISION-ACCURACY-001");
         assertThat(command.mode()).isEqualTo("REAL");
-        assertThat(command.modelId()).isEqualTo("AI-DIFY-WORKFLOW-001");
-        assertThat(command.providerCode()).isEqualTo("DIFY");
-        assertThat(command.capabilityType()).isEqualTo("WORKFLOW");
+        assertThat(command.modelId()).isEqualTo("AI-VISION-LOCAL-001");
+        assertThat(command.providerCode()).isEqualTo("FAST_API");
+        assertThat(command.capabilityType()).isEqualTo("VISION_INFERENCE");
         assertThat(command.idempotencyKey()).isEqualTo("auto-upload-" + assetId);
         assertThat(command.requestedBy()).isEqualTo(operatorId);
+        assertThat(command.inputs()).containsEntry("inferenceProfile", "ACCURACY");
+        assertThat(command.inputs()).containsEntry("triggerType", "UPLOAD_AUTO");
         assertThat(result.triggered()).isTrue();
         assertThat(result.queued()).isTrue();
         assertThat(result.executionTaskId()).isEqualTo(executionTaskId);
@@ -99,9 +101,11 @@ class AiUploadAutomationServiceTest {
     private static AiAutomationSettings settings(boolean enabled) {
         return new AiAutomationSettings(
                 enabled,
-                "AI-DIFY-WORKFLOW-001",
-                "DIFY",
-                "WORKFLOW",
+                false,
+                false,
+                "AI-VISION-LOCAL-001",
+                "FAST_API",
+                "VISION_INFERENCE",
                 null);
     }
 }

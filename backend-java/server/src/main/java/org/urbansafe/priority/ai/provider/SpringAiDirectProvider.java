@@ -15,7 +15,7 @@ import org.urbansafe.priority.ai.orchestration.AiErrorCodes;
 import org.urbansafe.priority.ai.orchestration.AiOrchestrationRequest;
 import org.urbansafe.priority.ai.orchestration.AiOrchestrationResult;
 
-/** Spring AI 在线多模态模型直连提供者。 */
+/** Spring AI DeepSeek 文本生成提供者。 */
 public class SpringAiDirectProvider implements AiCapabilityProvider {
 
     public static final String PROVIDER_CODE = "SPRING_AI";
@@ -50,7 +50,7 @@ public class SpringAiDirectProvider implements AiCapabilityProvider {
 
     @Override
     public Set<AiCapabilityType> capabilities() {
-        return Set.of(AiCapabilityType.VISION_INFERENCE, AiCapabilityType.TEXT_GENERATION);
+        return Set.of(AiCapabilityType.TEXT_GENERATION);
     }
 
     @Override
@@ -60,21 +60,22 @@ public class SpringAiDirectProvider implements AiCapabilityProvider {
             String raw = gateway.generate(request);
             if (raw == null || raw.isBlank()) {
                 throw new AiProviderException(
-                        AiErrorCodes.AI_INVALID_RESPONSE, "在线模型返回空响应");
+                        AiErrorCodes.AI_INVALID_RESPONSE, "DeepSeek 返回空响应");
             }
             String json = stripCodeFence(raw);
             JsonNode node = objectMapper.readTree(json);
             StructuredPayload payload = objectMapper.treeToValue(node, StructuredPayload.class);
             if (payload == null || payload.summary() == null || payload.summary().isBlank()) {
                 throw new AiProviderException(
-                        AiErrorCodes.AI_INVALID_RESPONSE, "在线模型返回数据缺少分析摘要");
+                        AiErrorCodes.AI_INVALID_RESPONSE, "DeepSeek 返回数据缺少分析摘要");
             }
             long durationMs = Math.max(0L, (System.nanoTime() - started) / 1_000_000L);
+            String actualModel = properties.getModel();
             return new AiOrchestrationResult(
                     request.requestId(),
                     PROVIDER_CODE,
-                    firstNonBlank(request.modelCode(), properties.getModel()),
-                    firstNonBlank(payload.modelVersion(), properties.getModel()),
+                    actualModel,
+                    firstNonBlank(payload.modelVersion(), actualModel),
                     request.capabilityType(),
                     "SUCCEEDED",
                     payload.summary(),
@@ -89,7 +90,7 @@ public class SpringAiDirectProvider implements AiCapabilityProvider {
             throw ex;
         } catch (Exception ex) {
             throw new AiProviderException(
-                    AiErrorCodes.AI_INVALID_RESPONSE, "在线模型响应无法解析", ex);
+                    AiErrorCodes.AI_INVALID_RESPONSE, "DeepSeek 响应无法解析", ex);
         }
     }
 

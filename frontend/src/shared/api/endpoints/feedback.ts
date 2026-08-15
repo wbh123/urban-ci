@@ -120,6 +120,18 @@ export interface FeedbackPage {
   }
 }
 
+export interface FeedbackManagementQuery {
+  status?: FeedbackStatus
+  feedbackChannel?: FeedbackChannel
+  communityId?: string
+  buildingId?: string
+  keyword?: string
+  submittedFrom?: string
+  submittedTo?: string
+  page?: number
+  size?: number
+}
+
 export interface UpdateFeedbackStatusPayload {
   status: FeedbackStatus
   handlingSummary?: string
@@ -178,14 +190,8 @@ export function trackPublicFeedback(reportCode: string, trackingSecret: string):
   return apiGet(`/api/v1/public/feedback/reports/${encodeURIComponent(reportCode)}`, { trackingSecret })
 }
 
-export function listFeedbackReports(params: {
-  status?: FeedbackStatus
-  feedbackChannel?: FeedbackChannel
-  communityId?: string
-  page?: number
-  size?: number
-} = {}): Promise<FeedbackPage> {
-  return apiGet('/api/v1/feedback/reports', params)
+export function listFeedbackReports(params: FeedbackManagementQuery = {}): Promise<FeedbackPage> {
+  return apiGet('/api/v1/feedback/reports', { ...params })
 }
 
 export function listFeedbackImages(reportId: string): Promise<FeedbackImage[]> {

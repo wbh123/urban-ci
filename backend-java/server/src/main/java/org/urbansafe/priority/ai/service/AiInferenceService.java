@@ -45,6 +45,7 @@ public class AiInferenceService {
     private static final List<String> STATUSES = List.of(
             "PENDING", "RUNNING", "SUCCEEDED", "FAILED", "REJECTED", "CANCELLED");
     private static final List<String> MODES = List.of("MOCK", "REAL");
+    private static final List<String> INFERENCE_PROFILES = List.of("FAST", "PRECISION");
     private static final List<String> REVIEW_STATUSES = List.of("CONFIRMED", "CORRECTED", "REJECTED");
 
     private final AiInferenceRepository repository;
@@ -96,6 +97,7 @@ public class AiInferenceService {
     /** 创建推理任务并同步调用统一人工智能编排服务。 */
     public Map<String, Object> create(CreateInferenceCommand command) {
         String mode = normalizeMode(command.mode());
+        String inferenceProfile = normalizeInferenceProfile(command.inferenceProfile());
         Map<String, Object> asset = loadAsset(command.assetId());
         AiCapabilityType capabilityType = normalizeCapability(command.capabilityType());
         String providerCode = effectiveProvider(command.providerCode(), capabilityType);
@@ -129,7 +131,7 @@ public class AiInferenceService {
             executeOrchestratedInference(
                     taskId, command.assetId(), mode, model, imageBytes,
                     String.valueOf(asset.get("contentType")), requestCode,
-                    providerCode, capabilityType, command.prompt());
+                    providerCode, capabilityType, command.prompt(), inferenceProfile);
         }
         audit(taskId, command.assetId(), requestCode, "AI_INFERENCE_CREATE", "创建推理任务");
         return detail(taskId);
@@ -180,7 +182,7 @@ public class AiInferenceService {
             executeOrchestratedInference(
                     taskId, assetId, mode, model, imageBytes,
                     String.valueOf(asset.get("contentType")), requestCode,
-                    providerCode, capabilityType, null);
+                    providerCode, capabilityType, null, null);
         }
         audit(taskId, assetId, requestCode, "AI_INFERENCE_RETRY", "重试推理任务");
         return detail(taskId);
@@ -237,13 +239,20 @@ public class AiInferenceService {
             String requestCode,
             String providerCode,
             AiCapabilityType capabilityType,
-            String prompt) {
+            String prompt,
+            String inferenceProfile) {
         if (repository.markRunning(taskId) == 0) {
             throw new ResourceConflictException("AI_INFERENCE_CONFLICT", "任务状态已变化，无法执行推理");
         }
         String requestId = RequestContext.getRequestId();
         if (requestId == null || requestId.isBlank()) {
             requestId = requestCode;
+        }
+        Map<String, Object> inputs = new LinkedHashMap<>();
+        inputs.put("assetId", String.valueOf(assetId));
+        inputs.put("requestCode", requestCode);
+        if (inferenceProfile != null) {
+            inputs.put("inferenceProfile", inferenceProfile);
         }
         AiOrchestrationRequest request = new AiOrchestrationRequest(
                 requestId,
@@ -256,7 +265,7 @@ public class AiInferenceService {
                 prompt == null || prompt.isBlank()
                         ? "分析图片中的建筑表观病害，输出候选风险信号、补拍建议和人工复核提示"
                         : prompt,
-                Map.of("assetId", String.valueOf(assetId), "requestCode", requestCode));
+                inputs);
         try {
             AiStructuredResult result = orchestrationService.execute(request);
             orchestrationRepository.saveSuccess(taskId, result);
@@ -417,6 +426,18 @@ public class AiInferenceService {
             throw new InvalidRequestException(
                     AiErrorCodes.AI_UNSUPPORTED_CAPABILITY, "人工智能能力类型无效");
         }
+    }
+
+    private String normalizeInferenceProfile(String inferenceProfile) {
+        if (inferenceProfile == null || inferenceProfile.isBlank()) {
+            return null;
+        }
+        String normalized = inferenceProfile.trim().toUpperCase(Locale.ROOT);
+        if (!INFERENCE_PROFILES.contains(normalized)) {
+            throw new InvalidRequestException(
+                    "AI_INFERENCE_PROFILE_INVALID", "视觉推理档位无效，仅支持 FAST 或 PRECISION");
+        }
+        return normalized;
     }
 
     private String normalizeProviderErrorCode(String errorCode) {

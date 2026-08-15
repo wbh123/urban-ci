@@ -10,12 +10,12 @@ import org.urbansafe.priority.ai.execution.AiExecutionTaskService;
 import org.urbansafe.priority.ai.governance.AiAutomationSettings;
 import org.urbansafe.priority.ai.governance.AiAutomationSettingsService;
 
-/** 图片上传自动识别编排器：只持久化任务，绝不在上传请求线程中等待 Dify。 */
+/** 图片上传自动识别编排器：图片先落库，仅创建后台 ACCURACY 任务，不等待模型执行。 */
 @Service
 public class AiUploadAutomationService {
 
     private static final Logger log = LoggerFactory.getLogger(AiUploadAutomationService.class);
-    private static final String IMAGE_WORKFLOW_CODE = "DIFY-IMAGE-ANALYSIS-001";
+    private static final String LOCAL_ACCURACY_WORKFLOW_CODE = "LOCAL-VISION-ACCURACY-001";
 
     private final AiAutomationSettingsService settingsService;
     private final AiExecutionTaskService executionTaskService;
@@ -51,7 +51,7 @@ public class AiUploadAutomationService {
         try {
             UUID taskId = executionTaskService.enqueue(new AiExecutionCommand(
                     assetId,
-                    IMAGE_WORKFLOW_CODE,
+                    LOCAL_ACCURACY_WORKFLOW_CODE,
                     "REAL",
                     settings.modelId(),
                     settings.providerCode(),
@@ -59,7 +59,10 @@ public class AiUploadAutomationService {
                     null,
                     "auto-upload-" + assetId,
                     requestedBy,
-                    Map.of("assetId", assetId.toString(), "trigger", "UPLOAD")));
+                    Map.of(
+                            "assetId", assetId.toString(),
+                            "inferenceProfile", "ACCURACY",
+                            "triggerType", "UPLOAD_AUTO")));
             return AiUploadAutomationResult.queued(settings.modelId(), taskId);
         } catch (RuntimeException ex) {
             log.warn("Automatic inference could not be queued for asset {}: {}", assetId, ex.getMessage());

@@ -1,0 +1,17 @@
+-r requirements-vision.txt
+
+# 比赛机 RTX 3060 6GB 演示环境锁定文件。
+# 唯一事实来源：2026-08-11 在 NVIDIA GeForce RTX 3060 Laptop GPU 6GB 验证通过的环境。
+# 安装：python -m pip install -r requirements-vision-lock.txt
+# CUDA torch/torchvision 必须来自官方 download.pytorch.org，索引由 torch.version.cuda 决定：
+#   torch 2.9.1 / torchvision 0.24.1 / torch.version.cuda=12.9 → https://download.pytorch.org/whl/cu129
+# setup-demo-rtx3060.sh 安装后会强制校验版本一致，不一致即 FAIL。
+torch==2.9.1
+torchvision==0.24.1
+huggingface_hub==1.25.1
+safetensors==0.8.0
+transformers==5.15.0
+modelscope==1.39.1
+opencv-python-headless==5.0.0.93
+numpy==2.3.5
+Pillow==12.2.0

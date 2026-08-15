@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -10,6 +11,7 @@ from functools import lru_cache
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import JSONResponse
 
+from .accuracy_runtime import build_accuracy_runtime_runner
 from .adapters.mock import MOCK_WARNINGS
 from .applicability import build_image_applicability_provider
 from .config import get_settings
@@ -53,7 +55,9 @@ app = FastAPI(
 def _orchestrator() -> InferenceOrchestrator:
     """创建进程级模型注册表；目录或权重变化后必须重启服务。"""
 
-    return InferenceOrchestrator(get_settings())
+    settings = get_settings()
+    accuracy_runner = build_accuracy_runtime_runner(settings)
+    return InferenceOrchestrator(settings, accuracy_runner=accuracy_runner)
 
 
 @lru_cache(maxsize=1)
@@ -61,6 +65,21 @@ def _applicability_provider():
     """创建进程级本地图片语义适用性 Provider；权重变化后必须重启服务。"""
 
     return build_image_applicability_provider(get_settings())
+
+
+_GPU_SEMAPHORE: asyncio.Semaphore | None = None
+
+
+def _gpu_semaphore() -> asyncio.Semaphore:
+    """进程级 GPU 并发信号量：同一进程同一 GPU 最多一个视觉推理。
+
+    比赛默认 Uvicorn workers=1；即使 HTTP 层并发到达，GPU 推理仍被信号量串行化。
+    """
+
+    global _GPU_SEMAPHORE
+    if _GPU_SEMAPHORE is None:
+        _GPU_SEMAPHORE = asyncio.Semaphore(get_settings().vision_max_concurrency)
+    return _GPU_SEMAPHORE
 
 
 @app.get("/api/ai/health", tags=["Health"])
@@ -159,7 +178,9 @@ async def analyze_uploaded_image_quality(
             errorCode=ex.error_code,
             errorMessage=ex.message,
         )
-        return JSONResponse(status_code=ex.status_code, content=detail.model_dump(mode="json"))
+        return JSONResponse(
+            status_code=ex.status_code, content=detail.model_dump(mode="json")
+        )
 
 
 @app.post(
@@ -189,7 +210,9 @@ async def analyze_uploaded_image_applicability(
             errorCode=ex.error_code,
             errorMessage=ex.message,
         )
-        return JSONResponse(status_code=ex.status_code, content=detail.model_dump(mode="json"))
+        return JSONResponse(
+            status_code=ex.status_code, content=detail.model_dump(mode="json")
+        )
 
 
 @app.post(
@@ -222,12 +245,17 @@ async def run_inference(
 
     try:
         image_bytes = await file.read()
-        return _orchestrator().run(
-            request_id=parsed_metadata.requestId,
-            mode=parsed_metadata.mode,
-            image_bytes=image_bytes,
-            requested_model_id=parsed_metadata.requestedModelId,
-        )
+        # GPU 推理可能耗时较长，不能直接阻塞事件循环；在信号量保护下交给线程池，
+        # 保证同一进程同一 GPU 最多一个视觉推理，ACCURACY 显存切换期间也不会并发进入其他档位。
+        async with _gpu_semaphore():
+            return await asyncio.to_thread(
+                _orchestrator().run,
+                request_id=parsed_metadata.requestId,
+                mode=parsed_metadata.mode,
+                image_bytes=image_bytes,
+                requested_model_id=parsed_metadata.requestedModelId,
+                inference_profile=parsed_metadata.inferenceProfile,
+            )
     except InferenceServiceError as ex:
         return _error_response(
             status_code=ex.status_code,
@@ -266,11 +294,21 @@ def _error_response(
             model = None
     detail = InferenceErrorDetail(
         requestId=request_id,
-        status=InferenceStatus.FAILED if status_code == 503 else InferenceStatus.REJECTED,
+        status=(
+            InferenceStatus.FAILED
+            if status_code == 503
+            else InferenceStatus.REJECTED
+        ),
         errorCode=error_code,
         errorMessage=message,
         mode=mode,
         model=model,
-        warnings=list(MOCK_WARNINGS) if mode == InferenceMode.MOCK and status_code != 503 else [],
+        warnings=(
+            list(MOCK_WARNINGS)
+            if mode == InferenceMode.MOCK and status_code != 503
+            else []
+        ),
     )
-    return JSONResponse(status_code=status_code, content=detail.model_dump(mode="json"))
+    return JSONResponse(
+        status_code=status_code, content=detail.model_dump(mode="json")
+    )

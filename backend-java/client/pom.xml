@@ -49,6 +49,9 @@
                             <skipIfSpecIsUnchanged>true</skipIfSpecIsUnchanged>
                             <inlineSchemaNameMappings>
                                 <inlineSchemaNameMapping>createAiInference_201_response=AiInferenceSuccessResponse</inlineSchemaNameMapping>
+                                <inlineSchemaNameMapping>createAiInference_202_response=AiAsyncInferenceSubmissionResponse</inlineSchemaNameMapping>
+                                <inlineSchemaNameMapping>listAiInferenceExecutions_200_response=AiInferenceExecutionListResponse</inlineSchemaNameMapping>
+                                <inlineSchemaNameMapping>getAiInferenceExecution_200_response=AiInferenceExecutionResponse</inlineSchemaNameMapping>
                             </inlineSchemaNameMappings>
                             <configOptions>
                                 <configPackage>org.urbansafe.priority.client.config</configPackage>

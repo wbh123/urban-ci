@@ -2,28 +2,17 @@ package org.urbansafe.priority.ai.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/**
- * 人工智能推理服务配置。
- *
- * <p>Spring Boot 通过该配置连接 FastAPI 内部推理接口。FastAPI 保持无状态，
- * 不直接写业务数据库；本配置只用于 Spring Boot 调用 FastAPI。
- */
+/** Spring Boot 调用 FastAPI 的推理服务配置。 */
 @ConfigurationProperties(prefix = "urban-safe.ai")
 public class AiInferenceProperties {
 
-    /** FastAPI 内部推理基础地址。 */
     private String baseUrl = "http://localhost:8001";
-
-    /** 连接超时（毫秒）。 */
     private int connectTimeoutMs = 3000;
-
-    /** 读取超时（毫秒），用于识别 FastAPI 超时并映射为 AI_SERVICE_TIMEOUT。 */
+    /** FAST/PRECISION 与轻量接口读取超时。 */
     private int readTimeoutMs = 15000;
-
-    /** 默认 MOCK 模型编号，与 ai.model_registry 登记一致。 */
+    /** ACCURACY 多模型档位独立读取超时，避免拖长其他 FastAPI 调用失败时间。 */
+    private int accuracyReadTimeoutMs = 180000;
     private String defaultMockModelId = "AI-DEFECT-MOCK-001";
-
-    /** 默认推理模式。 */
     private String defaultMode = "MOCK";
 
     public String getBaseUrl() {
@@ -48,6 +37,14 @@ public class AiInferenceProperties {
 
     public void setReadTimeoutMs(int readTimeoutMs) {
         this.readTimeoutMs = readTimeoutMs;
+    }
+
+    public int getAccuracyReadTimeoutMs() {
+        return accuracyReadTimeoutMs;
+    }
+
+    public void setAccuracyReadTimeoutMs(int accuracyReadTimeoutMs) {
+        this.accuracyReadTimeoutMs = accuracyReadTimeoutMs;
     }
 
     public String getDefaultMockModelId() {

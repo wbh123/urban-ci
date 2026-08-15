@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.urbansafe.priority.assessment.checksum.AssessmentChecksumService;
 import org.urbansafe.priority.assessment.repository.AssessmentResultRepository;
 import org.urbansafe.priority.assessment.service.AssessmentApplicationService;
+import org.urbansafe.priority.common.exception.BusinessException;
+import org.urbansafe.priority.common.exception.DependencyUnavailableException;
 import org.urbansafe.priority.common.exception.InvalidRequestException;
 import org.urbansafe.priority.common.exception.ResourceNotFoundException;
 
@@ -211,8 +213,27 @@ public class ReportDashboardService {
             return generationResponse(repository.report(reportId), false);
         } catch (RuntimeException ex) {
             repository.fail(reportId, "REPORT_GENERATION_FAILED", safeMessage(ex));
-            throw ex;
+            throw translateGenerationFailure(ex);
         }
+    }
+
+    /**
+     * 把可预期的 PDF/对象存储运行时故障转换为业务可读 503，避免前端只看到“系统内部错误”。
+     * 原始依赖地址、凭据等内部细节不透传给浏览器。
+     */
+    static RuntimeException translateGenerationFailure(RuntimeException ex) {
+        if (ex instanceof BusinessException) {
+            return ex;
+        }
+        String message = safeMessageOf(ex);
+        if (message.contains("中文字体")) {
+            return new DependencyUnavailableException(
+                    "REPORT_CJK_FONT_UNAVAILABLE",
+                    "风险报告生成环境缺少中文字体，请安装 Noto Sans CJK SC、思源黑体或文泉驿等中文字体并重启后端后重试。");
+        }
+        return new DependencyUnavailableException(
+                "REPORT_GENERATION_DEPENDENCY_UNAVAILABLE",
+                "风险报告生成失败，请检查报告存储或运行环境是否可用后重试。");
     }
 
     public Map<String, Object> list(
@@ -444,6 +465,10 @@ public class ReportDashboardService {
     }
 
     private String safeMessage(Throwable ex) {
+        return safeMessageOf(ex);
+    }
+
+    private static String safeMessageOf(Throwable ex) {
         return ex.getMessage() == null || ex.getMessage().isBlank()
                 ? ex.getClass().getSimpleName()
                 : ex.getMessage();

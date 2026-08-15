@@ -18,7 +18,7 @@ class AiStructuredResultSerializationTest {
         AiStructuredResult result = new AiStructuredResult(
                 "req-1", "DIFY", "AI-DIFY-WORKFLOW-001", "image-analysis-v1.1.0",
                 AiCapabilityType.WORKFLOW, "SUCCEEDED", "检测到裂缝",
-                List.of(new AiStructuredResult.Detection("CRACK", "裂缝", 0.8d, null)),
+                List.of(new AiStructuredResult.Detection("CRACK", "裂缝", 0.8d, null, null)),
                 List.of(new AiStructuredResult.RiskSignal(
                         "VISIBLE_CRACK", "MEDIUM", "存在可见裂缝，可能影响结构安全", 0.8d)),
                 List.of("建议进行人工复核"), 0.8d, List.of("信息限制"), "dify:run-1", 1000L);
@@ -35,5 +35,36 @@ class AiStructuredResultSerializationTest {
         Map<?, ?> roundTrip = objectMapper.readValue(json, Map.class);
         assertEquals("检测到裂缝", roundTrip.get("summary"));
         assertEquals("DIFY", roundTrip.get("providerCode"));
+    }
+
+    @Test
+    void serializesSegmentationPolygonAndNull() throws Exception {
+        AiStructuredResult withSeg = new AiStructuredResult(
+                "req-2", "FAST_API", "AI-VISION-LOCAL-001", "1.0.0",
+                AiCapabilityType.VISION_INFERENCE, "SUCCEEDED", "疑似裂缝",
+                List.of(new AiStructuredResult.Detection(
+                        "CRACK", "疑似裂缝", 0.25d,
+                        new AiStructuredResult.BoundingBox(0.26, 0.71, 0.08, 0.28, "NORMALIZED_XYWH"),
+                        new AiStructuredResult.Segmentation("POLYGON", List.of(List.of(0.26, 0.71), List.of(0.3, 0.75))))),
+                List.of(), List.of(), 0.25d, List.of(), "fast-api:req-2", 500L);
+
+        String json = objectMapper.writeValueAsString(withSeg);
+        assertTrue(json.contains("\"segmentation\""), "segmentation must be serialized");
+        assertTrue(json.contains("POLYGON"), "segmentation type must be serialized");
+
+        Map<?, ?> roundTrip = objectMapper.readValue(json, Map.class);
+        Object segmentation = ((List<?>) roundTrip.get("detections")).get(0);
+        assertEquals("POLYGON", ((Map<?, ?>) ((Map<?, ?>) segmentation).get("segmentation")).get("type"));
+
+        // 旧数据 segmentation 为 null 时仍可反序列化。
+        AiStructuredResult withoutSeg = new AiStructuredResult(
+                "req-3", "FAST_API", "AI-VISION-LOCAL-001", "1.0.0",
+                AiCapabilityType.VISION_INFERENCE, "SUCCEEDED", "无检测",
+                List.of(new AiStructuredResult.Detection("CRACK", "疑似裂缝", 0.25d, null, null)),
+                List.of(), List.of(), 0.25d, List.of(), "fast-api:req-3", 500L);
+        String jsonWithout = objectMapper.writeValueAsString(withoutSeg);
+        Map<?, ?> rt = objectMapper.readValue(jsonWithout, Map.class);
+        Map<?, ?> firstDetection = (Map<?, ?>) ((List<?>) rt.get("detections")).get(0);
+        assertEquals(null, firstDetection.get("segmentation"));
     }
 }

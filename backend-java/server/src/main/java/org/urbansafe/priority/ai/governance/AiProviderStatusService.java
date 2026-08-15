@@ -15,7 +15,8 @@ import org.urbansafe.priority.ai.orchestration.AiOrchestrationProperties;
 /**
  * 汇总提供者配置状态与近七日任务统计。
  *
- * <p>本服务不会主动调用外部模型，因此 CONFIGURED 不等于供应商当前在线。
+ * <p>配置完整性与运行开关分开表达：CONFIGURED 只表示 .env 等配置已完整，
+ * runtimeStatus=DISABLED 才表示当前 Provider 开关关闭。只有已启用且配置完整时才执行连通性探测。
  */
 @Service
 public class AiProviderStatusService {
@@ -24,14 +25,17 @@ public class AiProviderStatusService {
     private final List<AiCapabilityProvider> providers;
     private final AiOrchestrationProperties properties;
     private final AiGovernanceRepository repository;
+    private final AiProviderProbeService probeService;
 
     public AiProviderStatusService(
             List<AiCapabilityProvider> providers,
             AiOrchestrationProperties properties,
-            AiGovernanceRepository repository) {
+            AiGovernanceRepository repository,
+            AiProviderProbeService probeService) {
         this.providers = List.copyOf(providers);
         this.properties = properties;
         this.repository = repository;
+        this.probeService = probeService;
     }
 
     public AiGovernanceStatus status() {
@@ -56,7 +60,7 @@ public class AiProviderStatusService {
                 statuses,
                 total,
                 legacy,
-                "CONFIGURED 仅表示配置完整；connectivityStatus=NOT_PROBED 表示未主动调用外部服务。",
+                "configurationStatus 表示配置完整性；runtimeStatus 表示运行开关与真实连通状态。",
                 "人工智能状态与统计仅用于运维和质量治理，不代表模型准确率、房屋危险概率或正式鉴定结论。");
     }
 
@@ -76,15 +80,29 @@ public class AiProviderStatusService {
         }
         defaultFor.sort(String::compareTo);
 
-        String configurationStatus = !provider.enabled()
-                ? "DISABLED"
-                : provider.configured() ? "CONFIGURED" : "NOT_CONFIGURED";
+        boolean configured = provider.configured();
+        String configurationStatus = configured ? "CONFIGURED" : "NOT_CONFIGURED";
+        String runtimeStatus;
+        if (!provider.enabled()) {
+            runtimeStatus = "DISABLED";
+        } else if (!configured) {
+            runtimeStatus = "UNCONFIGURED";
+        } else {
+            runtimeStatus = probeService.probe(providerCode).runtimeStatus();
+        }
+        String connectivityStatus = switch (runtimeStatus) {
+            case "READY" -> "CONNECTED";
+            case "AUTH_ERROR", "UNAVAILABLE" -> "FAILED";
+            case "DEGRADED" -> "DEGRADED";
+            default -> "NOT_PROBED";
+        };
         return new AiProviderStatus(
                 providerCode,
                 provider.enabled(),
-                provider.configured(),
+                configured,
                 configurationStatus,
-                "NOT_PROBED",
+                runtimeStatus,
+                connectivityStatus,
                 capabilities,
                 defaultFor,
                 metricsByProvider.getOrDefault(providerCode, AiProviderMetrics.empty()));

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
 import {
   getAiAutomationSettings,
   getAiGovernanceStatus,
@@ -9,23 +8,41 @@ import {
   type AiGovernanceStatus,
   type AiProviderStatus,
 } from '@/shared/api'
+import { useAppStore } from '@/stores/app'
 
+const appStore = useAppStore()
 const loading = ref(false)
 const savingAutomation = ref(false)
 const status = ref<AiGovernanceStatus | null>(null)
 const automationSettings = ref<AiAutomationSettings | null>(null)
 
+const PROVIDER_LABELS: Record<string, string> = {
+  FAST_API: '本地视觉模型',
+  SPRING_AI: 'DeepSeek 文本模型',
+  DIFY: '智能工作流',
+}
+const CAPABILITY_LABELS: Record<string, string> = {
+  VISION_INFERENCE: '视觉识别',
+  TEXT_GENERATION: '文本研判',
+  WORKFLOW: '工作流',
+}
+
 const total = computed(() => status.value?.total7d)
 const configuredCount = computed(
   () => status.value?.providers.filter((item) => item.configurationStatus === 'CONFIGURED').length ?? 0,
 )
-const difyReady = computed(() =>
-  status.value?.providers.some((item) =>
-    item.providerCode === 'DIFY'
-    && item.configurationStatus === 'CONFIGURED'
-    && item.capabilities.includes('WORKFLOW'),
-  ) ?? false,
-)
+
+function providerUsable(providerCode: string, capability: string): boolean {
+  const provider = status.value?.providers.find((item) => item.providerCode === providerCode)
+  if (!provider || provider.configurationStatus !== 'CONFIGURED' || !provider.capabilities.includes(capability)) {
+    return false
+  }
+  return provider.runtimeStatus === 'READY' || provider.runtimeStatus === 'DEGRADED'
+}
+
+const visionReady = computed(() => providerUsable('FAST_API', 'VISION_INFERENCE'))
+const workflowReady = computed(() => providerUsable('DIFY', 'WORKFLOW'))
+const knowledgeReady = computed(() => providerUsable('SPRING_AI', 'TEXT_GENERATION'))
 
 function tagType(item: AiProviderStatus): 'success' | 'warning' | 'info' {
   if (item.configurationStatus === 'CONFIGURED') return 'success'
@@ -37,6 +54,34 @@ function configurationLabel(value: AiProviderStatus['configurationStatus']): str
   if (value === 'CONFIGURED') return '配置完整'
   if (value === 'NOT_CONFIGURED') return '配置不完整'
   return '已禁用'
+}
+
+function runtimeTagType(value?: AiProviderStatus['runtimeStatus']): 'success' | 'warning' | 'danger' | 'info' {
+  if (value === 'READY') return 'success'
+  if (value === 'DEGRADED') return 'warning'
+  if (value === 'AUTH_ERROR' || value === 'UNAVAILABLE') return 'danger'
+  return 'info'
+}
+
+function runtimeLabel(value?: AiProviderStatus['runtimeStatus']): string {
+  const labels: Record<string, string> = {
+    READY: '就绪',
+    DEGRADED: '降级可用',
+    UNCONFIGURED: '未配置',
+    AUTH_ERROR: '认证错误',
+    UNAVAILABLE: '不可用',
+    DISABLED: '已禁用',
+    UNKNOWN: '未知',
+  }
+  return value ? (labels[value] ?? value) : '未知'
+}
+
+function providerLabel(code: string): string {
+  return PROVIDER_LABELS[code] ?? code
+}
+
+function capabilityLabel(code: string): string {
+  return CAPABILITY_LABELS[code] ?? code
 }
 
 function percent(value: number | undefined): string {
@@ -53,22 +98,25 @@ async function load(): Promise<void> {
     status.value = governance
     automationSettings.value = automation
   } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : '人工智能运行状态加载失败')
+    appStore.notify(error instanceof Error ? error.message : '人工智能运行状态加载失败', 'error')
   } finally {
     loading.value = false
   }
 }
 
-async function saveAutomationSetting(): Promise<void> {
+async function saveAutomationSettings(successMessage: string): Promise<void> {
   if (!automationSettings.value) return
-  const desired = automationSettings.value.autoInferenceOnUpload
   savingAutomation.value = true
   try {
-    automationSettings.value = await updateAiAutomationSettings(desired)
-    ElMessage.success(desired ? '已开启上传后自动识别' : '已关闭上传后自动识别')
+    automationSettings.value = await updateAiAutomationSettings({
+      autoInferenceOnUpload: automationSettings.value.autoInferenceOnUpload,
+      intelligentWorkflowEnabled: automationSettings.value.intelligentWorkflowEnabled,
+      knowledgeQaEnabled: automationSettings.value.knowledgeQaEnabled,
+    })
+    appStore.notify(successMessage, 'success')
   } catch (error) {
-    automationSettings.value.autoInferenceOnUpload = !desired
-    ElMessage.error(error instanceof Error ? error.message : '自动识别开关保存失败')
+    appStore.notify(error instanceof Error ? error.message : '人工智能业务开关保存失败', 'error')
+    await load()
   } finally {
     savingAutomation.value = false
   }
@@ -81,124 +129,167 @@ onMounted(load)
   <section v-loading="loading" class="system-status-page">
     <header class="page-header">
       <div>
-        <p class="eyebrow">AI Governance</p>
-        <h1>人工智能运行状态</h1>
-        <p>查看提供者配置、默认路由、自动化开关和近七日调用质量，不展示任何密钥或内部路径。</p>
+        <p class="eyebrow">✦ AI Governance</p>
+        <h1>AI 运行状态</h1>
+        <p>先看业务能力是否可用；Provider、模型能力与连通性等技术信息统一收进专业技术详情。</p>
       </div>
-      <el-button type="primary" @click="load">刷新</el-button>
+      <el-button type="primary" round @click="load">刷新状态</el-button>
     </header>
 
-    <el-alert
-      v-if="status"
-      :title="status.healthSemantics"
-      type="info"
-      :closable="false"
-      show-icon
-    />
+    <section v-if="status?.healthSemantics" class="health-card">
+      <span class="health-dot" />
+      <div>
+        <strong>当前 AI 健康状态</strong>
+        <p>{{ status.healthSemantics }}</p>
+      </div>
+    </section>
 
-    <div class="summary-grid">
-      <el-card shadow="never">
-        <span>近七日任务</span>
-        <strong>{{ total?.totalTasks ?? 0 }}</strong>
-      </el-card>
-      <el-card shadow="never">
-        <span>调用成功率</span>
-        <strong>{{ percent(total?.successRate) }}</strong>
-      </el-card>
-      <el-card shadow="never">
-        <span>平均耗时</span>
-        <strong>{{ total?.averageDurationMs ?? 0 }} ms</strong>
-      </el-card>
-      <el-card shadow="never">
-        <span>待人工复核</span>
-        <strong>{{ total?.pendingReviewTasks ?? 0 }}</strong>
-      </el-card>
-      <el-card shadow="never">
-        <span>配置完整提供者</span>
-        <strong>{{ configuredCount }}/{{ status?.providers.length ?? 0 }}</strong>
-      </el-card>
-    </div>
+    <section class="business-capabilities" aria-label="业务能力概览">
+      <div class="section-title-row">
+        <div>
+          <strong>业务能力概览</strong>
+          <p>普通业务只需要关注能力是否可用；单项故障不能阻断基础治理页面。</p>
+        </div>
+      </div>
+      <div class="capability-grid">
+        <el-card shadow="never" class="capability-card">
+          <div class="capability-card__head">
+            <strong>本地视觉识别</strong>
+            <el-tag :type="visionReady ? 'success' : 'warning'" round>{{ visionReady ? '正常' : '服务未就绪' }}</el-tag>
+          </div>
+          <p>负责巡检图片高精度识别与病害候选发现。图片上传与后台分析解耦，失败不会回滚图片上传。</p>
+        </el-card>
+        <el-card shadow="never" class="capability-card">
+          <div class="capability-card__head">
+            <strong>智能工作流</strong>
+            <el-tag :type="workflowReady ? 'success' : 'warning'" round>{{ workflowReady ? '正常' : '当前不可用' }}</el-tag>
+          </div>
+          <p>Dify 可用时优先参与智能编排；不可用时按既有策略回退到本地高精度模型，不阻断视觉基础能力。</p>
+        </el-card>
+        <el-card shadow="never" class="capability-card">
+          <div class="capability-card__head">
+            <strong>知识服务</strong>
+            <el-tag :type="knowledgeReady ? 'success' : 'warning'" round>{{ knowledgeReady ? '正常' : '服务未就绪' }}</el-tag>
+          </div>
+          <p>面向已审核知识的权限检索与问答，证据不足时拒答，不替代专业人员形成正式结论。</p>
+        </el-card>
+      </div>
+    </section>
 
     <el-card v-if="automationSettings" shadow="never" class="automation-card">
-      <div class="automation-setting">
-        <div>
-          <div class="setting-title">
-            <strong>上传巡检图片后自动执行识别</strong>
-            <el-tag :type="automationSettings.autoInferenceOnUpload ? 'success' : 'info'">
-              {{ automationSettings.autoInferenceOnUpload ? '已开启' : '已关闭' }}
-            </el-tag>
+      <template #header>
+        <div class="card-title-row">
+          <div>
+            <strong>智能能力开关</strong>
+            <p>控制业务是否使用对应能力，不会在网页中修改 API Key 或模型环境。</p>
           </div>
-          <p>
-            开启后，成功上传并绑定巡检任务的图片将自动调用
-            {{ automationSettings.providerCode }} / {{ automationSettings.capabilityType }}，
-            使用模型 {{ automationSettings.modelId }}。识别失败不会回滚图片上传。
-          </p>
-          <p v-if="!difyReady" class="setting-warning">
-            Dify 工作流提供者尚未启用或配置完整，当前不能开启此开关。
-          </p>
         </div>
-        <el-switch
-          v-model="automationSettings.autoInferenceOnUpload"
-          :loading="savingAutomation"
-          :disabled="savingAutomation || (!difyReady && !automationSettings.autoInferenceOnUpload)"
-          inline-prompt
-          active-text="自动"
-          inactive-text="手动"
-          @change="saveAutomationSetting"
-        />
+      </template>
+
+      <div class="automation-list">
+        <div class="automation-setting">
+          <div>
+            <div class="setting-title">
+              <strong>上传后自动视觉识别</strong>
+              <el-tag :type="visionReady ? 'success' : 'warning'" round>{{ visionReady ? '服务可用' : '服务未就绪' }}</el-tag>
+            </div>
+            <p>巡检图片上传成功后自动创建后台高精度视觉分析任务；该开关只依赖本地视觉底座，Dify 未启用或不可用时仍可正常识别，失败也不会回滚图片上传。</p>
+          </div>
+          <el-switch
+            v-model="automationSettings.autoInferenceOnUpload"
+            :loading="savingAutomation"
+            :disabled="savingAutomation || (!visionReady && !automationSettings.autoInferenceOnUpload)"
+            inline-prompt active-text="开启" inactive-text="关闭"
+            @change="saveAutomationSettings(automationSettings.autoInferenceOnUpload ? '已开启上传后自动视觉识别' : '已关闭上传后自动视觉识别')"
+          />
+        </div>
+
+        <div class="automation-setting">
+          <div>
+            <div class="setting-title">
+              <strong>智能工作流</strong>
+              <el-tag :type="workflowReady ? 'success' : 'warning'" round>{{ workflowReady ? 'Dify 可用' : 'Dify 未就绪' }}</el-tag>
+            </div>
+            <p>开启后视觉分析优先使用 Dify 进行工作流与语义编排；Dify 未配置、不可用或运行故障时按策略回退到本地高精度模型。复核、报告等其他工作流仍按各自配置使用。</p>
+          </div>
+          <el-switch
+            v-model="automationSettings.intelligentWorkflowEnabled"
+            :loading="savingAutomation"
+            :disabled="savingAutomation || (!workflowReady && !automationSettings.intelligentWorkflowEnabled)"
+            inline-prompt active-text="开启" inactive-text="关闭"
+            @change="saveAutomationSettings(automationSettings.intelligentWorkflowEnabled ? '已开启智能工作流' : '已关闭智能工作流')"
+          />
+        </div>
+
+        <div class="automation-setting">
+          <div>
+            <div class="setting-title">
+              <strong>知识问答</strong>
+              <el-tag :type="knowledgeReady ? 'success' : 'warning'" round>{{ knowledgeReady ? 'DeepSeek 可用' : 'DeepSeek 未就绪' }}</el-tag>
+            </div>
+            <p>允许内部知识问答与 Spring AI 知识检索工具工作；仍遵循权限过滤、证据阈值与证据不足拒答。</p>
+          </div>
+          <el-switch
+            v-model="automationSettings.knowledgeQaEnabled"
+            :loading="savingAutomation"
+            :disabled="savingAutomation || (!knowledgeReady && !automationSettings.knowledgeQaEnabled)"
+            inline-prompt active-text="开启" inactive-text="关闭"
+            @change="saveAutomationSettings(automationSettings.knowledgeQaEnabled ? '已开启知识问答' : '已关闭知识问答')"
+          />
+        </div>
       </div>
     </el-card>
 
-    <el-card shadow="never">
-      <el-table :data="status?.providers ?? []" stripe>
-        <el-table-column prop="providerCode" label="提供者" min-width="130" />
-        <el-table-column label="配置状态" min-width="130">
-          <template #default="{ row }">
-            <el-tag :type="tagType(row)">{{ configurationLabel(row.configurationStatus) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="能力" min-width="220">
-          <template #default="{ row }">
-            <el-tag v-for="item in row.capabilities" :key="item" class="inline-tag" effect="plain">
-              {{ item }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="默认路由" min-width="180">
-          <template #default="{ row }">
-            <span v-if="row.defaultFor.length">{{ row.defaultFor.join('、') }}</span>
-            <span v-else>非默认</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="近七日成功/总数" min-width="150">
-          <template #default="{ row }">
-            {{ row.metrics7d.succeededTasks }}/{{ row.metrics7d.totalTasks }}
-          </template>
-        </el-table-column>
-        <el-table-column label="成功率" min-width="100">
-          <template #default="{ row }">{{ percent(row.metrics7d.successRate) }}</template>
-        </el-table-column>
-        <el-table-column label="平均耗时" min-width="120">
-          <template #default="{ row }">{{ row.metrics7d.averageDurationMs }} ms</template>
-        </el-table-column>
-        <el-table-column label="待复核" min-width="90">
-          <template #default="{ row }">{{ row.metrics7d.pendingReviewTasks }}</template>
-        </el-table-column>
-        <el-table-column label="连通性" min-width="110">
-          <template #default="{ row }">
-            <el-tag type="info" effect="plain">{{ row.connectivityStatus }}</el-tag>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+    <section class="metrics-section">
+      <div class="section-title-row">
+        <div>
+          <strong>近七日运行概览</strong>
+          <p>用于观察整体运行趋势，不作为业务风险评分依据。</p>
+        </div>
+      </div>
+      <div class="summary-grid">
+        <el-card shadow="never"><span>近七日任务</span><strong>{{ total?.totalTasks ?? 0 }}</strong></el-card>
+        <el-card shadow="never"><span>调用成功率</span><strong>{{ percent(total?.successRate) }}</strong></el-card>
+        <el-card shadow="never"><span>平均耗时</span><strong>{{ total?.averageDurationMs ?? 0 }} ms</strong></el-card>
+        <el-card shadow="never"><span>待人工复核</span><strong>{{ total?.pendingReviewTasks ?? 0 }}</strong></el-card>
+        <el-card shadow="never"><span>配置完整服务</span><strong>{{ configuredCount }}/{{ status?.providers.length ?? 0 }}</strong></el-card>
+      </div>
+    </section>
 
-    <el-alert
-      v-if="status"
-      :title="status.disclaimer"
-      type="warning"
-      :closable="false"
-      show-icon
-    />
+    <el-collapse class="technical-card">
+      <el-collapse-item title="专业技术详情" name="providers">
+        <el-table :data="status?.providers ?? []" stripe>
+          <el-table-column label="服务" min-width="170">
+            <template #default="{ row }">
+              <div class="provider-name"><strong>{{ providerLabel(row.providerCode) }}</strong><small>{{ row.providerCode }}</small></div>
+            </template>
+          </el-table-column>
+          <el-table-column label="运行状态" min-width="140">
+            <template #default="{ row }">
+              <el-tag :type="runtimeTagType(row.runtimeStatus)" round>{{ runtimeLabel(row.runtimeStatus) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="配置状态" min-width="130">
+            <template #default="{ row }"><el-tag :type="tagType(row)" round>{{ configurationLabel(row.configurationStatus) }}</el-tag></template>
+          </el-table-column>
+          <el-table-column label="能力" min-width="220">
+            <template #default="{ row }">
+              <el-tag v-for="item in row.capabilities" :key="item" class="inline-tag" effect="plain" round>{{ capabilityLabel(item) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="默认能力" min-width="180">
+            <template #default="{ row }"><span v-if="row.defaultFor.length">{{ row.defaultFor.map(capabilityLabel).join('、') }}</span><span v-else>—</span></template>
+          </el-table-column>
+          <el-table-column label="近七日成功/总数" min-width="150">
+            <template #default="{ row }">{{ row.metrics7d.succeededTasks }}/{{ row.metrics7d.totalTasks }}</template>
+          </el-table-column>
+          <el-table-column label="成功率" min-width="100"><template #default="{ row }">{{ percent(row.metrics7d.successRate) }}</template></el-table-column>
+          <el-table-column label="平均耗时" min-width="120"><template #default="{ row }">{{ row.metrics7d.averageDurationMs }} ms</template></el-table-column>
+          <el-table-column label="待复核" min-width="90"><template #default="{ row }">{{ row.metrics7d.pendingReviewTasks }}</template></el-table-column>
+          <el-table-column label="连通性" min-width="110"><template #default="{ row }"><el-tag type="info" effect="plain" round>{{ row.connectivityStatus }}</el-tag></template></el-table-column>
+        </el-table>
+      </el-collapse-item>
+    </el-collapse>
   </section>
 </template>
 
@@ -208,15 +299,43 @@ onMounted(load)
 .page-header h1 { margin: 4px 0 8px; }
 .page-header p { margin: 0; color: #667085; }
 .eyebrow { color: #176354 !important; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.health-card { display: flex; align-items: flex-start; gap: 12px; padding: 15px 17px; border: 1px solid #d9e9e4; border-radius: var(--usp-radius-lg); background: #f6fbf9; box-shadow: var(--usp-shadow-sm); }
+.health-card p { margin: 3px 0 0; color: var(--usp-color-text-secondary); line-height: 1.6; }
+.health-dot { width: 10px; height: 10px; margin-top: 6px; border-radius: 999px; background: var(--usp-color-success); box-shadow: 0 0 0 5px rgb(6 118 71 / 10%); }
+.section-title-row { display: flex; justify-content: space-between; gap: 16px; }
+.section-title-row > div { display: grid; gap: 4px; }
+.section-title-row strong { font-size: 16px; }
+.section-title-row p { margin: 0; color: #667085; font-size: 13px; }
+.business-capabilities, .metrics-section { display: grid; gap: 12px; }
+.capability-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.capability-card, .summary-grid .el-card, .automation-card, .technical-card { border-radius: var(--usp-radius-xl); box-shadow: var(--usp-shadow-sm); }
+.capability-card :deep(.el-card__body) { display: grid; gap: 10px; }
+.capability-card__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.capability-card p { margin: 0; color: #667085; line-height: 1.65; }
 .summary-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
 .summary-grid :deep(.el-card__body) { display: grid; gap: 8px; }
 .summary-grid span { color: #667085; font-size: 13px; }
 .summary-grid strong { color: #152b27; font-size: 24px; }
-.automation-setting { display: flex; align-items: center; justify-content: space-between; gap: 28px; }
-.setting-title { display: flex; align-items: center; gap: 10px; }
-.automation-setting p { max-width: 860px; margin: 8px 0 0; color: #667085; line-height: 1.65; }
-.automation-setting .setting-warning { color: #b54708; }
+.card-title-row strong { font-size: 16px; }
+.card-title-row p { margin: 5px 0 0; color: #667085; font-size: 13px; }
+.automation-list { display: grid; gap: 0; }
+.automation-setting { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 18px 0; border-bottom: 1px solid var(--usp-color-border); }
+.automation-setting:first-child { padding-top: 2px; }
+.automation-setting:last-child { padding-bottom: 2px; border-bottom: 0; }
+.setting-title { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.automation-setting p { max-width: 860px; margin: 7px 0 0; color: #667085; line-height: 1.6; }
+.technical-card { border: 1px solid var(--usp-color-border); background: var(--usp-color-surface); }
+.technical-card :deep(.el-collapse-item__header) { padding: 0 16px; border-radius: var(--usp-radius-xl); font-weight: 700; }
+.technical-card :deep(.el-collapse-item__content) { padding: 0 12px 14px; }
+.provider-name { display: grid; gap: 2px; }
+.provider-name strong { color: var(--usp-color-text-primary); }
+.provider-name small { color: var(--usp-color-text-tertiary); font-size: 11px; }
 .inline-tag { margin: 2px 6px 2px 0; }
-@media (max-width: 1100px) { .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 720px) { .automation-setting { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 1100px) {
+  .capability-grid { grid-template-columns: 1fr; }
+  .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .automation-setting { align-items: flex-start; flex-direction: column; }
+}
 </style>

@@ -6,14 +6,15 @@ info:
 
     约定：
     - 输入图片必须来自已登记的 file_asset，并可追溯到巡检任务/记录、楼栋和小区；
-    - 业务请求通过 AiOrchestrationService 与 AiProviderRouter 选择唯一提供者；
-    - 第一轮禁止提供者失败后静默切换，fallbackUsed 固定为 false；
+    - 通用任务通过 AiOrchestrationService 与 AiProviderRouter 选择提供者；
+    - 巡检高精度视觉采用显式 Dify 优先、本地 ACCURACY 兜底策略，故障转移必须可审计，不属于静默降级；
     - REAL 仅在模型状态为 APPROVED 时可用；
-    - 供应商响应必须转换为 AiStructuredResult 并完成后端校验；
+    - ACCURACY 使用异步任务，HTTP 202 只表示已入队，不表示模型已完成；
+    - 供应商响应必须转换为统一结构并完成后端校验；
     - recommendations 仅为辅助建议，不能覆盖规则评分、人工结论和正式报告；
     - rawResponseReference 只保存受控引用，不向前端返回完整供应商原始响应；
     - 人工智能结果必须经过人工复核后，才可能成为评分证据。
-  version: 7.1.0
+  version: 7.2.0
 
 paths:
   /api/v1/ai-models:
@@ -45,10 +46,10 @@ paths:
   /api/v1/ai-inferences:
     post:
       operationId: createAiInference
-      summary: 创建人工智能推理或工作流任务
+      summary: 创建人工智能推理、工作流或异步高精度视觉任务
       description: |
-        验证图片资产与权限后创建任务，通过统一路由调用 FastAPI、Dify 或 Spring AI，
-        保存结构化结果、稳定错误码与审计信息。同一用户、图片、模式、模型在活跃任务内受幂等保护。
+        普通 FAST/PRECISION 任务保持既有创建语义；当 inferenceProfile=ACCURACY 时仅创建持久化
+        execution task 并立即返回 HTTP 202，浏览器通过 execution 查询接口进行短轮询。
       x-apifox-folder: 人工智能推理
       x-apifox-status: tested
       x-apifox-name: 创建人工智能推理任务
@@ -59,6 +60,16 @@ paths:
             schema:
               $ref: '#/components/schemas/AiInferenceCreateRequest'
             examples:
+              accuracyManual:
+                value:
+                  assetId: 44444444-4444-4444-4444-444444444444
+                  mode: REAL
+                  modelId: AI-VISION-LOCAL-001
+                  providerCode: FAST_API
+                  capabilityType: VISION_INFERENCE
+                  inferenceProfile: ACCURACY
+                  triggerType: MANUAL_SINGLE
+                  idempotencyKey: inspection-image-accuracy
               fastApiMock:
                 value:
                   assetId: 44444444-4444-4444-4444-444444444444
@@ -76,17 +87,9 @@ paths:
                   capabilityType: WORKFLOW
                   prompt: 分析图片中的建筑表观病害并给出补拍建议
                   idempotencyKey: inspection-image-dify
-              springAiDirect:
-                value:
-                  assetId: 44444444-4444-4444-4444-444444444444
-                  mode: REAL
-                  modelId: AI-SPRING-AI-DIRECT-001
-                  providerCode: SPRING_AI
-                  capabilityType: VISION_INFERENCE
-                  idempotencyKey: inspection-image-spring-ai
       responses:
         '201':
-          description: 已创建任务
+          description: 已创建同步/普通推理任务
           content:
             application/json:
               schema:
@@ -94,6 +97,18 @@ paths:
                 properties:
                   success: { type: boolean }
                   data: { $ref: '#/components/schemas/AiInferenceDetail' }
+                  error: { nullable: true }
+                  requestId: { type: string }
+                  timestamp: { type: string, format: date-time }
+        '202':
+          description: ACCURACY 高精度视觉任务已进入后台队列
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AiAsyncInferenceSubmission' }
                   error: { nullable: true }
                   requestId: { type: string }
                   timestamp: { type: string, format: date-time }
@@ -153,6 +168,61 @@ paths:
       responses:
         '200': { description: 人工智能任务分页列表 }
 
+  /api/v1/ai-inference-executions:
+    get:
+      operationId: listAiInferenceExecutions
+      summary: 按巡检任务查询图片异步分析执行状态
+      description: 用于巡检端和管理端恢复历史排队/运行状态与 Dify/本地路由审计。
+      x-apifox-folder: 人工智能推理
+      x-apifox-status: testing
+      parameters:
+        - name: inspectionTaskId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: 执行任务列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/AiInferenceExecution' }
+                  error: { nullable: true }
+                  requestId: { type: string }
+                  timestamp: { type: string, format: date-time }
+
+  /api/v1/ai-inference-executions/{taskId}:
+    get:
+      operationId: getAiInferenceExecution
+      summary: 查询异步高精度视觉执行状态
+      description: 每次调用均为短请求；前端可约每 2 秒轮询一次，不建立长连接。
+      x-apifox-folder: 人工智能推理
+      x-apifox-status: testing
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: 执行任务详情
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  data: { $ref: '#/components/schemas/AiInferenceExecution' }
+                  error: { nullable: true }
+                  requestId: { type: string }
+                  timestamp: { type: string, format: date-time }
+        '404': { description: 执行任务不存在 }
+
   /api/v1/ai-inferences/{inferenceId}:
     get:
       operationId: getAiInference
@@ -176,7 +246,7 @@ paths:
       summary: 重试失败人工智能任务
       description: |
         只允许对 FAILED 任务重试；创建新的 attemptNo 并保留历史失败记录。
-        默认沿用原提供者与能力，不会静默切换提供者。
+        默认沿用原提供者与能力；巡检高精度视觉故障转移遵循显式 VisionAnalysisOrchestrator 策略。
       x-apifox-folder: 人工智能推理
       x-apifox-status: tested
       x-apifox-name: 重试人工智能任务
@@ -195,11 +265,140 @@ paths:
         '201': { description: 已创建重试任务 }
         '409': { description: 任务状态不可重试 }
 
+  /api/v1/ai-intelligent-analysis:
+    post:
+      operationId: runIntelligentAnalysis
+      summary: Spring AI 智能综合分析
+      description: |
+        以 Spring AI 作为编排层，DeepSeek 推理 + Tool Calling（本地视觉 / Dify 工作流 /
+        只读业务工具）。请求只允许提交业务标识与问题，不允许提交 apiKey/baseUrl/systemPrompt
+        或任意工具名；系统提示、工具集与安全上下文一律由后端决定。
+      x-apifox-folder: 人工智能推理
+      x-apifox-status: testing
+      x-apifox-name: 智能综合分析
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiIntelligentAnalysisRequest'
+      responses:
+        '200': { description: 返回执行轨迹与辅助答案 }
+        '400': { description: 请求参数无效 }
+        '503': { description: Spring AI / DeepSeek 未配置 }
+
+  /api/v1/ai-intelligent-analysis/executions/{executionId}:
+    get:
+      operationId: getIntelligentAnalysisExecution
+      summary: 查询智能综合分析执行轨迹
+      x-apifox-folder: 人工智能推理
+      x-apifox-status: testing
+      x-apifox-name: 智能综合分析执行轨迹
+      parameters:
+        - name: executionId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: 返回执行详情与步骤 }
+
 components:
   schemas:
     AiProviderCode:
       type: string
       enum: [FAST_API, DIFY, SPRING_AI]
+
+    AiInferenceProfile:
+      type: string
+      enum: [FAST, PRECISION, ACCURACY]
+
+    AiAnalysisTriggerType:
+      type: string
+      enum: [UPLOAD_AUTO, MANUAL_SINGLE, MANUAL_BATCH]
+
+    AiExecutionStatus:
+      type: string
+      enum: [PENDING, READY, RUNNING, RETRY_WAIT, SUCCEEDED, FAILED, REJECTED, CANCELLED]
+
+    AiAsyncInferenceSubmission:
+      type: object
+      required: [taskId, status, inferenceProfile, assetId]
+      properties:
+        taskId: { type: string, format: uuid }
+        status: { type: string, enum: [PENDING] }
+        inferenceProfile: { type: string, enum: [ACCURACY] }
+        triggerType: { $ref: '#/components/schemas/AiAnalysisTriggerType' }
+        assetId: { type: string, format: uuid }
+
+    AiInferenceExecution:
+      type: object
+      properties:
+        taskId: { type: string, format: uuid }
+        assetId: { type: string, format: uuid, nullable: true }
+        status: { $ref: '#/components/schemas/AiExecutionStatus' }
+        inferenceId: { type: string, format: uuid, nullable: true }
+        attemptCount: { type: integer }
+        maxAttempts: { type: integer }
+        errorCode: { type: string, nullable: true }
+        errorMessage: { type: string, nullable: true }
+        triggerType:
+          allOf:
+            - $ref: '#/components/schemas/AiAnalysisTriggerType'
+          nullable: true
+        preferredProvider: { type: string, nullable: true }
+        actualProvider: { type: string, nullable: true }
+        orchestrationMode:
+          type: string
+          enum: [DIFY_PREFERRED, SPRING_AI_LOCAL]
+          nullable: true
+        fallback: { type: boolean, default: false }
+        fallbackReason: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time, nullable: true }
+        startedAt: { type: string, format: date-time, nullable: true }
+        finishedAt: { type: string, format: date-time, nullable: true }
+        updatedAt: { type: string, format: date-time, nullable: true }
+
+    AiIntelligentAnalysisRequest:
+      type: object
+      required:
+        - question
+      properties:
+        businessType:
+          type: string
+          description: 业务类型，例如 BUILDING / AI_INFERENCE
+        businessId:
+          type: string
+          format: uuid
+        question:
+          type: string
+        context:
+          type: object
+          description: 后端白名单上下文（仅读取 assetId 等已知键，忽略未知键）
+          additionalProperties: true
+
+    AiAgentExecutionStep:
+      type: object
+      properties:
+        seqNo: { type: integer }
+        type: { type: string, enum: [TOOL, LLM] }
+        toolName: { type: string }
+        provider: { type: string }
+        status: { type: string, enum: [WAITING, RUNNING, SUCCEEDED, FAILED, SKIPPED] }
+        durationMs: { type: integer, nullable: true }
+        errorCode: { type: string, nullable: true }
+        detail: { type: string, nullable: true }
+
+    AiAgentExecutionResult:
+      type: object
+      properties:
+        executionId: { type: string, format: uuid }
+        status: { type: string, enum: [PENDING, RUNNING, SUCCEEDED, PARTIAL_SUCCEEDED, FAILED] }
+        answer: { type: string }
+        steps:
+          type: array
+          items: { $ref: '#/components/schemas/AiAgentExecutionStep' }
+        durationMs: { type: integer }
+        modelCode: { type: string, nullable: true }
 
     AiCapabilityType:
       type: string
@@ -261,6 +460,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/AiCapabilityType'
           default: VISION_INFERENCE
+        inferenceProfile:
+          $ref: '#/components/schemas/AiInferenceProfile'
+        triggerType:
+          allOf:
+            - $ref: '#/components/schemas/AiAnalysisTriggerType'
+          description: ACCURACY 后台任务的触发来源；省略时默认为 MANUAL_SINGLE。
         prompt:
           type: string
           maxLength: 2000
@@ -410,6 +615,31 @@ components:
         className: { type: string }
         confidence: { type: number, format: double, minimum: 0, maximum: 1 }
         boundingBox: { $ref: '#/components/schemas/AiBoundingBox' }
+        segmentation:
+          allOf:
+            - $ref: '#/components/schemas/AiSegmentation'
+          nullable: true
+        trustLevel:
+          type: string
+          enum: [HIGH, MEDIUM, LOW]
+          nullable: true
+        trustReasons:
+          type: array
+          items: { type: string }
+        diagnostics:
+          type: object
+          additionalProperties: true
+
+    AiSegmentation:
+      type: object
+      properties:
+        type: { type: string, enum: [POLYGON] }
+        points:
+          type: array
+          description: 轮廓点序列 [[x, y], ...]，坐标归一化 0~1
+          items:
+            type: array
+            items: { type: number, format: double, minimum: 0, maximum: 1 }
 
     AiBoundingBox:
       type: object

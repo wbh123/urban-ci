@@ -1,0 +1,103 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe Inspection AI Summary API
+  version: 1.0.0
+paths:
+  /api/v1/inspection-tasks/{taskId}/ai-summary:
+    post:
+      tags: [InspectionAi]
+      operationId: summarizeInspectionWithAi
+      summary: 综合巡检记录与已有 AI 视觉结果
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InspectionAiSummaryRequest'
+      responses:
+        '200':
+          description: 综合总结成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InspectionAiSummarySuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+components:
+  responses:
+    BadRequest:
+      description: 请求无效
+      content:
+        application/json:
+          schema:
+            $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: 未登录
+      content:
+        application/json:
+          schema:
+            $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: 无权访问
+      content:
+        application/json:
+          schema:
+            $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+    Conflict:
+      description: AI 结果与巡检任务上下文冲突或结果未就绪
+      content:
+        application/json:
+          schema:
+            $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+  schemas:
+    InspectionAiSummaryRequest:
+      type: object
+      required: [inferenceId]
+      properties:
+        inferenceId: { type: string, format: uuid }
+    InspectionAiSummary:
+      type: object
+      required:
+        - mode
+        - fieldDescription
+        - visualFindings
+        - agreement
+        - keyLocations
+        - evidenceGaps
+        - reviewSuggestion
+        - durationMs
+        - disclaimer
+      properties:
+        mode:
+          type: string
+          enum: [AI, RULE_FALLBACK]
+        fieldDescription: { type: string }
+        visualFindings: { type: string }
+        agreement: { type: string }
+        keyLocations: { type: string }
+        evidenceGaps: { type: string }
+        reviewSuggestion: { type: string }
+        durationMs: { type: integer, format: int64 }
+        modelCode: { type: string, nullable: true }
+        disclaimer: { type: string }
+    InspectionAiSummarySuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data:
+          $ref: '#/components/schemas/InspectionAiSummary'
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }

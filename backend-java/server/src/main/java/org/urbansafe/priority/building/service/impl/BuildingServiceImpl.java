@@ -143,6 +143,8 @@ public class BuildingServiceImpl implements BuildingService {
             String field = parts[0];
             boolean asc = parts.length == 1 || "asc".equalsIgnoreCase(parts[1]);
             switch (field) {
+                case "buildingCode" -> wrapper.orderBy(true, asc, BuildingEntity::getBuildingCode);
+                case "buildingName" -> wrapper.orderBy(true, asc, BuildingEntity::getBuildingName);
                 case "constructionYear" -> wrapper.orderBy(true, asc, BuildingEntity::getConstructionYear);
                 case "floorCount" -> wrapper.orderBy(true, asc, BuildingEntity::getFloorCount);
                 case "residentCount" -> wrapper.orderBy(true, asc, BuildingEntity::getResidentCount);

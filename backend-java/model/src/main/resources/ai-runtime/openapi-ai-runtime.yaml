@@ -1,0 +1,66 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe AI Runtime Summary API
+  version: 1.0.0
+paths:
+  /api/v1/ai-runtime/summary:
+    get:
+      tags: [AiRuntime]
+      operationId: getAiRuntimeSummary
+      summary: 查询管理端 AI 运行摘要
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiRuntimeSummarySuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+components:
+  responses:
+    Unauthorized:
+      description: 未登录
+      content:
+        application/json:
+          schema:
+            $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: 无权访问
+      content:
+        application/json:
+          schema:
+            $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+  schemas:
+    AiRuntimeServiceSummary:
+      type: object
+      required: [key, label, status]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        status: { type: string }
+    AiRuntimeSummary:
+      type: object
+      required: [generatedAt, state, services, policy]
+      properties:
+        generatedAt: { type: string, format: date-time }
+        state:
+          type: string
+          enum: [READY, DEGRADED, UNAVAILABLE, UNKNOWN]
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiRuntimeServiceSummary'
+        policy: { type: string }
+    AiRuntimeSummarySuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data:
+          $ref: '#/components/schemas/AiRuntimeSummary'
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }

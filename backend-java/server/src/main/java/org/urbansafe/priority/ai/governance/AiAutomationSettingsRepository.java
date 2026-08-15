@@ -1,6 +1,7 @@
 package org.urbansafe.priority.ai.governance;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -13,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class AiAutomationSettingsRepository {
 
     static final String AUTO_INFERENCE_ON_UPLOAD = "AUTO_INFERENCE_ON_UPLOAD";
+    static final String INTELLIGENT_WORKFLOW_ENABLED = "INTELLIGENT_WORKFLOW_ENABLED";
+    static final String KNOWLEDGE_QA_ENABLED = "KNOWLEDGE_QA_ENABLED";
 
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -21,24 +24,56 @@ public class AiAutomationSettingsRepository {
     }
 
     public boolean findAutoInferenceOnUpload() {
-        Boolean enabled = jdbc.queryForObject("""
-                SELECT boolean_value
-                FROM ai.governance_setting
-                WHERE setting_key=:key
-                """, Map.of("key", AUTO_INFERENCE_ON_UPLOAD), Boolean.class);
-        return Boolean.TRUE.equals(enabled);
+        return findBoolean(AUTO_INFERENCE_ON_UPLOAD, false);
+    }
+
+    /** 比赛阶段默认启用智能工作流；数据库显式关闭时以数据库为准。 */
+    public boolean findIntelligentWorkflowEnabled() {
+        return findBoolean(INTELLIGENT_WORKFLOW_ENABLED, true);
+    }
+
+    /** 比赛阶段默认启用知识问答；数据库显式关闭时以数据库为准。 */
+    public boolean findKnowledgeQaEnabled() {
+        return findBoolean(KNOWLEDGE_QA_ENABLED, true);
     }
 
     public OffsetDateTime findUpdatedAt() {
-        return jdbc.queryForObject("""
+        List<OffsetDateTime> values = jdbc.query("""
                 SELECT updated_at
                 FROM ai.governance_setting
-                WHERE setting_key=:key
-                """, Map.of("key", AUTO_INFERENCE_ON_UPLOAD), OffsetDateTime.class);
+                WHERE setting_key IN (:keys)
+                ORDER BY updated_at DESC
+                LIMIT 1
+                """, Map.of("keys", List.of(
+                        AUTO_INFERENCE_ON_UPLOAD,
+                        INTELLIGENT_WORKFLOW_ENABLED,
+                        KNOWLEDGE_QA_ENABLED)),
+                (rs, rowNum) -> rs.getObject("updated_at", OffsetDateTime.class));
+        return values.isEmpty() ? null : values.get(0);
     }
 
     @Transactional
-    public void updateAutoInferenceOnUpload(boolean enabled, UUID updatedBy) {
+    public void update(
+            boolean autoInferenceOnUpload,
+            boolean intelligentWorkflowEnabled,
+            boolean knowledgeQaEnabled,
+            UUID updatedBy) {
+        upsert(AUTO_INFERENCE_ON_UPLOAD, autoInferenceOnUpload, updatedBy);
+        upsert(INTELLIGENT_WORKFLOW_ENABLED, intelligentWorkflowEnabled, updatedBy);
+        upsert(KNOWLEDGE_QA_ENABLED, knowledgeQaEnabled, updatedBy);
+    }
+
+    private boolean findBoolean(String key, boolean defaultValue) {
+        List<Boolean> values = jdbc.query("""
+                SELECT boolean_value
+                FROM ai.governance_setting
+                WHERE setting_key=:key
+                """, Map.of("key", key),
+                (rs, rowNum) -> rs.getBoolean("boolean_value"));
+        return values.isEmpty() ? defaultValue : Boolean.TRUE.equals(values.get(0));
+    }
+
+    private void upsert(String key, boolean enabled, UUID updatedBy) {
         jdbc.update("""
                 INSERT INTO ai.governance_setting
                     (setting_key, boolean_value, updated_by, updated_at)
@@ -48,7 +83,7 @@ public class AiAutomationSettingsRepository {
                     updated_by=EXCLUDED.updated_by,
                     updated_at=CURRENT_TIMESTAMP
                 """, new MapSqlParameterSource()
-                .addValue("key", AUTO_INFERENCE_ON_UPLOAD)
+                .addValue("key", key)
                 .addValue("enabled", enabled)
                 .addValue("updatedBy", updatedBy));
     }

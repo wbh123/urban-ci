@@ -42,6 +42,57 @@ describe('AI inference endpoint routing', () => {
     })
   })
 
+  it('uses precision profile for local REAL FastAPI vision by default', async () => {
+    mocks.apiGet.mockResolvedValue({
+      content: [
+        {
+          modelId: 'AI-VISION-LOCAL-001',
+          providerCode: 'FAST_API',
+          capabilityType: 'VISION_INFERENCE',
+        },
+      ],
+    })
+    mocks.apiPost.mockResolvedValue({ inferenceId: 'inference-vision' })
+
+    await createAiInference({
+      assetId: 'asset-vision',
+      mode: 'REAL',
+      modelId: 'AI-VISION-LOCAL-001',
+    })
+
+    expect(mocks.apiPost).toHaveBeenCalledWith('/api/v1/ai-inferences', {
+      assetId: 'asset-vision',
+      mode: 'REAL',
+      modelId: 'AI-VISION-LOCAL-001',
+      providerCode: 'FAST_API',
+      capabilityType: 'VISION_INFERENCE',
+      inferenceProfile: 'PRECISION',
+    })
+  })
+
+  it('preserves an explicit FAST profile for diagnostic callers', async () => {
+    mocks.apiPost.mockResolvedValue({ inferenceId: 'inference-fast' })
+
+    await createAiInference({
+      assetId: 'asset-fast',
+      mode: 'REAL',
+      modelId: 'AI-VISION-LOCAL-001',
+      providerCode: 'FAST_API',
+      capabilityType: 'VISION_INFERENCE',
+      inferenceProfile: 'FAST',
+    })
+
+    expect(mocks.apiGet).not.toHaveBeenCalled()
+    expect(mocks.apiPost).toHaveBeenCalledWith('/api/v1/ai-inferences', {
+      assetId: 'asset-fast',
+      mode: 'REAL',
+      modelId: 'AI-VISION-LOCAL-001',
+      providerCode: 'FAST_API',
+      capabilityType: 'VISION_INFERENCE',
+      inferenceProfile: 'FAST',
+    })
+  })
+
   it('keeps explicitly supplied routing without querying the catalog', async () => {
     mocks.apiPost.mockResolvedValue({ inferenceId: 'inference-2' })
 

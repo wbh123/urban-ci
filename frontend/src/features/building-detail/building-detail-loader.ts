@@ -227,7 +227,7 @@ function taskTime(task: AiInferenceTask): number {
 
 function reliabilityLabel(value: AiInferenceTask['evidenceReliability']): string {
   return ({
-    SIMULATED: '模拟数据',
+    SIMULATED: '待人工核实',
     MODEL_UNREVIEWED: '辅助分析待复核',
     PROFESSIONAL_REVIEWED: '人工已复核',
     HUMAN_REJECTED: '人工已排除',

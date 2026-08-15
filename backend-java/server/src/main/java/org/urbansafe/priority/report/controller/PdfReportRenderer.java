@@ -3,6 +3,7 @@ package org.urbansafe.priority.report.controller;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.GraphicsEnvironment;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -10,18 +11,29 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import javax.imageio.ImageIO;
 
-/** 不依赖浏览器和在线资源的第一版 PDF 渲染器。 */
+/** 不依赖浏览器和在线资源的 PDF 渲染器。中文字体只使用运行环境已安装字体。 */
 public final class PdfReportRenderer {
 
     private static final int IMAGE_WIDTH = 1240;
     private static final int IMAGE_HEIGHT = 1754;
     private static final int MARGIN = 90;
     private static final int LINE_HEIGHT = 40;
+    private static final String CJK_SAMPLE = "城安智序楼栋风险筛查辅助报告";
+    private static final List<String> CHINESE_FONT_PRIORITY = List.of(
+            "Noto Sans CJK SC",
+            "Noto Sans CJK",
+            "Source Han Sans SC",
+            "Source Han Sans CN",
+            "Microsoft YaHei",
+            "WenQuanYi Zen Hei",
+            "SimHei",
+            "PingFang SC");
 
     byte[] render(String reportCode, Map<String, Object> snapshot, String disclaimer) {
         List<String> lines = new ArrayList<>();
@@ -32,16 +44,46 @@ public final class PdfReportRenderer {
         flatten("", snapshot, lines, 0);
         lines.add("");
         lines.add("免责声明：" + disclaimer);
-        return pdf(drawPages(lines));
+        String fontFamily = resolveChineseFontFamily();
+        return pdf(drawPages(lines, fontFamily));
     }
 
-    private List<byte[]> drawPages(List<String> sourceLines) {
+    static String selectPreferredChineseFontFamily(List<String> availableFamilies) {
+        for (String preferred : CHINESE_FONT_PRIORITY) {
+            for (String available : availableFamilies) {
+                if (preferred.equalsIgnoreCase(available)) return available;
+            }
+        }
+        return null;
+    }
+
+    static String resolveChineseFontFamily() {
+        List<String> available = Arrays.asList(
+                GraphicsEnvironment.getLocalGraphicsEnvironment()
+                        .getAvailableFontFamilyNames(Locale.ROOT));
+        String preferred = selectPreferredChineseFontFamily(available);
+        if (preferred != null && canDisplayChinese(preferred)) return preferred;
+        for (String family : available) {
+            if (canDisplayChinese(family)) return family;
+        }
+        throw new IllegalStateException(
+                "未检测到可用于风险报告的中文字体。请在运行环境安装 Noto Sans CJK SC、思源黑体或文泉驿等中文字体后重新生成报告。");
+    }
+
+    private static boolean canDisplayChinese(String family) {
+        Font font = new Font(family, Font.PLAIN, 28);
+        return font.canDisplayUpTo(CJK_SAMPLE) == -1;
+    }
+
+    private List<byte[]> drawPages(List<String> sourceLines, String fontFamily) {
         List<String> lines = new ArrayList<>();
         for (String line : sourceLines) {
             lines.addAll(wrap(line, 46));
         }
         int linesPerPage = (IMAGE_HEIGHT - MARGIN * 2) / LINE_HEIGHT;
         List<byte[]> pages = new ArrayList<>();
+        Font normalFont = new Font(fontFamily, Font.PLAIN, 28);
+        Font titleFont = new Font(fontFamily, Font.BOLD, 42);
         for (int start = 0; start < lines.size(); start += linesPerPage) {
             int end = Math.min(lines.size(), start + linesPerPage);
             BufferedImage image = new BufferedImage(
@@ -52,16 +94,17 @@ public final class PdfReportRenderer {
             graphics.setRenderingHint(
                     RenderingHints.KEY_ANTIALIASING,
                     RenderingHints.VALUE_ANTIALIAS_ON);
-            graphics.setColor(new Color(31, 41, 55));
-            graphics.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 28));
+            graphics.setRenderingHint(
+                    RenderingHints.KEY_TEXT_ANTIALIASING,
+                    RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
             int y = MARGIN;
             for (int i = start; i < end; i++) {
                 String line = lines.get(i);
                 if (i == 0) {
-                    graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 42));
+                    graphics.setFont(titleFont);
                     graphics.setColor(new Color(21, 84, 73));
                 } else {
-                    graphics.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 28));
+                    graphics.setFont(normalFont);
                     graphics.setColor(new Color(31, 41, 55));
                 }
                 graphics.drawString(line, MARGIN, y);

@@ -25,7 +25,11 @@ const OverlayStub = defineComponent({
 describe('R1 公共展示与 Overlay 组件', () => {
   it('页面头统一承载标题、说明和操作区', () => {
     const wrapper = mount(AppPageHeader, {
-      props: { title: '风险总览', description: '查看辖区楼栋风险情况。' },
+      props: {
+        title: '风险总览',
+        description: '查看辖区楼栋风险情况。',
+        showUserMenu: false,
+      },
       slots: { actions: '<button>导出</button>' },
     })
     expect(wrapper.get('h1').text()).toBe('风险总览')

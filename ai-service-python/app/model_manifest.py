@@ -86,7 +86,11 @@ SUPPORTED_INPUT_INTERPOLATIONS = {"BILINEAR", "BICUBIC", "LANCZOS"}
 
 
 def load_model_manifest(path: str | Path, model_root: str | Path) -> ModelManifest:
-    """加载已批准模型清单，并验证权重路径、摘要和推理契约。"""
+    """加载已批准模型清单，并验证权重路径、摘要和推理契约。
+
+    按清单 adapter 字段分派：零样本视觉模型（grounded-sam2-tiny-v1）委托给
+    vision_manifest；其余继续走 CUDA-only ONNX 准入逻辑。ONNX 路径保持不变。
+    """
 
     root = Path(model_root).expanduser().resolve()
     manifest_path = Path(path).expanduser().resolve()
@@ -94,6 +98,12 @@ def load_model_manifest(path: str | Path, model_root: str | Path) -> ModelManife
         raise ModelManifestError("模型清单必须位于模型根目录内")
     if not manifest_path.is_file():
         raise ModelManifestError("模型清单不存在")
+
+    adapter = _peek_adapter(manifest_path)
+    if adapter in ("grounded-sam2-tiny-v1", "grounded-sam2-v1"):
+        from .vision_manifest import load_zero_shot_manifest
+
+        return load_zero_shot_manifest(manifest_path, root)
 
     try:
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -239,6 +249,21 @@ def load_model_manifest(path: str | Path, model_root: str | Path) -> ModelManife
         approved_by=_text(payload, "approvedBy"),
         approved_at=_text(payload, "approvedAt"),
     )
+
+
+def _peek_adapter(manifest_path: Path) -> str:
+    """只读取清单中的 adapter 字段用于分派，不执行完整准入校验。"""
+
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as ex:
+        raise ModelManifestError("模型清单不是合法 UTF-8 JSON") from ex
+    if not isinstance(payload, dict) or not isinstance(payload.get("adapter"), str):
+        raise ModelManifestError("模型清单缺少 adapter 字段")
+    adapter = payload["adapter"].strip()
+    if not adapter:
+        raise ModelManifestError("模型清单 adapter 字段不能为空")
+    return adapter
 
 
 def _is_within(path: Path, root: Path) -> bool:

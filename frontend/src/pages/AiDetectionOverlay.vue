@@ -1,18 +1,28 @@
 <script setup lang="ts">
 /**
- * 归一化检测框画布叠加层。
- * 根据原图尺寸与容器实际渲染区域计算检测框在屏幕上的像素位置，
- * 正确处理 object-fit:contain 的留白偏移。
+ * 归一化检测框 + SAM2 分割多边形画布叠加层。
+ * 根据原图尺寸与容器实际渲染区域计算归一化坐标在屏幕上的像素位置，
+ * 正确处理 object-fit:contain 的留白偏移，并监听 ResizeObserver 跟随容器缩放，
+ * 避免标注漂移。segmentation 为可选字段（旧数据忽略）；缺少 boundingBox 的纯语义项不绘制。
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import type { AiDetection } from '@/shared/api/endpoints/ai-inference'
+import type { AiDetection, AiStructuredDetection } from '@/shared/api/endpoints/ai-inference'
+import { computeContainRect } from '@/pages/containRect'
+import { formatDetectionLabel } from '@/pages/detectionLabel'
 
-const props = defineProps<{
-  detections: AiDetection[]
-  imageWidth: number
-  imageHeight: number
-  imageSrc: string
-}>()
+type OverlayDetection = AiDetection | AiStructuredDetection
+
+const props = withDefaults(
+  defineProps<{
+    detections?: OverlayDetection[]
+    imageWidth: number
+    imageHeight: number
+    imageSrc: string
+    /** 是否显示 AI 标注（检测框 + 分割多边形），默认开启。 */
+    visible?: boolean
+  }>(),
+  { detections: () => [], visible: true },
+)
 
 const container = ref<HTMLDivElement>()
 const canvas = ref<HTMLCanvasElement>()
@@ -21,29 +31,9 @@ const containerH = ref(0)
 
 let resizeObserver: ResizeObserver | null = null
 
-// 计算 object-fit:contain 下的渲染区域与偏移
-const renderRect = computed(() => {
-  const cw = containerW.value || 1
-  const ch = containerH.value || 1
-  const iw = props.imageWidth || 1
-  const ih = props.imageHeight || 1
-  const imageAspect = iw / ih
-  const containerAspect = cw / ch
-
-  let rw: number, rh: number, ox: number, oy: number
-  if (imageAspect > containerAspect) {
-    rw = cw
-    rh = cw / imageAspect
-    ox = 0
-    oy = (ch - rh) / 2
-  } else {
-    rh = ch
-    rw = ch * imageAspect
-    ox = (cw - rw) / 2
-    oy = 0
-  }
-  return { rw, rh, ox, oy }
-})
+const renderRect = computed(() =>
+  computeContainRect(containerW.value, containerH.value, props.imageWidth, props.imageHeight),
+)
 
 function draw() {
   const cvs = canvas.value
@@ -61,20 +51,39 @@ function draw() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   ctx.clearRect(0, 0, cw, ch)
 
+  if (!props.visible) return
+
   for (const d of props.detections) {
     const box = d.boundingBox
+    if (!box) continue
     const left = ox + box.x * rw
     const top = oy + box.y * rh
     const width = box.width * rw
     const height = box.height * rh
 
-    // 检测框
+    const seg = d.segmentation
+    if (seg && Array.isArray(seg.points) && seg.points.length >= 3) {
+      ctx.beginPath()
+      seg.points.forEach((point, index) => {
+        const sx = ox + Number(point[0] ?? 0) * rw
+        const sy = oy + Number(point[1] ?? 0) * rh
+        if (index === 0) ctx.moveTo(sx, sy)
+        else ctx.lineTo(sx, sy)
+      })
+      ctx.closePath()
+      ctx.fillStyle = 'rgba(231, 76, 60, 0.2)'
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(231, 76, 60, 0.7)'
+      ctx.lineWidth = 1.5
+      ctx.stroke()
+    }
+
     ctx.strokeStyle = '#e74c3c'
     ctx.lineWidth = 2
     ctx.strokeRect(left, top, width, height)
 
-    // 标签背景
-    const label = `${d.className} ${Math.round(d.confidence * 100)}%`
+    const className = d.className || d.classCode || '候选病害'
+    const label = formatDetectionLabel(className, d.confidence)
     const fontSize = Math.max(11, Math.min(14, rw * 0.03))
     ctx.font = `${fontSize}px system-ui, sans-serif`
     const textW = ctx.measureText(label).width
@@ -107,48 +116,35 @@ onUnmounted(() => {
 
 watch(() => [props.detections, props.imageSrc], () => {
   requestAnimationFrame(draw)
-})
-
-watch([containerW, containerH], () => {
-  requestAnimationFrame(draw)
-})
+}, { deep: true })
 </script>
 
 <template>
-  <div
-    ref="container"
-    class="ao-container"
-  >
-    <img
-      :src="imageSrc"
-      class="ao-image"
-      alt="巡检现场图片"
-    >
-    <canvas
-      ref="canvas"
-      class="ao-canvas"
-    />
+  <div ref="container" class="detection-overlay">
+    <img :src="imageSrc" alt="AI 检测图片" class="overlay-image" />
+    <canvas ref="canvas" class="overlay-canvas" />
   </div>
 </template>
 
-<style scoped lang="scss">
-.ao-container {
+<style scoped>
+.detection-overlay {
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 100%;
-  max-height: 420px;
-  background: #1a1a1a;
-  border-radius: var(--usp-radius);
+  min-height: 280px;
+  max-height: 520px;
   overflow: hidden;
+  border-radius: 12px;
+  background: #111;
 }
-.ao-image {
-  max-width: 100%;
-  max-height: 420px;
+.overlay-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  max-height: 520px;
   object-fit: contain;
 }
-.ao-canvas {
+.overlay-canvas {
   position: absolute;
   inset: 0;
   pointer-events: none;

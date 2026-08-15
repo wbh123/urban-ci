@@ -179,6 +179,90 @@ class Settings:
                 "不能小于 URBAN_SAFE_AI_APPLICABILITY_APPLICABLE_THRESHOLD"
             )
 
+        # 零样本本地视觉模型（AI-VISION-LOCAL-001，Grounding DINO + SAM 2.1 Tiny）。
+        # 真实视觉模型只允许 CUDA；CPU 开发机通过不同 catalog 使用 MOCK，不加载本模型。
+        self.vision_device: str = _env(
+            "AI_VISION_DEVICE", "URBAN_SAFE_AI_VISUAL_DEVICE", "cuda"
+        ).strip().lower() or "cuda"
+        self.vision_dtype: str = _env(
+            "AI_VISION_DTYPE", "URBAN_SAFE_AI_VISION_DTYPE", "float16"
+        ).strip().lower() or "float16"
+        self.vision_max_long_side: int = int(
+            _env(
+                "AI_VISION_MAX_LONG_SIDE",
+                "URBAN_SAFE_AI_VISION_MAX_LONG_SIDE",
+                "1280",
+            )
+        )
+        self.vision_box_threshold: float = _unit_float(
+            "AI_VISION_BOX_THRESHOLD",
+            "URBAN_SAFE_AI_VISION_BOX_THRESHOLD",
+            0.25,
+        )
+        self.vision_text_threshold: float = _unit_float(
+            "AI_VISION_TEXT_THRESHOLD",
+            "URBAN_SAFE_AI_VISION_TEXT_THRESHOLD",
+            0.25,
+        )
+        self.vision_max_detections: int = int(
+            _env(
+                "AI_VISION_MAX_DETECTIONS",
+                "URBAN_SAFE_AI_VISION_MAX_DETECTIONS",
+                "10",
+            )
+        )
+        self.vision_offline: bool = _boolean(
+            "AI_VISION_OFFLINE",
+            "URBAN_SAFE_AI_VISION_OFFLINE",
+            True,
+        )
+        self.vision_hf_home: str = _env(
+            "AI_VISION_HF_HOME",
+            "URBAN_SAFE_AI_VISION_HF_HOME",
+            "data/model-cache/huggingface",
+        ).strip() or "data/model-cache/huggingface"
+
+        # ACCURACY 多模型档位当前仍受模型治理门禁约束。只有完成独立评估、资源安装与
+        # APPROVED 审批后才允许 FastAPI 正式执行；默认 CANDIDATE 不得绕过此门禁。
+        accuracy_profile_status = _env(
+            "AI_ACCURACY_PROFILE_STATUS",
+            "URBAN_SAFE_AI_ACCURACY_PROFILE_STATUS",
+            "CANDIDATE",
+        ).strip().upper()
+        if accuracy_profile_status not in {"CANDIDATE", "APPROVED"}:
+            raise ValueError(
+                "环境变量 URBAN_SAFE_AI_ACCURACY_PROFILE_STATUS 必须为 CANDIDATE 或 APPROVED"
+            )
+        self.accuracy_profile_status: str = accuracy_profile_status
+
+        # GPU 并发保护：RTX 3060 6GB 同一进程同一 GPU 最多一个视觉推理。
+        self.vision_max_concurrency: int = int(
+            _env(
+                "AI_VISION_MAX_CONCURRENCY",
+                "URBAN_SAFE_AI_VISUAL_MAX_CONCURRENCY",
+                "1",
+            )
+        )
+        if self.vision_max_concurrency < 1:
+            raise ValueError(
+                "环境变量 URBAN_SAFE_AI_VISUAL_MAX_CONCURRENCY 必须 >= 1"
+            )
+        # SHA 门禁模式：STRICT（默认，启动时重算权重摘要与 manifest 对比）或
+        # FAST（只校验 manifest 格式，不重算摘要）。比赛默认必须 STRICT。
+        sha_mode = _env(
+            "AI_VISION_SHA_MODE",
+            "URBAN_SAFE_AI_VISION_SHA_MODE",
+            "STRICT",
+        ).strip().upper()
+        if sha_mode not in {"STRICT", "FAST"}:
+            raise ValueError(
+                "环境变量 URBAN_SAFE_AI_VISION_SHA_MODE 必须为 STRICT 或 FAST"
+            )
+        self.vision_sha_mode: str = sha_mode
+        # 运行时视觉模型不得联网下载权重：强制 huggingface_hub 离线读取本地缓存。
+        if self.vision_offline:
+            os.environ.setdefault("HF_HUB_OFFLINE", "1")
+
         self.supported_content_types = ("image/jpeg", "image/png", "image/webp")
 
 

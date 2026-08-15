@@ -11,6 +11,7 @@ import {
   type MapRuntimeConfig,
 } from '@/shared/api'
 import { createArchivePointPicker, type ArchiveMapPoint } from '@/shared/map/archive-point-picker'
+import { useAppStore } from '@/stores/app'
 
 export interface ArchiveLocationSelection {
   longitude: number
@@ -36,6 +37,7 @@ const emit = defineEmits<{
   select: [selection: ArchiveLocationSelection]
 }>()
 
+const appStore = useAppStore()
 const pointPicker = createArchivePointPicker()
 const runtimeConfig = ref<MapRuntimeConfig | null>(null)
 const mapContainer = ref<HTMLElement | null>(null)
@@ -43,7 +45,6 @@ const mapReady = ref(false)
 const searchKeyword = ref(props.keyword)
 const searching = ref(false)
 const candidates = ref<MapPlaceCandidate[]>([])
-const notice = ref('')
 
 onMounted(async () => {
   try {
@@ -54,7 +55,7 @@ onMounted(async () => {
       })
     }
   } catch (error) {
-    notice.value = `地图不可用：${toAppError(error).message}。仍可使用手工坐标完成建档。`
+    appStore.notify(`地图服务暂不可用：${toAppError(error).message}`, 'warning')
   }
 })
 
@@ -63,11 +64,10 @@ onBeforeUnmount(() => pointPicker.destroy())
 async function search(): Promise<void> {
   const keyword = searchKeyword.value.trim()
   if (!keyword) {
-    notice.value = '请输入小区、楼栋或完整地址。'
+    appStore.notify('请输入小区、楼栋或完整地址。', 'warning')
     return
   }
   searching.value = true
-  notice.value = ''
   try {
     candidates.value = await searchArchivePlaces({
       keyword,
@@ -75,9 +75,9 @@ async function search(): Promise<void> {
       cityLimit: Boolean(props.region.trim()),
       pageSize: 8,
     })
-    if (!candidates.value.length) notice.value = '没有找到匹配地点，可继续手工填写。'
+    if (!candidates.value.length) appStore.notify('没有找到匹配地点，可继续手工填写。', 'info')
   } catch (error) {
-    notice.value = `地点搜索不可用：${toAppError(error).message}。可继续手工填写。`
+    appStore.notify(`地点搜索失败：${toAppError(error).message}`, 'error')
   } finally {
     searching.value = false
   }
@@ -104,7 +104,6 @@ function chooseCandidate(candidate: MapPlaceCandidate): void {
 }
 
 async function chooseMapPoint(point: ArchiveMapPoint): Promise<void> {
-  notice.value = ''
   try {
     const result = await previewArchiveReverseGeocoding(point)
     emit('select', {
@@ -124,35 +123,28 @@ async function chooseMapPoint(point: ArchiveMapPoint): Promise<void> {
       },
     })
   } catch (error) {
-    const mock = runtimeConfig.value?.mode === 'MOCK'
+    const fallback = runtimeConfig.value?.mode === 'MOCK'
     emit('select', {
       longitude: point.longitude,
       latitude: point.latitude,
       formattedAddress: '',
-      provider: mock ? 'MOCK' : 'MANUAL',
-      coordinateSystem: mock ? 'GCJ02' : 'GCJ02',
+      provider: fallback ? 'MOCK' : 'MANUAL',
+      coordinateSystem: 'GCJ02',
       matchLevel: 'MANUAL_POINT',
-      mock,
+      mock: fallback,
       metadata: {},
     })
-    notice.value = `坐标已保留，但地址识别失败：${toAppError(error).message}`
+    appStore.notify(`坐标已保留，地址识别失败：${toAppError(error).message}`, 'warning')
   }
 }
 </script>
 
 <template>
   <section class="archive-location-picker">
-    <el-alert
-      title="地图结果只用于候选和预填，最终仍需人工核对后确认创建。"
-      type="info"
-      :closable="false"
-      show-icon
-    />
     <div class="search-row">
       <el-input v-model="searchKeyword" clearable placeholder="搜索小区、楼栋或完整地址" @keyup.enter="search" />
       <el-button :loading="searching" @click="search">搜索地点</el-button>
     </div>
-    <el-alert v-if="notice" :title="notice" type="warning" :closable="false" show-icon />
     <div v-if="candidates.length" class="candidate-list">
       <button
         v-for="candidate in candidates"
@@ -162,13 +154,13 @@ async function chooseMapPoint(point: ArchiveMapPoint): Promise<void> {
         @click="chooseCandidate(candidate)"
       >
         <span><strong>{{ candidate.name }}</strong><small>{{ candidate.formattedAddress || '地址待补充' }}</small></span>
-        <el-tag size="small" effect="plain">{{ candidate.provider }}</el-tag>
+        <el-tag size="small" effect="plain" round>选择</el-tag>
       </button>
     </div>
     <div class="map-shell">
       <div ref="mapContainer" class="map-canvas" aria-label="地图点选区域" />
       <div v-if="!mapReady" class="map-fallback">
-        {{ runtimeConfig?.mode === 'MOCK' ? 'Mock 模式不加载地图，可使用搜索候选或手工坐标。' : '地图未加载，可继续手工填写。' }}
+        地图暂未加载，可使用地点搜索或手工填写坐标。
       </div>
     </div>
   </section>
@@ -178,11 +170,12 @@ async function chooseMapPoint(point: ArchiveMapPoint): Promise<void> {
 .archive-location-picker { display: grid; gap: var(--usp-space-3); }
 .search-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--usp-space-2); }
 .candidate-list { display: grid; gap: var(--usp-space-2); max-height: 200px; overflow: auto; }
-.candidate-item { display: flex; justify-content: space-between; gap: 12px; width: 100%; padding: 10px 12px; border: 1px solid var(--usp-border-color); border-radius: var(--usp-radius-md); background: var(--usp-surface); color: inherit; text-align: left; cursor: pointer; }
+.candidate-item { display: flex; justify-content: space-between; gap: 12px; width: 100%; padding: 11px 13px; border: 1px solid var(--usp-color-border); border-radius: var(--usp-radius-lg); background: var(--usp-color-surface); color: inherit; text-align: left; cursor: pointer; box-shadow: var(--usp-shadow-sm); }
+.candidate-item:hover { border-color: rgba(40,122,106,.38); background: var(--usp-color-primary-light); }
 .candidate-item span { min-width: 0; display: grid; gap: 4px; }
-.candidate-item small { color: var(--usp-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.map-shell { position: relative; min-height: 260px; border: 1px solid var(--usp-border-color); border-radius: var(--usp-radius-md); overflow: hidden; }
+.candidate-item small { color: var(--usp-color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-shell { position: relative; min-height: 260px; border: 1px solid var(--usp-color-border); border-radius: var(--usp-radius-xl); overflow: hidden; box-shadow: var(--usp-shadow-sm); }
 .map-canvas { width: 100%; height: 280px; }
-.map-fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--usp-text-secondary); background: var(--usp-surface); }
+.map-fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--usp-color-text-secondary); background: var(--usp-color-surface); }
 @media (max-width: 640px) { .search-row { grid-template-columns: 1fr; } }
 </style>

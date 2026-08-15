@@ -2,10 +2,12 @@ package org.urbansafe.priority.spatial;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.urbansafe.priority.common.security.CommunityAccessScope;
 import org.urbansafe.priority.support.PostgreSqlIntegrationTestBase;
 
 /** 使用真实 PostgreSQL/PostGIS 验证边界几何、版本条件更新和 revision 快照。 */
@@ -63,6 +65,50 @@ class SpatialBoundaryRepositoryIntegrationTest extends PostgreSqlIntegrationTest
                 WHERE entity_type='COMMUNITY' AND entity_id=?
                 """, Integer.class, communityId);
         assertThat(versionsAreUnique).isEqualTo(3);
+    }
+
+    @Test
+    void selfIntersectingManualBoundaryIsNormalizedAndQueryableAfterVerification() {
+        UUID communityId = createCommunity();
+        String selfIntersecting = """
+                {"type":"Polygon","coordinates":[[[113.0000,27.0000],[113.0020,27.0020],
+                [113.0020,27.0000],[113.0000,27.0020],[113.0000,27.0000]]]}
+                """.replace("\n", "").trim();
+        SpatialBoundaryWriteCommand write = new SpatialBoundaryWriteCommand(
+                0L,
+                "MANUAL_DRAW",
+                "INTEGRATION_TEST",
+                null,
+                "GCJ02",
+                selfIntersecting,
+                "GCJ02",
+                selfIntersecting,
+                "自交边界归一化");
+
+        SpatialBoundarySnapshot saved = repository.insertUnverified(
+                BoundaryEntityType.COMMUNITY, communityId, write, 1L);
+        SpatialBoundarySnapshot verified = repository.transitionStatus(
+                        BoundaryEntityType.COMMUNITY,
+                        communityId,
+                        1L,
+                        2L,
+                        BoundaryStatus.VERIFIED,
+                        null,
+                        "比赛演示确认")
+                .orElseThrow();
+
+        assertThat(saved.displayGeometryJson()).contains("MultiPolygon");
+        assertThat(verified.status()).isEqualTo(BoundaryStatus.VERIFIED);
+        Boolean valid = jdbcTemplate.queryForObject("""
+                SELECT ST_IsValid(display_geometry)
+                FROM geo.community_boundary
+                WHERE community_id=? AND deleted_at IS NULL
+                """, Boolean.class, communityId);
+        assertThat(valid).isTrue();
+
+        List<SpatialMapFeature> features = repository.queryVerifiedCommunities(
+                112.99, 26.99, 113.01, 27.01, 0.00001, CommunityAccessScope.globalScope());
+        assertThat(features).extracting(SpatialMapFeature::entityId).contains(communityId);
     }
 
     @Test

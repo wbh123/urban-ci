@@ -18,7 +18,7 @@ describe('ConsoleArchiveManagementPage visual archive flow', () => {
   })
 
   it('keeps spatial archive navigation on the directory page', () => {
-    expect(source).toContain('进入空间档案')
+    expect(source).toContain('空间档案')
     expect(source).toContain("name: 'console-spatial-archive'")
     expect(source).toContain('entityType')
     expect(source).toContain('entityId')

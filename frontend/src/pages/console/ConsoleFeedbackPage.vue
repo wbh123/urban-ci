@@ -4,11 +4,13 @@ import { ElMessage } from 'element-plus'
 import {
   createManualFeedback,
   fetchImageBlobUrl,
+  getFeedbackAiAssist,
   listFeedbackImages,
   listFeedbackReports,
   listPublicFeedbackBuildings,
   listPublicFeedbackCommunities,
   updateFeedbackStatus,
+  type FeedbackAiAssistView,
   type FeedbackChannel,
   type FeedbackImage,
   type FeedbackManagementRow,
@@ -18,6 +20,17 @@ import {
   type PublicFeedbackBuilding,
   type PublicFeedbackCommunity,
 } from '@/shared/api'
+import AppActionButton from '@/shared/components/AppActionButton.vue'
+import AppDateTime from '@/shared/components/AppDateTime.vue'
+import AppEmpty from '@/shared/components/AppEmpty.vue'
+import AppFilterBar from '@/shared/components/AppFilterBar.vue'
+import AppFilterField from '@/shared/components/AppFilterField.vue'
+import AppQueryField from '@/shared/components/AppQueryField.vue'
+import AppTablePager from '@/shared/components/AppTablePager.vue'
+import AiInsightCard from '@/shared/components/ai/AiInsightCard.vue'
+import AppPageHeader from '@/shared/components/layout/AppPageHeader.vue'
+import SpatialObjectSelector from '@/shared/components/SpatialObjectSelector.vue'
+import type { SpatialObjectSelection } from '@/shared/composables/useSpatialObjectSelector'
 
 interface ManagementDisplayImage extends FeedbackImage {
   url: string
@@ -26,7 +39,10 @@ interface ManagementDisplayImage extends FeedbackImage {
 const loading = ref(false)
 const rows = ref<FeedbackManagementRow[]>([])
 const total = ref(0)
-const dialogVisible = ref(false)
+const statusDrawerVisible = ref(false)
+const aiAssistDrawerVisible = ref(false)
+const aiAssistLoading = ref(false)
+const aiAssist = ref<FeedbackAiAssistView | null>(null)
 const manualDialogVisible = ref(false)
 const manualSubmitting = ref(false)
 const imageDialogVisible = ref(false)
@@ -35,11 +51,16 @@ const managementImages = ref<ManagementDisplayImage[]>([])
 const current = ref<FeedbackManagementRow | null>(null)
 const communities = ref<PublicFeedbackCommunity[]>([])
 const manualBuildings = ref<PublicFeedbackBuilding[]>([])
+const feedbackKeyword = ref('')
+const selectedCommunityId = ref('')
+const selectedBuildingId = ref('')
+const dateRange = ref<string[]>([])
+const selectorRevision = ref(0)
 
 const filters = reactive({
   status: '' as FeedbackStatus | '',
   feedbackChannel: '' as FeedbackChannel | '',
-  page: 0,
+  page: 1,
   size: 20,
 })
 const updateForm = reactive({
@@ -91,16 +112,44 @@ async function load(): Promise<void> {
     const result = await listFeedbackReports({
       status: filters.status || undefined,
       feedbackChannel: filters.feedbackChannel || undefined,
-      page: filters.page,
+      communityId: selectedCommunityId.value || undefined,
+      buildingId: selectedBuildingId.value || undefined,
+      keyword: feedbackKeyword.value.trim() || undefined,
+      submittedFrom: dateRange.value[0] ? new Date(`${dateRange.value[0]}T00:00:00`).toISOString() : undefined,
+      submittedTo: dateRange.value[1] ? new Date(`${dateRange.value[1]}T23:59:59.999`).toISOString() : undefined,
+      page: filters.page - 1,
       size: filters.size,
     })
-    rows.value = result.content
-    total.value = result.page.totalElements
+    rows.value = result.content ?? []
+    total.value = Number(result.page?.totalElements ?? rows.value.length)
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '反馈列表加载失败')
   } finally {
     loading.value = false
   }
+}
+
+async function runQuery(): Promise<void> {
+  filters.page = 1
+  await load()
+}
+
+async function resetFilters(): Promise<void> {
+  feedbackKeyword.value = ''
+  filters.status = ''
+  filters.feedbackChannel = ''
+  selectedCommunityId.value = ''
+  selectedBuildingId.value = ''
+  dateRange.value = []
+  filters.page = 1
+  selectorRevision.value += 1
+  await load()
+}
+
+async function handleSpatialSelection(selection: SpatialObjectSelection): Promise<void> {
+  selectedCommunityId.value = selection.communityId
+  selectedBuildingId.value = selection.buildingId
+  await runQuery()
 }
 
 async function loadCommunities(): Promise<void> {
@@ -140,7 +189,21 @@ function openStatus(row: FeedbackManagementRow): void {
   updateForm.handlingSummary = row.handlingSummary || ''
   updateForm.message = ''
   updateForm.publicVisible = true
-  dialogVisible.value = true
+  statusDrawerVisible.value = true
+}
+
+async function openAiAssist(row: FeedbackManagementRow): Promise<void> {
+  current.value = row
+  aiAssist.value = null
+  aiAssistDrawerVisible.value = true
+  aiAssistLoading.value = true
+  try {
+    aiAssist.value = await getFeedbackAiAssist(row.reportId)
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : 'AI 初步归类暂时不可用')
+  } finally {
+    aiAssistLoading.value = false
+  }
 }
 
 async function openImages(row: FeedbackManagementRow): Promise<void> {
@@ -173,7 +236,7 @@ async function submitStatus(): Promise<void> {
   try {
     await updateFeedbackStatus(current.value.reportId, updateForm)
     ElMessage.success('反馈状态已更新')
-    dialogVisible.value = false
+    statusDrawerVisible.value = false
     await load()
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '状态更新失败')
@@ -219,11 +282,6 @@ async function submitManual(): Promise<void> {
   }
 }
 
-function changePage(page: number): void {
-  filters.page = page - 1
-  void load()
-}
-
 onMounted(async () => {
   await Promise.all([load(), loadCommunities()])
 })
@@ -233,95 +291,166 @@ onBeforeUnmount(releaseManagementImages)
 
 <template>
   <section class="console-feedback">
-    <div class="page-title">
-      <div>
-        <h1>公众反馈管理</h1>
-        <p>统一处理网页、电话、短信、窗口和内部登记的风险线索。</p>
-      </div>
-      <div class="actions">
+    <AppPageHeader
+      eyebrow="公众参与"
+      title="公众反馈管理"
+      description="统一查询和处理网页、电话、短信、窗口与内部登记的风险线索。"
+      show-user-menu
+    >
+      <template #actions>
         <el-button @click="load">刷新</el-button>
         <el-button type="primary" @click="manualDialogVisible = true">代录反馈</el-button>
-      </div>
-    </div>
+      </template>
+    </AppPageHeader>
 
-    <el-card shadow="never" class="filter-card">
-      <el-form inline>
-        <el-form-item label="状态">
-          <el-select v-model="filters.status" clearable placeholder="全部状态" style="width: 170px">
-            <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="渠道">
-          <el-select v-model="filters.feedbackChannel" clearable placeholder="全部渠道" style="width: 150px">
-            <el-option v-for="item in channelOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </el-form-item>
-        <el-button type="primary" @click="filters.page = 0; load()">查询</el-button>
-      </el-form>
-    </el-card>
+    <AppFilterBar :loading="loading" @query="runQuery" @reset="resetFilters">
+      <AppFilterField kind="keyword">
+        <AppQueryField
+          v-model="feedbackKeyword"
+          placeholder="搜索工单编号、问题描述或位置"
+          width="100%"
+          @query="runQuery"
+        />
+      </AppFilterField>
+      <AppFilterField kind="status">
+        <el-select v-model="filters.status" clearable placeholder="全部状态">
+          <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+        </el-select>
+      </AppFilterField>
+      <AppFilterField kind="type">
+        <el-select v-model="filters.feedbackChannel" clearable placeholder="全部渠道">
+          <el-option v-for="item in channelOptions" :key="item.value" :label="item.label" :value="item.value" />
+        </el-select>
+      </AppFilterField>
+      <AppFilterField kind="spatial">
+        <SpatialObjectSelector
+          :key="selectorRevision"
+          v-model:community-id="selectedCommunityId"
+          v-model:building-id="selectedBuildingId"
+          mode="both"
+          @change="handleSpatialSelection"
+        />
+      </AppFilterField>
+      <AppFilterField kind="date-range">
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          value-format="YYYY-MM-DD"
+          range-separator="至"
+          start-placeholder="提交开始"
+          end-placeholder="提交结束"
+        />
+      </AppFilterField>
+    </AppFilterBar>
 
-    <el-card shadow="never">
-      <el-table v-loading="loading" :data="rows" row-key="reportId">
-        <el-table-column prop="reportCode" label="工单编号" min-width="190" />
-        <el-table-column label="小区/楼栋" min-width="180">
+    <el-card shadow="never" class="feedback-table-card">
+      <el-table v-loading="loading" :data="rows" row-key="reportId" stripe>
+        <el-table-column label="小区 / 楼栋" min-width="190">
           <template #default="scope">
-            <div>{{ scope.row.communityName }}</div>
-            <small>{{ scope.row.buildingName || scope.row.locationText || '未指定楼栋' }}</small>
+            <div class="location-cell">
+              <strong>{{ scope.row.communityName }}</strong>
+              <small>{{ scope.row.buildingName || scope.row.locationText || '未指定楼栋' }}</small>
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="渠道" width="90">
           <template #default="scope">{{ channelLabels[scope.row.feedbackChannel] || scope.row.feedbackChannel }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="100">
+        <el-table-column label="状态" width="105">
           <template #default="scope"><el-tag effect="plain">{{ statusLabels[scope.row.status] || scope.row.status }}</el-tag></template>
         </el-table-column>
-        <el-table-column prop="description" label="问题描述" min-width="250" show-overflow-tooltip />
-        <el-table-column label="图片" width="90" align="center">
+        <el-table-column prop="description" label="问题描述" min-width="280" show-overflow-tooltip />
+        <el-table-column label="提交时间" width="165">
+          <template #default="scope"><AppDateTime :value="scope.row.submittedAt" /></template>
+        </el-table-column>
+        <el-table-column label="图片" width="92" align="center">
           <template #default="scope">
-            <el-button
-              link
-              type="primary"
-              :disabled="!scope.row.imageCount"
-              @click="openImages(scope.row)"
-            >
+            <AppActionButton :disabled="!scope.row.imageCount" @click="openImages(scope.row)">
               {{ scope.row.imageCount || 0 }} 张
-            </el-button>
+            </AppActionButton>
           </template>
         </el-table-column>
-        <el-table-column prop="contactPhone" label="联系电话" width="140" />
-        <el-table-column prop="submittedAt" label="提交时间" min-width="180" />
-        <el-table-column label="操作" width="110" fixed="right">
+        <el-table-column label="操作" width="190" fixed="right">
           <template #default="scope">
-            <el-button link type="primary" @click="openStatus(scope.row)">更新状态</el-button>
+            <div class="row-actions">
+              <AppActionButton @click="openAiAssist(scope.row)">AI 初步归类</AppActionButton>
+              <AppActionButton type="primary" @click="openStatus(scope.row)">处理</AppActionButton>
+            </div>
           </template>
         </el-table-column>
       </el-table>
-      <el-pagination
-        class="pagination"
-        background
-        layout="total, prev, pager, next"
+      <AppEmpty v-if="!loading && !rows.length" description="当前筛选条件下暂无公众反馈" />
+      <AppTablePager
+        v-if="total > 0"
+        v-model:page="filters.page"
+        v-model:page-size="filters.size"
         :total="total"
-        :page-size="filters.size"
-        :current-page="filters.page + 1"
-        @current-change="changePage"
+        @change="load"
       />
     </el-card>
 
-    <el-dialog
-      v-model="imageDialogVisible"
-      :title="`反馈图片 · ${current?.reportCode || ''}`"
-      width="min(94vw, 860px)"
-    >
+    <el-drawer v-model="aiAssistDrawerVisible" title="AI 初步归类" size="min(620px, 94vw)">
+      <div v-loading="aiAssistLoading" class="ai-assist-drawer">
+        <div v-if="current" class="current-status-card">
+          <span>当前反馈对象</span>
+          <strong>{{ current.reportCode }}</strong>
+          <small>{{ current.communityName }} · {{ current.buildingName || current.locationText || '未指定楼栋' }}</small>
+        </div>
+        <AiInsightCard
+          v-if="aiAssist"
+          title="公众反馈辅助分流"
+          :summary="aiAssist.answer"
+          suggestion="请结合现场信息与现有工单规则人工确认后，再决定是否受理、巡检或转专业复核。"
+          eyebrow="✦ AI"
+        />
+        <el-alert
+          v-if="aiAssist"
+          :title="aiAssist.disclaimer || 'AI 初步归类不会自动修改反馈状态，原处理操作仍是唯一状态更新入口。'"
+          type="info"
+          :closable="false"
+          show-icon
+        />
+        <el-empty v-if="!aiAssistLoading && !aiAssist" description="当前未生成 AI 初步归类结果" />
+      </div>
+      <template #footer>
+        <el-button @click="aiAssistDrawerVisible = false">关闭</el-button>
+        <el-button v-if="current" type="primary" @click="aiAssistDrawerVisible = false; openStatus(current)">进入人工处理</el-button>
+      </template>
+    </el-drawer>
+
+    <el-drawer v-model="statusDrawerVisible" title="处理公众反馈" size="min(520px, 92vw)">
+      <div class="status-drawer-content">
+        <div class="current-status-card">
+          <span>当前状态</span>
+          <el-tag effect="plain">{{ current ? statusLabels[current.status] || current.status : '—' }}</el-tag>
+          <small v-if="current">{{ current.communityName }} · {{ current.buildingName || current.locationText || '未指定楼栋' }}</small>
+        </div>
+        <el-form label-position="top">
+          <el-form-item label="目标状态">
+            <el-select v-model="updateForm.status" style="width: 100%">
+              <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="处理摘要">
+            <el-input v-model="updateForm.handlingSummary" type="textarea" :rows="4" maxlength="2000" />
+          </el-form-item>
+          <el-form-item label="向反馈人说明">
+            <el-input v-model="updateForm.message" type="textarea" :rows="4" maxlength="2000" />
+          </el-form-item>
+          <el-switch v-model="updateForm.publicVisible" active-text="向反馈人公开本次状态说明" />
+        </el-form>
+      </div>
+      <template #footer>
+        <el-button @click="statusDrawerVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitStatus">确认更新</el-button>
+      </template>
+    </el-drawer>
+
+    <el-dialog v-model="imageDialogVisible" :title="`反馈图片 · ${current?.reportCode || ''}`" width="min(94vw, 860px)">
       <div v-loading="imageLoading" class="management-image-grid">
         <el-empty v-if="!imageLoading && !managementImages.length" description="暂无可查看图片" />
         <figure v-for="(image, index) in managementImages" :key="image.assetId">
-          <el-image
-            :src="image.url"
-            :preview-src-list="managementImages.map((item) => item.url)"
-            :initial-index="index"
-            fit="cover"
-            preview-teleported
-          />
+          <el-image :src="image.url" :preview-src-list="managementImages.map((item) => item.url)" :initial-index="index" fit="cover" preview-teleported />
           <figcaption>{{ image.originalFilename }}</figcaption>
         </figure>
       </div>
@@ -371,39 +500,36 @@ onBeforeUnmount(releaseManagementImages)
         <el-button type="primary" :loading="manualSubmitting" @click="submitManual">确认代录</el-button>
       </template>
     </el-dialog>
-
-    <el-dialog v-model="dialogVisible" title="更新反馈状态" width="min(92vw, 560px)">
-      <el-form label-position="top">
-        <el-form-item label="目标状态">
-          <el-select v-model="updateForm.status" style="width: 100%">
-            <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="处理摘要"><el-input v-model="updateForm.handlingSummary" type="textarea" :rows="3" maxlength="2000" /></el-form-item>
-        <el-form-item label="时间线说明"><el-input v-model="updateForm.message" type="textarea" :rows="3" maxlength="2000" /></el-form-item>
-        <el-checkbox v-model="updateForm.publicVisible">向反馈人公开本次状态说明</el-checkbox>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitStatus">确认更新</el-button>
-      </template>
-    </el-dialog>
   </section>
 </template>
 
 <style scoped lang="scss">
-.console-feedback { display: grid; gap: 16px; }
-.page-title { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
-.actions { display: flex; gap: 10px; }
-h1 { margin: 0 0 6px; color: #173f37; }
-p { margin: 0; color: #667085; }
-small { color: #667085; }
-.filter-card :deep(.el-card__body) { padding-bottom: 2px; }
-.pagination { justify-content: flex-end; margin-top: 18px; }
+.console-feedback { display: grid; gap: 14px; }
+.feedback-table-card,
+.current-status-card { border-radius: var(--usp-radius-xl); }
+.feedback-table-card { box-shadow: var(--usp-shadow-sm); }
+.feedback-table-card :deep(.el-card__body) { display: grid; gap: 12px; padding: 14px 16px; }
+.location-cell { display: grid; gap: 2px; }
+.location-cell small { color: var(--usp-color-text-secondary); }
+.row-actions { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.status-drawer-content,
+.ai-assist-drawer { display: grid; gap: 18px; }
+.ai-assist-drawer :deep(.ai-insight-card p) { white-space: pre-wrap; }
+.current-status-card { display: grid; gap: 7px; padding: 14px; border: 1px solid var(--usp-color-border); background: var(--usp-color-surface-muted); }
+.current-status-card small { color: var(--usp-color-text-secondary); }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
-.management-image-grid { min-height: 180px; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
-.management-image-grid figure { margin: 0; min-width: 0; }
-.management-image-grid :deep(.el-image) { width: 100%; aspect-ratio: 4 / 3; border-radius: 12px; background: #eef2f1; }
-.management-image-grid figcaption { margin-top: 6px; overflow: hidden; color: #667085; text-overflow: ellipsis; white-space: nowrap; }
-@media (max-width: 720px) { .page-title { align-items: flex-start; flex-direction: column; } .form-grid { grid-template-columns: 1fr; } }
+.management-image-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; min-height: 180px; }
+.management-image-grid figure { min-width: 0; margin: 0; }
+.management-image-grid :deep(.el-image) { width: 100%; aspect-ratio: 4 / 3; border-radius: var(--usp-radius-xl); background: #eef2f1; }
+.management-image-grid figcaption { overflow: hidden; margin-top: 6px; color: var(--usp-color-text-secondary); text-overflow: ellipsis; white-space: nowrap; }
+.console-feedback :deep(.el-input__wrapper),
+.console-feedback :deep(.el-select__wrapper),
+.console-feedback :deep(.el-date-editor.el-input__wrapper),
+.console-feedback :deep(.el-textarea__inner),
+.console-feedback :deep(.el-button) { border-radius: var(--usp-radius-lg); }
+.console-feedback :deep(.el-table) { border-radius: var(--usp-radius-lg); }
+
+@media (max-width: 720px) {
+  .form-grid { grid-template-columns: 1fr; }
+}
 </style>

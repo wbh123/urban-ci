@@ -27,12 +27,17 @@ class AiProviderStatusServiceTest {
         properties.setDefaultVisionProvider("FAST_API");
         properties.setDefaultWorkflowProvider("DIFY");
 
+        AiProviderProbeService probeService = mock(AiProviderProbeService.class);
+        when(probeService.probe("FAST_API"))
+                .thenReturn(new AiProviderProbeService.ProbeResult("READY", java.time.Instant.now()));
+
         AiProviderStatusService service = new AiProviderStatusService(
                 List.of(
                         provider("FAST_API", true, true, Set.of(AiCapabilityType.VISION_INFERENCE)),
                         provider("DIFY", false, false, Set.of(AiCapabilityType.WORKFLOW))),
                 properties,
-                repository);
+                repository,
+                probeService);
 
         AiGovernanceStatus status = service.status();
 
@@ -47,7 +52,8 @@ class AiProviderStatusServiceTest {
                 .findFirst()
                 .orElseThrow();
         assertThat(fastApi.configurationStatus()).isEqualTo("CONFIGURED");
-        assertThat(fastApi.connectivityStatus()).isEqualTo("NOT_PROBED");
+        assertThat(fastApi.runtimeStatus()).isEqualTo("READY");
+        assertThat(fastApi.connectivityStatus()).isEqualTo("CONNECTED");
         assertThat(fastApi.defaultFor()).containsExactly("VISION_INFERENCE");
         assertThat(fastApi.metrics7d().successRate()).isEqualTo(80d);
 
@@ -55,8 +61,27 @@ class AiProviderStatusServiceTest {
                 .filter(item -> item.providerCode().equals("DIFY"))
                 .findFirst()
                 .orElseThrow();
-        assertThat(dify.configurationStatus()).isEqualTo("DISABLED");
-        assertThat(status.healthSemantics()).contains("未主动调用外部服务");
+        assertThat(dify.configurationStatus()).isEqualTo("NOT_CONFIGURED");
+        assertThat(dify.runtimeStatus()).isEqualTo("DISABLED");
+    }
+
+    @Test
+    void configuredProviderShouldRemainConfiguredWhenRuntimeSwitchIsDisabled() {
+        AiGovernanceRepository repository = mock(AiGovernanceRepository.class);
+        when(repository.providerMetrics(7)).thenReturn(Map.of());
+        AiOrchestrationProperties properties = new AiOrchestrationProperties();
+        AiProviderProbeService probeService = mock(AiProviderProbeService.class);
+
+        AiProviderStatusService service = new AiProviderStatusService(
+                List.of(provider("DIFY", false, true, Set.of(AiCapabilityType.WORKFLOW))),
+                properties,
+                repository,
+                probeService);
+
+        AiProviderStatus dify = service.status().providers().get(0);
+        assertThat(dify.configured()).isTrue();
+        assertThat(dify.configurationStatus()).isEqualTo("CONFIGURED");
+        assertThat(dify.runtimeStatus()).isEqualTo("DISABLED");
     }
 
     private static AiCapabilityProvider provider(

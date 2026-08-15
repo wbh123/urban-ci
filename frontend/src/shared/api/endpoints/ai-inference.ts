@@ -4,9 +4,13 @@ import { apiGet, apiPost } from '../client'
 
 export type AiInferenceStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'REJECTED' | 'CANCELLED'
 export type AiInferenceMode = 'MOCK' | 'REAL'
+export type AiInferenceProfile = 'FAST' | 'PRECISION' | 'ACCURACY'
+export type AiInferenceTriggerType = 'UPLOAD_AUTO' | 'MANUAL_SINGLE' | 'MANUAL_BATCH'
 export type AiProviderCode = 'FAST_API' | 'DIFY' | 'SPRING_AI'
 export type AiCapabilityType = 'VISION_INFERENCE' | 'WORKFLOW' | 'TEXT_GENERATION'
 export type AiReviewStatus = 'UNREVIEWED' | 'CONFIRMED' | 'CORRECTED' | 'REJECTED'
+export type AiReviewDecision = Exclude<AiReviewStatus, 'UNREVIEWED'>
+export type AiReviewedRiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH'
 export type AiModelDeploymentStage = 'VALIDATING' | 'DEMO' | 'SHADOW' | 'ACTIVE' | 'SUSPENDED'
 export type AiModelQualityStatus = 'UNKNOWN' | 'VALIDATING' | 'PASSED' | 'FAILED'
 export type AiAssessmentEligibility = 'DEMO_ONLY' | 'REVIEW_REQUIRED' | 'ELIGIBLE' | 'EXCLUDED'
@@ -18,6 +22,31 @@ export type AiEvidenceReliability =
   | 'NOT_USABLE'
   | 'UNKNOWN_SOURCE'
 
+export type AiExecutionStatus = 'PENDING' | 'READY' | 'RUNNING' | 'RETRY_WAIT' | 'SUCCEEDED' | 'FAILED' | 'REJECTED' | 'CANCELLED'
+
+export interface AiInferenceExecution {
+  taskId: string
+  assetId?: string | null
+  status: AiExecutionStatus
+  inferenceId?: string | null
+  attemptCount?: number
+  maxAttempts?: number
+  errorCode?: string | null
+  errorMessage?: string | null
+  createdAt?: string | null
+  startedAt?: string | null
+  finishedAt?: string | null
+  updatedAt?: string | null
+}
+
+export interface AiAsyncInferenceSubmission {
+  taskId: string
+  status: 'PENDING'
+  inferenceProfile: 'ACCURACY'
+  triggerType?: AiInferenceTriggerType
+  assetId: string
+}
+
 export interface AiDetectionBox {
   x: number
   y: number
@@ -26,12 +55,23 @@ export interface AiDetectionBox {
   coordinateType: 'NORMALIZED_XYWH'
 }
 
+export interface AiSegmentation {
+  type: 'POLYGON'
+  points: number[][]
+}
+
+export type AiDetectionTrustLevel = 'HIGH' | 'MEDIUM' | 'LOW'
+
 export interface AiDetection {
   sequence: number
   classCode: string
   className: string
   confidence: number
   boundingBox: AiDetectionBox
+  segmentation?: AiSegmentation | null
+  trustLevel?: AiDetectionTrustLevel | null
+  trustReasons?: string[]
+  diagnostics?: Record<string, unknown>
 }
 
 export interface AiStructuredDetection {
@@ -39,6 +79,10 @@ export interface AiStructuredDetection {
   className?: string
   confidence?: number | null
   boundingBox?: AiDetectionBox | null
+  segmentation?: AiSegmentation | null
+  trustLevel?: AiDetectionTrustLevel | null
+  trustReasons?: string[]
+  diagnostics?: Record<string, unknown>
 }
 
 export interface AiRiskSignal {
@@ -130,7 +174,13 @@ export interface AiInferenceTask {
   fallbackUsed?: boolean
   fallbackProviderCode?: string | null
   fallbackReason?: string | null
-  latestReview?: { reviewStatus: string; comment?: string; reviewedBy?: string; reviewedAt?: string } | null
+  latestReview?: {
+    reviewStatus: string
+    comment?: string
+    reviewedBy?: string
+    reviewedAt?: string
+    correctedData?: { reviewedRiskLevel?: AiReviewedRiskLevel }
+  } | null
   resultAvailable: boolean
   detectionCount: number
   assessmentEligibility: AiAssessmentEligibility
@@ -147,6 +197,8 @@ export interface CreateAiInferenceRequest {
   providerCode?: AiProviderCode
   capabilityType?: AiCapabilityType
   prompt?: string
+  inferenceProfile?: AiInferenceProfile
+  triggerType?: AiInferenceTriggerType
   idempotencyKey?: string
 }
 
@@ -159,7 +211,10 @@ export interface ListAiInferencesParams {
   providerCode?: AiProviderCode
   capabilityType?: AiCapabilityType
   assetId?: string
+  inspectionTaskId?: string
+  inspectionRecordId?: string
   buildingId?: string
+  communityId?: string
 }
 
 // ---- API Functions ----
@@ -168,20 +223,41 @@ export function listAiModels(): Promise<{ content: AiModelCatalogItem[] }> {
   return apiGet('/api/v1/ai-models')
 }
 
+async function completeInferencePayload(payload: CreateAiInferenceRequest): Promise<CreateAiInferenceRequest> {
+  if (payload.providerCode && payload.capabilityType) return payload
+  const catalog = await listAiModels()
+  const selectedModel = catalog.content?.find((model) => model.modelId === payload.modelId)
+  return {
+    ...payload,
+    providerCode: payload.providerCode ?? selectedModel?.providerCode,
+    capabilityType: payload.capabilityType ?? selectedModel?.capabilityType,
+  }
+}
+
 export async function createAiInference(
   payload: CreateAiInferenceRequest,
 ): Promise<AiInferenceTask> {
-  let effectivePayload = payload
-  if (!payload.providerCode || !payload.capabilityType) {
-    const catalog = await listAiModels()
-    const selectedModel = catalog.content?.find((model) => model.modelId === payload.modelId)
-    effectivePayload = {
-      ...payload,
-      providerCode: payload.providerCode ?? selectedModel?.providerCode,
-      capabilityType: payload.capabilityType ?? selectedModel?.capabilityType,
-    }
+  let effectivePayload = await completeInferencePayload(payload)
+  if (
+    effectivePayload.mode === 'REAL'
+    && effectivePayload.providerCode === 'FAST_API'
+    && effectivePayload.capabilityType === 'VISION_INFERENCE'
+    && !effectivePayload.inferenceProfile
+  ) {
+    effectivePayload = { ...effectivePayload, inferenceProfile: 'PRECISION' }
   }
   return apiPost<AiInferenceTask>('/api/v1/ai-inferences', effectivePayload)
+}
+
+export async function createAiAccuracyExecution(
+  payload: Omit<CreateAiInferenceRequest, 'inferenceProfile'>,
+): Promise<AiAsyncInferenceSubmission> {
+  const effectivePayload = await completeInferencePayload({ ...payload, inferenceProfile: 'ACCURACY' })
+  return apiPost<AiAsyncInferenceSubmission>('/api/v1/ai-inferences', effectivePayload)
+}
+
+export function getAiInferenceExecution(taskId: string): Promise<AiInferenceExecution> {
+  return apiGet<AiInferenceExecution>(`/api/v1/ai-inference-executions/${taskId}`)
 }
 
 export function getAiInference(inferenceId: string): Promise<AiInferenceTask> {
@@ -196,13 +272,22 @@ export function listAiInferences(params: ListAiInferencesParams = {}): Promise<{
 }
 
 export function retryAiInference(inferenceId: string, modelId?: string): Promise<AiInferenceTask> {
-  return apiPost<AiInferenceTask>(`/api/v1/ai-inferences/${inferenceId}/retry`, { modelId })
+  return apiPost<AiInferenceTask>(`/api/v1/ai-inferences/${inferenceId}/retry`, modelId ? { modelId } : {})
 }
 
 export function submitAiReview(
   inferenceId: string,
-  reviewStatus: string,
+  reviewStatus: AiReviewStatus,
   comment?: string,
-): Promise<{ inferenceId: string; reviewStatus: string; reviewedAt: string }> {
-  return apiPost(`/api/v1/ai-inferences/${inferenceId}/review`, { reviewStatus, comment })
+  correctedData?: { reviewedRiskLevel?: AiReviewedRiskLevel },
+): Promise<unknown> {
+  if (reviewStatus === 'UNREVIEWED') {
+    return Promise.reject(new TypeError('UNREVIEWED 不是可提交的复核结论'))
+  }
+  const decision: AiReviewDecision = reviewStatus
+  return apiPost(`/api/v1/ai-inferences/${inferenceId}/review`, {
+    reviewStatus: decision,
+    comment,
+    correctedData,
+  })
 }

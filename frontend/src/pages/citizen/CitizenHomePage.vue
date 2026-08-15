@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { useAppStore } from '@/stores/app'
 
 const router = useRouter()
+const appStore = useAppStore()
 const hotline = computed(() => String(import.meta.env.VITE_CITIZEN_HOTLINE || '').trim())
 const smsNumber = computed(() => String(import.meta.env.VITE_CITIZEN_SMS_NUMBER || '').trim())
 
 function callHotline(): void {
   if (!hotline.value) {
-    ElMessage.info('服务热线尚未配置，请先使用网页反馈。')
+    appStore.notify('服务热线尚未配置，请先使用网页反馈。', 'info')
     return
   }
   window.location.href = `tel:${hotline.value}`
@@ -17,7 +18,7 @@ function callHotline(): void {
 
 function sendSms(): void {
   if (!smsNumber.value) {
-    ElMessage.info('短信接收号码尚未配置，请先使用网页反馈。')
+    appStore.notify('短信接收号码尚未配置，请先使用网页反馈。', 'info')
     return
   }
   window.location.href = `sms:${smsNumber.value}`
@@ -26,7 +27,7 @@ function sendSms(): void {
 
 <template>
   <section class="hero">
-    <el-tag effect="plain" type="success">移动优先 · 匿名可追踪</el-tag>
+    <el-tag effect="plain" type="success" round>移动优先 · 匿名可追踪</el-tag>
     <h1>发现房屋或公共区域问题？</h1>
     <p>提交后会获得工单编号和查询凭证，可随时查看受理与处理进度。</p>
   </section>
@@ -50,14 +51,10 @@ function sendSms(): void {
     </button>
   </section>
 
-  <el-alert
-    class="notice"
-    title="重要说明"
-    type="warning"
-    :closable="false"
-    show-icon
-    description="反馈内容将作为巡检和治理线索，不代表正式房屋安全鉴定结论。紧急危险情况请优先联系当地应急、消防或政务服务热线。"
-  />
+  <section class="safety-note" aria-label="安全提示">
+    <strong>紧急情况处理</strong>
+    <span>反馈内容将作为巡检和治理线索。发现明显坍塌、火灾等紧急危险情况时，请优先联系当地应急、消防或政务服务热线。</span>
+  </section>
 </template>
 
 <style scoped lang="scss">
@@ -65,13 +62,14 @@ function sendSms(): void {
 .hero h1 { margin: 14px 0 10px; color: #173f37; font-size: clamp(28px, 8vw, 42px); line-height: 1.15; }
 .hero p { margin: 0; color: #667085; line-height: 1.8; }
 .action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 18px 0 24px; }
-.action-card { min-height: 128px; padding: 20px; border: 1px solid #d9e2df; border-radius: 18px; background: #fff; color: #173f37; text-align: left; cursor: pointer; box-shadow: 0 10px 30px rgb(16 52 44 / 6%); }
-.action-card:hover { transform: translateY(-2px); border-color: #8bb7aa; }
+.action-card { min-height: 128px; padding: 20px; border: 1px solid #d9e2df; border-radius: 22px; background: #fff; color: #173f37; text-align: left; cursor: pointer; box-shadow: 0 10px 30px rgb(16 52 44 / 6%); }
+.action-card:hover { transform: translateY(-2px); border-color: #8bb7aa; box-shadow: 0 14px 34px rgb(16 52 44 / 9%); }
 .action-card strong, .action-card span { display: block; }
 .action-card strong { margin-bottom: 10px; font-size: 18px; }
 .action-card span { color: #667085; line-height: 1.5; }
 .action-card.primary { background: #176b59; color: #fff; }
 .action-card.primary span { color: rgb(255 255 255 / 78%); }
-.notice { margin-top: 8px; }
+.safety-note { display: grid; gap: 5px; padding: 15px 17px; border: 1px solid #fedf89; border-radius: 18px; background: #fffcf5; color: #7a2e0e; }
+.safety-note span { color: #93370d; line-height: 1.65; }
 @media (max-width: 560px) { .action-grid { grid-template-columns: 1fr; } .action-card { min-height: 108px; } }
 </style>

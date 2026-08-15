@@ -32,7 +32,10 @@ public class AiAutomationSettingsController implements AiAutomationSettingsApi {
     public ResponseEntity<AiAutomationSettingsSuccessResponse> updateAiAutomationSettings(
             AiAutomationSettingsUpdateRequest request) {
         return ResponseEntity.ok(success(service.update(
-                request.getAutoInferenceOnUpload(), CurrentUser.getUserId())));
+                request.getAutoInferenceOnUpload(),
+                request.getIntelligentWorkflowEnabled(),
+                request.getKnowledgeQaEnabled(),
+                CurrentUser.getUserId())));
     }
 
     private static AiAutomationSettingsSuccessResponse success(AiAutomationSettings settings) {
@@ -49,6 +52,8 @@ public class AiAutomationSettingsController implements AiAutomationSettingsApi {
     private static AiAutomationSettingsView toDto(AiAutomationSettings settings) {
         AiAutomationSettingsView dto = new AiAutomationSettingsView();
         dto.setAutoInferenceOnUpload(settings.autoInferenceOnUpload());
+        dto.setIntelligentWorkflowEnabled(settings.intelligentWorkflowEnabled());
+        dto.setKnowledgeQaEnabled(settings.knowledgeQaEnabled());
         dto.setModelId(settings.modelId());
         dto.setProviderCode(settings.providerCode());
         dto.setCapabilityType(settings.capabilityType());

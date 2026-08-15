@@ -19,18 +19,15 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import org.urbansafe.priority.ai.config.AiInferenceProperties;
 
-/**
- * 调用 FastAPI 内部模型目录、图片质量预检与推理接口的 HTTP 客户端。
- *
- * <p>负责 Multipart 图片发送、真实模型 CUDA 就绪预检、超时与错误转换、
- * 请求编号、模式和模型身份一致性校验。不直接写业务数据库，也不直接访问 MinIO。
- */
+/** 调用 FastAPI 内部模型目录、图片质量预检与推理接口的 HTTP 客户端。 */
 public class AiFastApiClient {
 
     private static final double EPSILON = 1e-9;
     private static final String CUDA_EXECUTION_PROVIDER = "CUDAExecutionProvider";
+    private static final String PY_TORCH_CUDA_PROVIDER = "PyTorch-CUDA";
 
     private final RestClient restClient;
+    private final RestClient accuracyRestClient;
     private final ObjectMapper objectMapper;
     private final AiInferenceProperties properties;
 
@@ -38,7 +35,16 @@ public class AiFastApiClient {
             RestClient restClient,
             ObjectMapper objectMapper,
             AiInferenceProperties properties) {
+        this(restClient, restClient, objectMapper, properties);
+    }
+
+    public AiFastApiClient(
+            RestClient restClient,
+            RestClient accuracyRestClient,
+            ObjectMapper objectMapper,
+            AiInferenceProperties properties) {
         this.restClient = restClient;
+        this.accuracyRestClient = accuracyRestClient;
         this.objectMapper = objectMapper;
         this.properties = properties;
     }
@@ -54,8 +60,9 @@ public class AiFastApiClient {
         }
 
         String body;
+        RestClient inferenceClient = isAccuracyProfile(metadata) ? accuracyRestClient : restClient;
         try {
-            body = restClient.post()
+            body = inferenceClient.post()
                     .uri("/internal/api/v1/ai/inferences")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(parts)
@@ -97,10 +104,7 @@ public class AiFastApiClient {
         return parseImageQuality(body, requestId);
     }
 
-    /**
-     * 按模型编号查询 FastAPI 实际运行时身份。
-     * REAL 模型必须已批准、就绪，并且实际执行后端只能是 CUDAExecutionProvider。
-     */
+    /** 按模型编号查询 FastAPI 实际运行时身份。 */
     public AiRuntimeModelInfo requireModelReady(String expectedModelId, String expectedMode) {
         String body;
         try {
@@ -127,11 +131,20 @@ public class AiFastApiClient {
             if (!"APPROVED".equals(model.status())) {
                 throw new AiFastApiException("AI_MODEL_UNAVAILABLE", "FastAPI 真实模型未通过准入");
             }
-            if (!CUDA_EXECUTION_PROVIDER.equals(model.executionProvider())) {
+            if (!isCudaCapableProvider(model.executionProvider())) {
                 throw new AiFastApiException("AI_MODEL_UNAVAILABLE", "FastAPI 真实模型未运行在 CUDA");
             }
         }
         return model;
+    }
+
+    private static boolean isCudaCapableProvider(String provider) {
+        return CUDA_EXECUTION_PROVIDER.equals(provider) || PY_TORCH_CUDA_PROVIDER.equals(provider);
+    }
+
+    private static boolean isAccuracyProfile(Map<String, Object> metadata) {
+        String value = stringValue(metadata == null ? null : metadata.get("inferenceProfile"));
+        return "ACCURACY".equalsIgnoreCase(value);
     }
 
     private AiImageQualityResponse parseImageQuality(String body, String requestId) {
@@ -339,7 +352,6 @@ public class AiFastApiClient {
         return String.valueOf(value).trim();
     }
 
-    /** 图片字节的匿名资源，提供固定文件名供 Multipart 使用。 */
     private static final class ImageResource extends ByteArrayResource {
         ImageResource(byte[] bytes) {
             super(bytes);
@@ -351,7 +363,6 @@ public class AiFastApiClient {
         }
     }
 
-    /** 供 Service 构造推理元数据的辅助方法。 */
     public Map<String, Object> buildMetadata(
             String requestId, String mode, String assetId, String filename,
             String contentType, String sha256, String requestedModelId) {

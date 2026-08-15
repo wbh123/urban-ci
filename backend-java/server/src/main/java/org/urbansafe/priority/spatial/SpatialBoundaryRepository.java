@@ -84,7 +84,8 @@ public class SpatialBoundaryRepository {
                     :sourceCoordinateSystem,
                     CAST(:sourceGeometryJson AS jsonb),
                     :displayCoordinateSystem,
-                    ST_Multi(ST_SetSRID(ST_GeomFromGeoJSON(:displayGeometryJson), 0)),
+                    ST_Multi(ST_CollectionExtract(
+                        ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON(:displayGeometryJson), 0)), 3)),
                     'UNVERIFIED',
                     :nextVersion,
                     NULL,
@@ -125,7 +126,8 @@ public class SpatialBoundaryRepository {
                     source_coordinate_system=:sourceCoordinateSystem,
                     source_geometry_json=CAST(:sourceGeometryJson AS jsonb),
                     display_coordinate_system=:displayCoordinateSystem,
-                    display_geometry=ST_Multi(ST_SetSRID(ST_GeomFromGeoJSON(:displayGeometryJson), 0)),
+                    display_geometry=ST_Multi(ST_CollectionExtract(
+                        ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON(:displayGeometryJson), 0)), 3)),
                     status='UNVERIFIED',
                     version=:nextVersion,
                     verified_by=NULL,
@@ -233,8 +235,10 @@ public class SpatialBoundaryRepository {
                        cb.source_type,
                        ST_AsGeoJSON(
                            CASE WHEN :tolerance <= 0.0
-                                THEN cb.display_geometry
-                                ELSE ST_SimplifyPreserveTopology(cb.display_geometry, :tolerance)
+                                THEN ST_Multi(ST_CollectionExtract(ST_MakeValid(cb.display_geometry), 3))
+                                ELSE ST_SimplifyPreserveTopology(
+                                    ST_Multi(ST_CollectionExtract(ST_MakeValid(cb.display_geometry), 3)),
+                                    :tolerance)
                            END
                        ) AS geometry_json
                 FROM geo.community_boundary cb
@@ -281,8 +285,10 @@ public class SpatialBoundaryRepository {
                        bb.source_type,
                        ST_AsGeoJSON(
                            CASE WHEN :tolerance <= 0.0
-                                THEN bb.display_geometry
-                                ELSE ST_SimplifyPreserveTopology(bb.display_geometry, :tolerance)
+                                THEN ST_Multi(ST_CollectionExtract(ST_MakeValid(bb.display_geometry), 3))
+                                ELSE ST_SimplifyPreserveTopology(
+                                    ST_Multi(ST_CollectionExtract(ST_MakeValid(bb.display_geometry), 3)),
+                                    :tolerance)
                            END
                        ) AS geometry_json
                 FROM geo.building_boundary bb
@@ -337,7 +343,8 @@ public class SpatialBoundaryRepository {
                     :sourceCoordinateSystem,
                     CAST(:sourceGeometryJson AS jsonb),
                     :displayCoordinateSystem,
-                    ST_Multi(ST_SetSRID(ST_GeomFromGeoJSON(:displayGeometryJson), 0)),
+                    ST_Multi(ST_CollectionExtract(
+                        ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON(:displayGeometryJson), 0)), 3)),
                     :status,
                     :changeType,
                     :remark,

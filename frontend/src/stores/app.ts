@@ -11,6 +11,7 @@ export interface AppNotice {
 }
 
 let noticeSeq = 0
+const DEFAULT_NOTICE_DURATION = 3000
 
 /**
  * 全局应用 store：全局通知、全局加载状态与 API 模式等运行时配置。
@@ -21,15 +22,19 @@ export const useAppStore = defineStore('app', () => {
   const apiMode = ref<ApiMode>(getApiMode())
   const notices = ref<AppNotice[]>([])
 
-  function notify(message: string, type: NoticeType = 'info'): number {
+  function dismissNotice(id: number): void {
+    notices.value = notices.value.filter((n) => n.id !== id)
+  }
+
+  function notify(message: string, type: NoticeType = 'info', duration = DEFAULT_NOTICE_DURATION): number {
     noticeSeq += 1
     const id = noticeSeq
     notices.value.push({ id, type, message })
-    return id
-  }
 
-  function dismissNotice(id: number): void {
-    notices.value = notices.value.filter((n) => n.id !== id)
+    if (duration > 0) {
+      globalThis.setTimeout(() => dismissNotice(id), duration)
+    }
+    return id
   }
 
   function clearNotices(): void {

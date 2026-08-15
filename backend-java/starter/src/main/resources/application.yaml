@@ -36,10 +36,10 @@ spring:
         transcription: none
     openai:
       api-key: ${URBAN_SAFE_SPRING_AI_API_KEY:}
-      base-url: ${URBAN_SAFE_SPRING_AI_BASE_URL:https://api.openai.com}
+      base-url: ${URBAN_SAFE_SPRING_AI_BASE_URL:https://api.deepseek.com}
       chat:
         options:
-          model: ${URBAN_SAFE_SPRING_AI_MODEL:}
+          model: ${URBAN_SAFE_SPRING_AI_MODEL:deepseek-v4-flash}
 
 mybatis-plus:
   mapper-locations: classpath*:mappers/**/*.xml
@@ -96,7 +96,7 @@ urban-safe:
       read-timeout-ms: ${URBAN_SAFE_AMAP_READ_TIMEOUT_MS}
       cache-ttl-seconds: ${URBAN_SAFE_AMAP_CACHE_TTL_SECONDS}
       live-test-enabled: ${URBAN_SAFE_AMAP_LIVE_TEST_ENABLED}
-      boundary-candidate-enabled: ${URBAN_SAFE_AMAP_BOUNDARY_CANDIDATE_ENABLED:false}
+      boundary-candidate-enabled: ${URBAN_SAFE_AMAP_BOUNDARY_CANDIDATE_ENABLED:true}
   storage:
     provider: ${URBAN_SAFE_STORAGE_PROVIDER}
     endpoint: http://${URBAN_SAFE_MINIO_HOST}:${URBAN_SAFE_MINIO_API_PORT}
@@ -110,6 +110,7 @@ urban-safe:
     base-url: ${URBAN_SAFE_AI_SERVICE_BASE_URL:http://localhost:8001}
     connect-timeout-ms: ${URBAN_SAFE_AI_CONNECT_TIMEOUT_MS:3000}
     read-timeout-ms: ${URBAN_SAFE_AI_READ_TIMEOUT_MS:15000}
+    accuracy-read-timeout-ms: ${URBAN_SAFE_AI_ACCURACY_READ_TIMEOUT_MS:180000}
     default-mock-model-id: ${URBAN_SAFE_AI_DEFAULT_MOCK_MODEL_ID:AI-DEFECT-MOCK-001}
     default-mode: ${URBAN_SAFE_AI_DEFAULT_MODE:MOCK}
     orchestration:
@@ -150,9 +151,10 @@ urban-safe:
           version: ${URBAN_SAFE_DIFY_KNOWLEDGE_QA_VERSION:knowledge-qa-v1.0.0}
     spring-ai-provider:
       enabled: ${URBAN_SAFE_SPRING_AI_PROVIDER_ENABLED:false}
-      provider-type: ${URBAN_SAFE_SPRING_AI_PROVIDER_TYPE:OPENAI_COMPATIBLE}
+      provider-type: ${URBAN_SAFE_SPRING_AI_PROVIDER_TYPE:DEEPSEEK}
       api-key: ${URBAN_SAFE_SPRING_AI_API_KEY:}
-      base-url: ${URBAN_SAFE_SPRING_AI_BASE_URL:https://api.openai.com}
-      model: ${URBAN_SAFE_SPRING_AI_MODEL:}
+      base-url: ${URBAN_SAFE_SPRING_AI_BASE_URL:https://api.deepseek.com}
+      model: ${URBAN_SAFE_SPRING_AI_MODEL:deepseek-v4-flash}
+      chat-model: ${URBAN_SAFE_SPRING_AI_MODEL_CHAT:none}
       connect-timeout-ms: ${URBAN_SAFE_SPRING_AI_CONNECT_TIMEOUT_MS:3000}
       read-timeout-ms: ${URBAN_SAFE_SPRING_AI_READ_TIMEOUT_MS:30000}

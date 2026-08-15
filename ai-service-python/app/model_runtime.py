@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Mapping
 
-from .adapters import DeterministicMockAdapter, OnnxCrackSegmentationAdapter
+from .adapters import DeterministicMockAdapter, GroundedSam2TinyAdapter, OnnxCrackSegmentationAdapter
 from .adapters.protocol import InferenceAdapter
 from .config import Settings
 from .errors import ModelUnavailableError
@@ -18,10 +18,15 @@ from .schemas import (
     ModelInfo,
     RuntimeReadiness,
 )
+from .vision_manifest import ZeroShotModelManifest
 
 
 CUDA_ONLY_RUNTIME = "CUDA_ONLY"
 CUDA_EXECUTION_PROVIDER = "CUDAExecutionProvider"
+PY_TORCH_CUDA_PROVIDER = "PyTorch-CUDA"
+# 真实模型必须运行在 NVIDIA CUDA 上；ONNX 适配器返回 CUDAExecutionProvider，
+# Transformers 视觉适配器返回 PyTorch-CUDA。两者都不允许 CPU 回退。
+CUDA_CAPABLE_PROVIDERS = {CUDA_EXECUTION_PROVIDER, PY_TORCH_CUDA_PROVIDER}
 
 
 class RuntimeCatalogError(ValueError):
@@ -42,7 +47,7 @@ class RuntimeCatalog:
     entries: tuple[RuntimeCatalogEntry, ...]
 
 
-AdapterFactory = Callable[[ModelManifest], InferenceAdapter]
+AdapterFactory = Callable[[ModelManifest | ZeroShotModelManifest], InferenceAdapter]
 
 
 def load_runtime_catalog(settings: Settings) -> RuntimeCatalog:
@@ -184,11 +189,18 @@ class ModelRegistry:
         self._factories: Mapping[str, AdapterFactory] = adapter_factories or {
             "onnx-crack-segmentation-v1": lambda manifest: OnnxCrackSegmentationAdapter(
                 manifest, cuda_device_id=settings.cuda_device_id
-            )
+            ),
+            "grounded-sam2-tiny-v1": lambda manifest: GroundedSam2TinyAdapter(
+                manifest, settings=settings
+            ),
+            # 中性协议；Tiny 旧 ID 保留用于向后兼容。
+            "grounded-sam2-v1": lambda manifest: GroundedSam2TinyAdapter(
+                manifest, settings=settings
+            ),
         }
         self._catalog = load_runtime_catalog(settings)
         self._real_adapters: dict[str, InferenceAdapter] = {}
-        self._real_manifests: dict[str, ModelManifest] = {}
+        self._real_manifests: dict[str, ModelManifest | ZeroShotModelManifest] = {}
         self._default_real_model_id: str | None = None
         self._load_real_models()
 
@@ -202,14 +214,19 @@ class ModelRegistry:
                     raise RuntimeCatalogError("模型目录版本与模型清单不一致")
                 if manifest.model_id in self._real_adapters:
                     raise RuntimeCatalogError("模型清单解析后出现重复模型编号")
+                if manifest.status != "APPROVED":
+                    raise RuntimeCatalogError(
+                        f"模型 {manifest.model_id} 未批准（status={manifest.status}），"
+                        "禁止进入 REAL 运行时"
+                    )
                 factory = self._factories.get(manifest.adapter)
                 if factory is None:
                     raise RuntimeCatalogError(f"缺少适配器工厂：{manifest.adapter}")
                 adapter = factory(manifest)
                 provider = _execution_provider(adapter)
-                if provider != CUDA_EXECUTION_PROVIDER:
+                if provider not in CUDA_CAPABLE_PROVIDERS:
                     raise RuntimeCatalogError(
-                        f"模型 {manifest.model_id} 未运行在 CUDAExecutionProvider"
+                        f"模型 {manifest.model_id} 未运行在 CUDA 上：{provider}"
                     )
                 self._real_adapters[manifest.model_id] = adapter
                 self._real_manifests[manifest.model_id] = manifest

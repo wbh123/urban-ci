@@ -73,7 +73,7 @@ describe('spatial boundary editor driver', () => {
     expect(maps[0]?.destroy).toHaveBeenCalled()
   })
 
-  it('replaces the existing polygon when MouseTool finishes a dashed redraw', async () => {
+  it('keeps a freshly drawn polygon visible and closes its exported GeoJSON ring', async () => {
     let drawHandler: ((event: { obj: unknown }) => void) | undefined
     const mouseTools: FakeMouseTool[] = []
     const existingPolygons: FakePolygon[] = []
@@ -82,7 +82,7 @@ describe('spatial boundary editor driver', () => {
       getPath: () => [
         { getLng: () => 113.2, getLat: () => 27.2 },
         { getLng: () => 114.2, getLat: () => 27.2 },
-        { getLng: () => 113.2, getLat: () => 27.2 },
+        { getLng: () => 114.0, getLat: () => 28.0 },
       ],
       setMap: vi.fn(),
     }
@@ -126,6 +126,7 @@ describe('spatial boundary editor driver', () => {
     drawHandler?.({ obj: drawnPolygon })
 
     expect(mouseTools[0]?.polygon).toHaveBeenCalledWith(expect.objectContaining({ strokeStyle: 'dashed' }))
+    expect(mouseTools[0]?.close).toHaveBeenCalledWith(false)
     expect(existingPolygons[0]?.setMap).toHaveBeenCalledWith(null)
     expect(drawnPolygon.setMap).not.toHaveBeenCalledWith(null)
     expect(onChange).toHaveBeenCalled()
@@ -134,6 +135,7 @@ describe('spatial boundary editor driver', () => {
       coordinates: [[
         [113.2, 27.2],
         [114.2, 27.2],
+        [114.0, 28.0],
         [113.2, 27.2],
       ]],
     })

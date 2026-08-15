@@ -318,3 +318,132 @@ def test_legacy_single_manifest_is_migrated_when_catalog_missing(monkeypatch, tm
     assert len(catalog.entries) == 1
     assert catalog.entries[0].model_id is None
     assert catalog.entries[0].manifest_path == manifest_path.resolve()
+
+
+def _write_vision_manifest(root: Path, model_id: str = "AI-VISION-LOCAL-001", status: str = "APPROVED") -> Path:
+    package = root / model_id / "1.0.0"
+    package.mkdir(parents=True)
+    approved_by = "test" if status == "APPROVED" else ""
+    approved_at = "2026-08-11T00:00:00Z" if status == "APPROVED" else ""
+    payload = {
+        "schemaVersion": 1,
+        "modelId": model_id,
+        "modelName": "Test Grounded SAM2",
+        "version": "1.0.0",
+        "status": status,
+        "identityVerified": status == "APPROVED",
+        "task": "ZERO_SHOT_VISUAL_DEFECT",
+        "adapter": "grounded-sam2-tiny-v1",
+        "source": {
+            "type": "ZERO_SHOT_OPEN_WEIGHTS",
+            "repository": "modelscope",
+            "revision": "a2bb814dd30d776dcf7e30523b00659f4f141c71/de431c4043854a71d8101e17995dfe596bf101a5",
+            "license": "Apache-2.0",
+        },
+        "classes": [
+            {"code": "CRACK", "name": "疑似裂缝", "prompts": ["wall crack"]},
+        ],
+        "checkpoint": {
+            "detectorRepository": "IDEA-Research/grounding-dino-tiny",
+            "segmenterRepository": "facebook/sam2.1-hiera-tiny",
+            "detectorRevision": "a2bb814dd30d776dcf7e30523b00659f4f141c71",
+            "segmenterRevision": "de431c4043854a71d8101e17995dfe596bf101a5",
+            "detectorDir": "AI-VISION-LOCAL-001/1.0.0/detector",
+            "segmenterDir": "AI-VISION-LOCAL-001/1.0.0/segmenter",
+            "sha256": "a" * 64,
+            "sizeBytes": 1024,
+        },
+        "input": {
+            "maxLongSide": 1280,
+            "boxThreshold": 0.25,
+            "textThreshold": 0.25,
+            "maxDetections": 10,
+        },
+        "license": "Apache-2.0",
+        "approvedBy": approved_by,
+        "approvedAt": approved_at,
+    }
+    path = package / "manifest.json"
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
+def test_registry_loads_zero_shot_vision_adapter(monkeypatch, tmp_path):
+    _write_vision_manifest(tmp_path)
+    _write_catalog(
+        tmp_path,
+        [{
+            "modelId": "AI-VISION-LOCAL-001",
+            "version": "1.0.0",
+            "manifestPath": "AI-VISION-LOCAL-001/1.0.0/manifest.json",
+            "enabled": True,
+        }],
+        default_model_id="AI-VISION-LOCAL-001",
+    )
+
+    registry = ModelRegistry(
+        _settings(monkeypatch, tmp_path),
+        adapter_factories={
+            "grounded-sam2-tiny-v1": lambda manifest: FakeAdapter(
+                manifest, provider="PyTorch-CUDA"
+            )
+        },
+    )
+
+    info = registry.model_info("AI-VISION-LOCAL-001")
+    assert info.mode == InferenceMode.REAL
+    assert info.status == "APPROVED"
+    assert info.adapter == "grounded-sam2-tiny-v1"
+    assert info.executionProvider == "PyTorch-CUDA"
+    assert info.supportedDefects == ["crack"]
+
+    resolved = registry.resolve(InferenceMode.REAL, "AI-VISION-LOCAL-001")
+    assert resolved is registry._real_adapters["AI-VISION-LOCAL-001"]
+
+
+def test_registry_rejects_vision_adapter_on_cpu_provider(monkeypatch, tmp_path):
+    _write_vision_manifest(tmp_path)
+    _write_catalog(
+        tmp_path,
+        [{
+            "modelId": "AI-VISION-LOCAL-001",
+            "version": "1.0.0",
+            "manifestPath": "AI-VISION-LOCAL-001/1.0.0/manifest.json",
+            "enabled": True,
+        }],
+        default_model_id="AI-VISION-LOCAL-001",
+    )
+
+    with pytest.raises(ModelUnavailableError, match="目录加载失败"):
+        ModelRegistry(
+            _settings(monkeypatch, tmp_path),
+            adapter_factories={
+                "grounded-sam2-tiny-v1": lambda manifest: FakeAdapter(
+                    manifest, provider="CPUExecutionProvider"
+                )
+            },
+        )
+
+
+def test_registry_rejects_candidate_vision_model(monkeypatch, tmp_path):
+    _write_vision_manifest(tmp_path, status="CANDIDATE")
+    _write_catalog(
+        tmp_path,
+        [{
+            "modelId": "AI-VISION-LOCAL-001",
+            "version": "1.0.0",
+            "manifestPath": "AI-VISION-LOCAL-001/1.0.0/manifest.json",
+            "enabled": True,
+        }],
+        default_model_id="AI-VISION-LOCAL-001",
+    )
+
+    with pytest.raises(ModelUnavailableError, match="目录加载失败"):
+        ModelRegistry(
+            _settings(monkeypatch, tmp_path),
+            adapter_factories={
+                "grounded-sam2-tiny-v1": lambda manifest: FakeAdapter(
+                    manifest, provider="PyTorch-CUDA"
+                )
+            },
+        )

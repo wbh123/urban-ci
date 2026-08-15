@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.urbansafe.priority.auth.security.CurrentUser;
 import org.urbansafe.priority.common.response.ResponseMetadata;
 import org.urbansafe.priority.common.response.ResponseMetadataFactory;
+import org.urbansafe.priority.feedback.service.FeedbackManagementQueryService;
 import org.urbansafe.priority.feedback.service.FeedbackService;
 
 /** 公众反馈公开入口和内部处理接口。 */
@@ -32,9 +33,13 @@ public class FeedbackController {
             "hasAnyRole('COMMUNITY_MANAGER','GOVERNMENT_MANAGER','DISPOSAL_OPERATOR','ADMIN')";
 
     private final FeedbackService service;
+    private final FeedbackManagementQueryService managementQueryService;
 
-    public FeedbackController(FeedbackService service) {
+    public FeedbackController(
+            FeedbackService service,
+            FeedbackManagementQueryService managementQueryService) {
         this.service = service;
+        this.managementQueryService = managementQueryService;
     }
 
     @GetMapping("/public/feedback/communities")
@@ -96,9 +101,22 @@ public class FeedbackController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String feedbackChannel,
             @RequestParam(required = false) UUID communityId,
+            @RequestParam(required = false) UUID buildingId,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String submittedFrom,
+            @RequestParam(required = false) String submittedTo,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(success(service.list(status, feedbackChannel, communityId, page, size)));
+        return ResponseEntity.ok(success(managementQueryService.list(
+                status,
+                feedbackChannel,
+                communityId,
+                buildingId,
+                keyword,
+                submittedFrom,
+                submittedTo,
+                page,
+                size)));
     }
 
     @GetMapping("/feedback/reports/{reportId}/images")

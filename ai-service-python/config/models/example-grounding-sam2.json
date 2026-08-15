@@ -1,0 +1,44 @@
+{
+  "_note": "评审用模板，不作为可加载清单。精度优先 Base/Base+ 使用内部版本 1.1.0，与已验收 Tiny 1.0.0 并存；下载阶段不覆盖 active runtime-catalog.json，人工批准后才切换。",
+  "schemaVersion": 1,
+  "modelId": "AI-VISION-LOCAL-001",
+  "modelName": "UrbanSafe Grounding DINO Base + SAM2.1 Base+ 零样本建筑表观病害",
+  "version": "1.1.0",
+  "status": "CANDIDATE",
+  "identityVerified": false,
+  "task": "ZERO_SHOT_VISUAL_DEFECT",
+  "adapter": "grounded-sam2-tiny-v1",
+  "source": {
+    "type": "ZERO_SHOT_OPEN_WEIGHTS",
+    "repository": "modelscope",
+    "revision": "12bdfa3120f3e7ec7b434d90674b3396eccf88eb/b7320756a13354e7530a63935656d35b2f91a290",
+    "license": "Apache-2.0"
+  },
+  "classes": [
+    { "code": "CRACK", "name": "疑似裂缝", "prompts": ["wall crack", "concrete crack", "surface crack"] },
+    { "code": "SPALLING", "name": "疑似剥落", "prompts": ["concrete spalling", "damaged concrete surface"] },
+    { "code": "EXPOSED_REBAR", "name": "疑似露筋", "prompts": ["exposed rebar"] },
+    { "code": "CORROSION", "name": "疑似锈蚀", "prompts": ["rebar corrosion", "rust on concrete"] },
+    { "code": "WATER_STAIN", "name": "疑似水渍", "prompts": ["water stain", "moisture stain"] },
+    { "code": "SURFACE_DAMAGE", "name": "疑似表面损伤", "prompts": ["damaged concrete", "wall surface damage"] }
+  ],
+  "checkpoint": {
+    "detectorRepository": "IDEA-Research/grounding-dino-base",
+    "segmenterRepository": "facebook/sam2.1-hiera-base-plus",
+    "detectorRevision": "12bdfa3120f3e7ec7b434d90674b3396eccf88eb",
+    "segmenterRevision": "b7320756a13354e7530a63935656d35b2f91a290",
+    "detectorDir": "AI-VISION-LOCAL-001/1.1.0/detector",
+    "segmenterDir": "AI-VISION-LOCAL-001/1.1.0/segmenter",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "sizeBytes": 0
+  },
+  "input": {
+    "maxLongSide": 1280,
+    "boxThreshold": 0.25,
+    "textThreshold": 0.25,
+    "maxDetections": 10
+  },
+  "license": "Apache-2.0",
+  "approvedBy": "",
+  "approvedAt": ""
+}

@@ -6,6 +6,8 @@ async function loginAsAdmin(page: Page): Promise<void> {
   await page.getByPlaceholder('请输入用户名').fill(DEMO_USERNAME)
   await page.getByPlaceholder('请输入密码').fill(DEMO_PASSWORD)
   await page.getByRole('button', { name: '登录', exact: true }).click()
+  await expect(page.getByRole('button', { name: '我已了解', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '我已了解', exact: true }).click()
   await expect(page).toHaveURL(/\/console\/?$/)
 }
 

@@ -43,7 +43,7 @@ import org.urbansafe.priority.ai.workflow.AiWorkflowRegistry;
 })
 public class AiServiceConfiguration {
 
-    /** 构建 FastAPI HTTP 客户端；创建客户端不会连接模型服务。 */
+    /** FAST/PRECISION、模型信息与轻量预检客户端。 */
     @Bean
     public RestClient aiFastApiRestClient(AiInferenceProperties properties) {
         SimpleClientHttpRequestFactory factory = requestFactory(
@@ -54,15 +54,34 @@ public class AiServiceConfiguration {
                 .build();
     }
 
+    /** ACCURACY 专用长超时客户端；不放宽其他 FastAPI 调用的失败等待时间。 */
+    @Bean
+    public RestClient aiFastApiAccuracyRestClient(AiInferenceProperties properties) {
+        SimpleClientHttpRequestFactory factory = requestFactory(
+                properties.getConnectTimeoutMs(), properties.getAccuracyReadTimeoutMs());
+        return RestClient.builder()
+                .baseUrl(properties.getBaseUrl())
+                .requestFactory(factory)
+                .build();
+    }
+
     @Bean
     public AiFastApiClient aiFastApiClient(
             @Qualifier("aiFastApiRestClient") RestClient restClient,
+            @Qualifier("aiFastApiAccuracyRestClient") RestClient accuracyRestClient,
             ObjectMapper objectMapper,
             AiInferenceProperties properties) {
-        return new AiFastApiClient(restClient, objectMapper, properties);
+        return new AiFastApiClient(restClient, accuracyRestClient, objectMapper, properties);
     }
 
-    /** 复用同一 FastAPI RestClient 的轻量图片语义适用性客户端。 */
+    /** 兼容直接单元测试构造；生产 Spring Bean 使用上面的双客户端方法。 */
+    AiFastApiClient aiFastApiClient(
+            RestClient restClient,
+            ObjectMapper objectMapper,
+            AiInferenceProperties properties) {
+        return new AiFastApiClient(restClient, restClient, objectMapper, properties);
+    }
+
     @Bean
     public AiImageApplicabilityClient aiImageApplicabilityClient(
             @Qualifier("aiFastApiRestClient") RestClient restClient,

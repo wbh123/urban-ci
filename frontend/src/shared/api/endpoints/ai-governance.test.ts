@@ -38,10 +38,16 @@ describe('AI automation settings endpoints', () => {
       capabilityType: 'WORKFLOW',
     })
 
-    await updateAiAutomationSettings(true)
+    await updateAiAutomationSettings({
+      autoInferenceOnUpload: true,
+      intelligentWorkflowEnabled: false,
+      knowledgeQaEnabled: false,
+    })
 
     expect(mocks.apiPut).toHaveBeenCalledWith('/api/v1/ai-governance/automation-settings', {
       autoInferenceOnUpload: true,
+      intelligentWorkflowEnabled: false,
+      knowledgeQaEnabled: false,
     })
   })
 })

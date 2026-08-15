@@ -8,7 +8,7 @@ export interface ConsoleMenuItem {
 }
 
 export interface ConsoleMenuGroup {
-  key: 'workspace' | 'housing' | 'risk' | 'decision' | 'system'
+  key: 'workspace' | 'spatial' | 'inspection' | 'risk' | 'intelligence' | 'system'
   label: string
   items: ConsoleMenuItem[]
 }
@@ -25,24 +25,49 @@ const SPATIAL_ARCHIVE_ROLES: readonly RoleCode[] = [
   'GOVERNMENT_MANAGER',
   'ADMIN',
 ]
+const ASSESSMENT_RULE_ROLES: readonly RoleCode[] = [
+  'EXPERT',
+  'PROFESSIONAL_REVIEWER',
+  'COMMUNITY_MANAGER',
+  'GOVERNMENT_MANAGER',
+  'ADMIN',
+]
 
 const GROUPS: readonly ConsoleMenuGroup[] = [
   {
     key: 'workspace',
-    label: '工作台',
+    label: 'AI 工作台',
     items: [
       { path: '/console', label: '管理总览', icon: '▦' },
+    ],
+  },
+  {
+    key: 'spatial',
+    label: '空间治理',
+    items: [
       {
         path: '/console/map',
-        label: '地图展示',
+        label: '城市地图',
         icon: '⌖',
         allowedRoles: MAP_READ_ROLES,
+      },
+      {
+        path: '/console/archive-management',
+        label: '小区与楼栋',
+        icon: '▤',
+        allowedRoles: SPATIAL_ARCHIVE_ROLES,
+      },
+      {
+        path: '/console/spatial-archive',
+        label: '空间档案',
+        icon: '⬡',
+        allowedRoles: SPATIAL_ARCHIVE_ROLES,
       },
     ],
   },
   {
-    key: 'housing',
-    label: '房屋治理',
+    key: 'inspection',
+    label: '巡检治理',
     items: [
       {
         path: '/console/inspections',
@@ -57,56 +82,38 @@ const GROUPS: readonly ConsoleMenuGroup[] = [
         allowedRoles: ['COMMUNITY_MANAGER', 'GOVERNMENT_MANAGER', 'ADMIN'],
       },
       {
-        path: '/console/archive-management',
-        label: '小区与楼栋管理',
-        icon: '▤',
-        allowedRoles: SPATIAL_ARCHIVE_ROLES,
-      },
-      {
-        path: '/console/spatial-archive',
-        label: '空间档案',
-        icon: '⬡',
-        allowedRoles: SPATIAL_ARCHIVE_ROLES,
+        path: '/console/review',
+        label: 'AI 人工复核',
+        icon: '✓',
+        allowedRoles: ['EXPERT', 'PROFESSIONAL_REVIEWER', 'ADMIN'],
       },
     ],
   },
   {
     key: 'risk',
-    label: '风险研判',
+    label: '风险治理',
     items: [
       {
-        path: '/console/review',
-        label: '专业复核',
-        icon: '✓',
-        allowedRoles: ['EXPERT', 'PROFESSIONAL_REVIEWER', 'ADMIN'],
-      },
-      {
         path: '/console/renewal-priorities',
-        label: '更新优先级',
+        label: '风险总览与报告',
         icon: '△',
         allowedRoles: ['GOVERNMENT_MANAGER', 'ADMIN'],
       },
-    ],
-  },
-  {
-    key: 'decision',
-    label: '辅助决策',
-    items: [
       {
         path: '/console/assessment-rules',
         label: '评分规则',
         icon: '≡',
-        allowedRoles: [
-          'EXPERT',
-          'PROFESSIONAL_REVIEWER',
-          'COMMUNITY_MANAGER',
-          'GOVERNMENT_MANAGER',
-          'ADMIN',
-        ],
+        allowedRoles: ASSESSMENT_RULE_ROLES,
       },
+    ],
+  },
+  {
+    key: 'intelligence',
+    label: '智能服务',
+    items: [
       {
         path: '/console/knowledge',
-        label: '知识问答',
+        label: '知识助手',
         icon: '?',
         allowedRoles: ['EXPERT', 'ADMIN'],
       },
@@ -118,14 +125,8 @@ const GROUPS: readonly ConsoleMenuGroup[] = [
     items: [
       {
         path: '/console/system-status',
-        label: '系统状态',
+        label: 'AI 运行状态',
         icon: '◎',
-        allowedRoles: ['ADMIN'],
-      },
-      {
-        path: '/console/legacy-workspace',
-        label: '兼容工作台',
-        icon: '↗',
         allowedRoles: ['ADMIN'],
       },
     ],

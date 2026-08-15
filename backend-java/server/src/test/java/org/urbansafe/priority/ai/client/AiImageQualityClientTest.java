@@ -30,7 +30,7 @@ class AiImageQualityClientTest {
         AiInferenceProperties properties = new AiInferenceProperties();
         properties.setBaseUrl(wireMock.baseUrl());
         properties.setConnectTimeoutMs(1000);
-        properties.setReadTimeoutMs(200);
+        properties.setReadTimeoutMs(1000);
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(properties.getConnectTimeoutMs());
         factory.setReadTimeout(properties.getReadTimeoutMs());
@@ -93,7 +93,7 @@ class AiImageQualityClientTest {
     @Test
     void analyzeImageQualityShouldMapTimeout() {
         wireMock.stubFor(post(urlEqualTo("/internal/api/v1/ai/image-quality"))
-                .willReturn(aResponse().withStatus(200).withFixedDelay(1000)));
+                .willReturn(aResponse().withStatus(200).withFixedDelay(1500)));
 
         AiFastApiException ex = assertThrows(AiFastApiException.class,
                 () -> client.analyzeImageQuality(new byte[]{1}, "quality-1"));

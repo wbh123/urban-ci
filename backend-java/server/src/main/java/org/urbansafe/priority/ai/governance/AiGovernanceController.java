@@ -49,7 +49,7 @@ public class AiGovernanceController implements AiGovernanceApi {
         return dto;
     }
 
-    private static org.urbansafe.priority.model.dto.AiProviderStatus toDto(
+    static org.urbansafe.priority.model.dto.AiProviderStatus toDto(
             AiProviderStatus status) {
         org.urbansafe.priority.model.dto.AiProviderStatus dto =
                 new org.urbansafe.priority.model.dto.AiProviderStatus();
@@ -57,6 +57,7 @@ public class AiGovernanceController implements AiGovernanceApi {
         dto.setEnabled(status.enabled());
         dto.setConfigured(status.configured());
         dto.setConfigurationStatus(status.configurationStatus());
+        dto.setRuntimeStatus(status.runtimeStatus());
         dto.setConnectivityStatus(status.connectivityStatus());
         dto.setCapabilities(status.capabilities());
         dto.setDefaultFor(status.defaultFor());

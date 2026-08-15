@@ -15,7 +15,15 @@ export interface AiProviderStatus {
   enabled: boolean
   configured: boolean
   configurationStatus: 'DISABLED' | 'NOT_CONFIGURED' | 'CONFIGURED'
-  connectivityStatus: 'NOT_PROBED'
+  runtimeStatus:
+    | 'READY'
+    | 'DEGRADED'
+    | 'UNCONFIGURED'
+    | 'AUTH_ERROR'
+    | 'UNAVAILABLE'
+    | 'DISABLED'
+    | 'UNKNOWN'
+  connectivityStatus: string
   capabilities: string[]
   defaultFor: string[]
   metrics7d: AiProviderMetrics
@@ -33,10 +41,18 @@ export interface AiGovernanceStatus {
 
 export interface AiAutomationSettings {
   autoInferenceOnUpload: boolean
+  intelligentWorkflowEnabled: boolean
+  knowledgeQaEnabled: boolean
   modelId: string
-  providerCode: 'DIFY'
-  capabilityType: 'WORKFLOW'
+  providerCode: 'FAST_API'
+  capabilityType: 'VISION_INFERENCE'
   updatedAt?: string | null
+}
+
+export interface AiAutomationSettingsUpdate {
+  autoInferenceOnUpload: boolean
+  intelligentWorkflowEnabled: boolean
+  knowledgeQaEnabled: boolean
 }
 
 export function getAiGovernanceStatus(): Promise<AiGovernanceStatus> {
@@ -48,9 +64,7 @@ export function getAiAutomationSettings(): Promise<AiAutomationSettings> {
 }
 
 export function updateAiAutomationSettings(
-  autoInferenceOnUpload: boolean,
+  settings: AiAutomationSettingsUpdate,
 ): Promise<AiAutomationSettings> {
-  return apiPut<AiAutomationSettings>('/api/v1/ai-governance/automation-settings', {
-    autoInferenceOnUpload,
-  })
+  return apiPut<AiAutomationSettings>('/api/v1/ai-governance/automation-settings', settings)
 }

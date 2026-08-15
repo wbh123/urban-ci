@@ -16,6 +16,11 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, workspaceRoot, 'URBAN_SAFE_')
   const amapSecurityJsCode =
     process.env.URBAN_SAFE_AMAP_SECURITY_JS_CODE ?? env.URBAN_SAFE_AMAP_SECURITY_JS_CODE ?? ''
+  const configuredPort = Number.parseInt(
+    process.env.URBAN_SAFE_FRONTEND_PORT ?? env.URBAN_SAFE_FRONTEND_PORT ?? '5173',
+    10,
+  )
+  const frontendPort = Number.isFinite(configuredPort) ? configuredPort : 5173
 
   return {
     plugins: [vue()],
@@ -26,7 +31,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: true,
-      port: 5173,
+      port: frontendPort,
       proxy: {
         '/_AMapService': {
           target: 'https://restapi.amap.com',

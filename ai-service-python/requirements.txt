@@ -9,6 +9,9 @@ pydantic>=2.5.2
 # 图像处理
 pillow>=10.0.0
 numpy>=1.26,<3
+# 掩膜轮廓简化（app/adapters/grounded_sam2.py 的 _mask_to_polygon）依赖 OpenCV；
+# 基础测试套件在无视觉模型的 CI 也会执行，因此必须进入基础依赖。
+opencv-python-headless==5.0.0.93
 
 # 上传、配置、测试和 HTTP 客户端
 python-multipart>=0.0.6

@@ -15,7 +15,7 @@ describe('image asset endpoints', () => {
     vi.clearAllMocks()
   })
 
-  it('uses a timeout that covers synchronous automatic inference', async () => {
+  it('returns image upload through the normal request path because automatic inference runs asynchronously', async () => {
     const file = new File(['image'], 'wall.jpg', { type: 'image/jpeg' })
     mocks.apiPost.mockResolvedValue({ assetId: 'asset-1' })
 
@@ -29,7 +29,6 @@ describe('image asset endpoints', () => {
     expect(mocks.apiPost).toHaveBeenCalledWith(
       '/api/v1/assets/images',
       expect.any(FormData),
-      { timeout: 45_000 },
     )
   })
 

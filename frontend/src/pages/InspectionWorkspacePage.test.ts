@@ -9,19 +9,27 @@ describe('InspectionWorkspacePage image and inference workflow', () => {
     expect(source).toContain('class="pending-photo-preview"')
   })
 
-  it('renders Dify structured inference details', () => {
-    expect(source).toContain('structuredResult')
-    expect(source).toContain('分析摘要')
-    expect(source).toContain('候选病害')
-    expect(source).toContain('风险信号')
-    expect(source).toContain('处置与补拍建议')
-    expect(source).toContain('限制与警告')
+  it('uses the shared historical image gallery instead of a second local image list', () => {
+    expect(source).toContain('InspectionImageGallery')
+    expect(source).toContain(':task-id="selectedTask"')
+    expect(source).toContain('@result-selected="displayInferenceResult"')
+    expect(source).not.toContain('v-for="img in aiImages"')
+    expect(source).not.toContain('runAiInference(img.id)')
   })
 
-  it('loads the automatically created inference after upload', () => {
-    expect(source).toContain('result.autoInference')
-    expect(source).toContain('displayInferenceResult(result.assetId, automatic.inferenceId')
-    expect(source).toContain('图片上传完成并已自动识别')
+  it('treats automatic inference as a background task after upload', () => {
+    expect(source).toContain('automatic?.triggered && automatic.executionTaskId')
+    expect(source).toContain('galleryRef.value?.trackExecution')
+    expect(source).toContain('AI 正在后台分析')
+    expect(source).not.toContain('displayInferenceResult(result.assetId, automatic.inferenceId')
+  })
+
+  it('keeps structured rich inference result display with irregular detection overlays', () => {
+    expect(source).toContain('getInspectionImageRichResult')
+    expect(source).toContain('AiDetectionOverlay')
+    expect(source).toContain('resultDetections')
+    expect(source).toContain('分析摘要')
+    expect(source).toContain('候选病害')
   })
 
   it('does not render the legacy Marker map and points users to the formal spatial map', () => {

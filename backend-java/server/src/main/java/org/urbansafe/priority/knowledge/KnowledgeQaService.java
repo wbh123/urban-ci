@@ -7,9 +7,14 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.urbansafe.priority.ai.governance.AiAutomationSettingsService;
 import org.urbansafe.priority.common.exception.InvalidRequestException;
 
 /** 受权限控制、强制引用且证据不足时拒答的内部知识问答服务。 */
@@ -18,8 +23,9 @@ public class KnowledgeQaService {
 
     public static final String DISCLAIMER =
             "本答案仅用于内部巡检与业务操作辅助，不构成房屋安全鉴定、风险等级或行政处置结论。";
-    public static final String PROVIDER_CODE = "SPRING_BOOT";
-    public static final String MODEL_CODE = "LOCAL-RAG-EXTRACTIVE-001";
+    public static final String FALLBACK_PROVIDER_CODE = "SPRING_BOOT";
+    public static final String FALLBACK_MODEL_CODE = "LOCAL-RAG-EXTRACTIVE-001";
+    private static final Logger log = LoggerFactory.getLogger(KnowledgeQaService.class);
     private static final Set<String> ALLOWED_ROLES = Set.of("ADMIN", "PROPERTY_INSPECTOR", "EXPERT");
     private static final double EVIDENCE_THRESHOLD = 0.28d;
     private static final int MAX_CONTEXT_CHARACTERS = 2400;
@@ -27,10 +33,32 @@ public class KnowledgeQaService {
 
     private final KnowledgeRepository repository;
     private final KnowledgeTextScorer scorer;
+    private final Optional<KnowledgeAnswerGenerator> answerGenerator;
+    private final Optional<AiAutomationSettingsService> automationSettingsService;
 
     public KnowledgeQaService(KnowledgeRepository repository, KnowledgeTextScorer scorer) {
+        this(repository, scorer, Optional.empty(), Optional.empty());
+    }
+
+    public KnowledgeQaService(
+            KnowledgeRepository repository,
+            KnowledgeTextScorer scorer,
+            Optional<KnowledgeAnswerGenerator> answerGenerator) {
+        this(repository, scorer, answerGenerator, Optional.empty());
+    }
+
+    @Autowired
+    public KnowledgeQaService(
+            KnowledgeRepository repository,
+            KnowledgeTextScorer scorer,
+            Optional<KnowledgeAnswerGenerator> answerGenerator,
+            Optional<AiAutomationSettingsService> automationSettingsService) {
         this.repository = repository;
         this.scorer = scorer;
+        this.answerGenerator = answerGenerator == null ? Optional.empty() : answerGenerator;
+        this.automationSettingsService = automationSettingsService == null
+                ? Optional.empty()
+                : automationSettingsService;
     }
 
     public KnowledgeDocument createDocument(KnowledgeDocumentCommand command) {
@@ -39,6 +67,12 @@ public class KnowledgeQaService {
     }
 
     public KnowledgeAnswer ask(KnowledgeQuestionCommand command) {
+        if (automationSettingsService.isPresent()
+                && !automationSettingsService.get().knowledgeQaEnabled()) {
+            throw new InvalidRequestException(
+                    "KNOWLEDGE_QA_DISABLED",
+                    "知识问答已由系统管理员关闭");
+        }
         validateQuestion(command);
         UUID questionId = repository.createQuestion(new KnowledgeQuestionLog(
                 command.question(), command.communityId(), command.buildingId(),
@@ -59,7 +93,7 @@ public class KnowledgeQaService {
                     .toList();
             KnowledgeAnswer answer = ranked.isEmpty()
                     ? refused(questionId)
-                    : answered(questionId, ranked);
+                    : answered(questionId, command.question(), ranked);
             repository.complete(answer);
             return answer;
         } catch (RuntimeException ex) {
@@ -77,9 +111,9 @@ public class KnowledgeQaService {
                 .anyMatch(currentRoles::contains);
     }
 
-    private static KnowledgeAnswer answered(UUID questionId, List<ScoredCandidate> ranked) {
+    private KnowledgeAnswer answered(UUID questionId, String question, List<ScoredCandidate> ranked) {
         List<KnowledgeCitation> citations = new ArrayList<>();
-        StringBuilder answer = new StringBuilder("根据当前已审核知识库：");
+        StringBuilder fallback = new StringBuilder("根据当前已审核知识库：");
         int rank = 1;
         int usedCharacters = 0;
         for (ScoredCandidate scored : ranked) {
@@ -94,24 +128,49 @@ public class KnowledgeQaService {
                     UUID.randomUUID(), candidate.documentId(), candidate.documentCode(),
                     candidate.documentTitle(), candidate.documentVersion(), candidate.chunkId(),
                     candidate.sectionTitle(), candidate.pageNumber(), excerpt, rank, scored.score()));
-            answer.append("\n").append(rank).append(". ").append(excerpt)
+            fallback.append("\n").append(rank).append(". ").append(excerpt)
                     .append("（来源：《").append(candidate.documentTitle()).append("》")
                     .append("，版本 ").append(candidate.documentVersion());
             if (candidate.sectionTitle() != null && !candidate.sectionTitle().isBlank()) {
-                answer.append("，章节“").append(candidate.sectionTitle()).append("”");
+                fallback.append("，章节“").append(candidate.sectionTitle()).append("”");
             }
             if (candidate.pageNumber() != null) {
-                answer.append("，第 ").append(candidate.pageNumber()).append(" 页");
+                fallback.append("，第 ").append(candidate.pageNumber()).append(" 页");
             }
-            answer.append("）");
+            fallback.append("）");
             rank++;
         }
         if (citations.isEmpty()) {
             return refused(questionId);
         }
+
+        Optional<KnowledgeAnswerGenerator.GeneratedAnswer> generated = generateWithDeepSeek(question, citations);
+        if (generated.isPresent()) {
+            KnowledgeAnswerGenerator.GeneratedAnswer value = generated.get();
+            return new KnowledgeAnswer(
+                    questionId, "ANSWERED", value.answer(), true, citations,
+                    value.providerCode(), value.modelCode(),
+                    OffsetDateTime.now(DEFAULT_ZONE_ID), DISCLAIMER);
+        }
+
         return new KnowledgeAnswer(
-                questionId, "ANSWERED", answer.toString(), true, citations,
-                PROVIDER_CODE, MODEL_CODE, OffsetDateTime.now(DEFAULT_ZONE_ID), DISCLAIMER);
+                questionId, "ANSWERED", fallback.toString(), true, citations,
+                FALLBACK_PROVIDER_CODE, FALLBACK_MODEL_CODE,
+                OffsetDateTime.now(DEFAULT_ZONE_ID), DISCLAIMER);
+    }
+
+    private Optional<KnowledgeAnswerGenerator.GeneratedAnswer> generateWithDeepSeek(
+            String question,
+            List<KnowledgeCitation> citations) {
+        if (answerGenerator.isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(answerGenerator.get().generate(question, citations));
+        } catch (RuntimeException ex) {
+            log.warn("DeepSeek knowledge answer generation failed; using extractive fallback: {}", safeMessage(ex));
+            return Optional.empty();
+        }
     }
 
     private static KnowledgeAnswer refused(UUID questionId) {
@@ -121,8 +180,8 @@ public class KnowledgeQaService {
                 "当前知识库中没有足够依据回答该问题。请补充经过审核的制度、规范或业务文档后重试。",
                 false,
                 List.of(),
-                PROVIDER_CODE,
-                MODEL_CODE,
+                FALLBACK_PROVIDER_CODE,
+                FALLBACK_MODEL_CODE,
                 OffsetDateTime.now(DEFAULT_ZONE_ID),
                 DISCLAIMER);
     }

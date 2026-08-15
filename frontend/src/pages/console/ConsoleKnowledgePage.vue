@@ -129,9 +129,9 @@ async function submitDocument(): Promise<void> {
   <section class="console-knowledge-page">
     <header class="page-header">
       <div>
-        <p class="eyebrow">Knowledge Governance</p>
-        <h1>内部知识问答</h1>
-        <p>在角色与楼栋范围内检索已审核知识，返回文档版本和原文引用；证据不足时固定拒答。</p>
+        <p class="eyebrow">AI Knowledge Service</p>
+        <h1>AI 知识助手</h1>
+        <p>在角色与治理对象范围内检索已审核知识，优先给出可追溯引用；证据不足时拒答，不把资料内容当作系统指令。</p>
       </div>
       <el-button v-if="canRegister" type="primary" @click="dialogVisible = true">登记知识文档</el-button>
     </header>

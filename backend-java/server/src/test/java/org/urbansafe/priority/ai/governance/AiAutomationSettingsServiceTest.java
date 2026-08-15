@@ -20,47 +20,76 @@ import org.urbansafe.priority.common.exception.ResourceConflictException;
 class AiAutomationSettingsServiceTest {
 
     @Test
-    void shouldReturnPersistedSwitchAndStableDifyRoute() {
+    void shouldReturnPersistedSwitchesAndStableFastApiVisionRoute() {
         AiAutomationSettingsRepository repository = mock(AiAutomationSettingsRepository.class);
         when(repository.findAutoInferenceOnUpload()).thenReturn(true);
+        when(repository.findIntelligentWorkflowEnabled()).thenReturn(true);
+        when(repository.findKnowledgeQaEnabled()).thenReturn(true);
         when(repository.findUpdatedAt()).thenReturn(OffsetDateTime.parse("2026-08-01T12:00:00Z"));
 
-        AiAutomationSettingsService service = new AiAutomationSettingsService(
-                repository,
-                List.of(provider("DIFY", true, true, Set.of(AiCapabilityType.WORKFLOW))));
-
+        AiAutomationSettingsService service = new AiAutomationSettingsService(repository, List.of());
         AiAutomationSettings settings = service.get();
 
         assertThat(settings.autoInferenceOnUpload()).isTrue();
-        assertThat(settings.modelId()).isEqualTo("AI-DIFY-WORKFLOW-001");
-        assertThat(settings.providerCode()).isEqualTo("DIFY");
-        assertThat(settings.capabilityType()).isEqualTo("WORKFLOW");
+        assertThat(settings.intelligentWorkflowEnabled()).isTrue();
+        assertThat(settings.knowledgeQaEnabled()).isTrue();
+        assertThat(settings.modelId()).isEqualTo("AI-VISION-LOCAL-001");
+        assertThat(settings.providerCode()).isEqualTo("FAST_API");
+        assertThat(settings.capabilityType()).isEqualTo("VISION_INFERENCE");
     }
 
     @Test
-    void shouldRejectEnablingWhenDifyWorkflowProviderIsNotReady() {
+    void shouldRejectEnablingWhenFastApiVisionProviderIsNotReady() {
+        AiAutomationSettingsRepository repository = mock(AiAutomationSettingsRepository.class);
+        AiAutomationSettingsService service = new AiAutomationSettingsService(
+                repository,
+                List.of(provider("FAST_API", true, false, Set.of(AiCapabilityType.VISION_INFERENCE))));
+
+        assertThatThrownBy(() -> service.update(true, false, false, UUID.randomUUID()))
+                .isInstanceOf(ResourceConflictException.class)
+                .hasMessageContaining("本地视觉模型");
+    }
+
+    @Test
+    void shouldRejectWorkflowWhenDifyIsNotReady() {
         AiAutomationSettingsRepository repository = mock(AiAutomationSettingsRepository.class);
         AiAutomationSettingsService service = new AiAutomationSettingsService(
                 repository,
                 List.of(provider("DIFY", true, false, Set.of(AiCapabilityType.WORKFLOW))));
 
-        assertThatThrownBy(() -> service.update(true, UUID.randomUUID()))
+        assertThatThrownBy(() -> service.update(false, true, false, UUID.randomUUID()))
                 .isInstanceOf(ResourceConflictException.class)
                 .hasMessageContaining("Dify");
     }
 
     @Test
-    void shouldAllowDisablingWithoutProbingExternalProvider() {
+    void shouldRejectKnowledgeQaWhenSpringAiIsNotReady() {
+        AiAutomationSettingsRepository repository = mock(AiAutomationSettingsRepository.class);
+        AiAutomationSettingsService service = new AiAutomationSettingsService(
+                repository,
+                List.of(provider("SPRING_AI", true, false, Set.of(AiCapabilityType.TEXT_GENERATION))));
+
+        assertThatThrownBy(() -> service.update(false, false, true, UUID.randomUUID()))
+                .isInstanceOf(ResourceConflictException.class)
+                .hasMessageContaining("DeepSeek");
+    }
+
+    @Test
+    void shouldAllowDisablingAllWithoutExternalProviders() {
         AiAutomationSettingsRepository repository = mock(AiAutomationSettingsRepository.class);
         UUID operatorId = UUID.randomUUID();
         when(repository.findAutoInferenceOnUpload()).thenReturn(false);
+        when(repository.findIntelligentWorkflowEnabled()).thenReturn(false);
+        when(repository.findKnowledgeQaEnabled()).thenReturn(false);
         when(repository.findUpdatedAt()).thenReturn(OffsetDateTime.parse("2026-08-01T12:00:00Z"));
         AiAutomationSettingsService service = new AiAutomationSettingsService(repository, List.of());
 
-        AiAutomationSettings settings = service.update(false, operatorId);
+        AiAutomationSettings settings = service.update(false, false, false, operatorId);
 
-        verify(repository).updateAutoInferenceOnUpload(false, operatorId);
+        verify(repository).update(false, false, false, operatorId);
         assertThat(settings.autoInferenceOnUpload()).isFalse();
+        assertThat(settings.intelligentWorkflowEnabled()).isFalse();
+        assertThat(settings.knowledgeQaEnabled()).isFalse();
     }
 
     private static AiCapabilityProvider provider(

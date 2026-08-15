@@ -555,11 +555,51 @@ export interface paths {
         get: operations["listAiInferences"];
         put?: never;
         /**
-         * 创建人工智能推理或工作流任务
-         * @description 验证图片资产与权限后创建任务，通过统一路由调用 FastAPI、Dify 或 Spring AI，
-         *     保存结构化结果、稳定错误码与审计信息。同一用户、图片、模式、模型在活跃任务内受幂等保护。
+         * 创建人工智能推理、工作流或异步高精度视觉任务
+         * @description 普通 FAST/PRECISION 任务保持既有创建语义；当 inferenceProfile=ACCURACY 时仅创建持久化
+         *     execution task 并立即返回 HTTP 202，浏览器通过 execution 查询接口进行短轮询。
          */
         post: operations["createAiInference"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai-inference-executions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 按巡检任务查询图片异步分析执行状态
+         * @description 用于巡检端和管理端恢复历史排队/运行状态与 Dify/本地路由审计。
+         */
+        get: operations["listAiInferenceExecutions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai-inference-executions/{taskId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 查询异步高精度视觉执行状态
+         * @description 每次调用均为短请求；前端可约每 2 秒轮询一次，不建立长连接。
+         */
+        get: operations["getAiInferenceExecution"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -598,9 +638,48 @@ export interface paths {
         /**
          * 重试失败人工智能任务
          * @description 只允许对 FAILED 任务重试；创建新的 attemptNo 并保留历史失败记录。
-         *     默认沿用原提供者与能力，不会静默切换提供者。
+         *     默认沿用原提供者与能力；巡检高精度视觉故障转移遵循显式 VisionAnalysisOrchestrator 策略。
          */
         post: operations["retryAiInference"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai-intelligent-analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Spring AI 智能综合分析
+         * @description 以 Spring AI 作为编排层，DeepSeek 推理 + Tool Calling（本地视觉 / Dify 工作流 /
+         *     只读业务工具）。请求只允许提交业务标识与问题，不允许提交 apiKey/baseUrl/systemPrompt
+         *     或任意工具名；系统提示、工具集与安全上下文一律由后端决定。
+         */
+        post: operations["runIntelligentAnalysis"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai-intelligent-analysis/executions/{executionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询智能综合分析执行轨迹 */
+        get: operations["getIntelligentAnalysisExecution"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2556,6 +2635,10 @@ export interface components {
         AiProviderCode: "FAST_API" | "DIFY" | "SPRING_AI";
         /** @enum {string} */
         AiCapabilityType: "VISION_INFERENCE" | "WORKFLOW" | "TEXT_GENERATION";
+        /** @enum {string} */
+        AiInferenceProfile: "FAST" | "PRECISION" | "ACCURACY";
+        /** @enum {string} */
+        AiAnalysisTriggerType: "UPLOAD_AUTO" | "MANUAL_SINGLE" | "MANUAL_BATCH";
         AiInferenceCreateRequest: {
             /**
              * Format: uuid
@@ -2569,6 +2652,9 @@ export interface components {
             providerCode?: components["schemas"]["AiProviderCode"];
             /** @default VISION_INFERENCE */
             capabilityType: components["schemas"]["AiCapabilityType"];
+            inferenceProfile?: components["schemas"]["AiInferenceProfile"];
+            /** @description ACCURACY 后台任务的触发来源；省略时默认为 MANUAL_SINGLE。 */
+            triggerType?: components["schemas"]["AiAnalysisTriggerType"];
             /** @description 可选受控任务说明；不得包含密钥或无关居民隐私 */
             prompt?: string;
             /** @description 可选客户端幂等键 */
@@ -2635,6 +2721,12 @@ export interface components {
             /** @default NORMALIZED_XYWH */
             coordinateType: string;
         };
+        AiSegmentation: {
+            /** @enum {string} */
+            type?: "POLYGON";
+            /** @description 轮廓点序列 [[x, y], ...]，坐标归一化 0~1 */
+            points?: number[][];
+        };
         AiDetectionItem: {
             sequence?: number;
             classCode?: string;
@@ -2642,6 +2734,13 @@ export interface components {
             /** Format: double */
             confidence?: number;
             boundingBox?: components["schemas"]["AiBoundingBox"];
+            segmentation?: components["schemas"]["AiSegmentation"] | null;
+            /** @enum {string|null} */
+            trustLevel?: "HIGH" | "MEDIUM" | "LOW" | null;
+            trustReasons?: string[];
+            diagnostics?: {
+                [key: string]: unknown;
+            };
         };
         AiRiskSignal: {
             code?: string;
@@ -2690,9 +2789,62 @@ export interface components {
             rawResponseReference?: string | null;
             disclaimer?: string;
         };
+        AiAsyncInferenceSubmission: {
+            /** Format: uuid */
+            taskId: string;
+            /** @enum {string} */
+            status: "PENDING";
+            /** @enum {string} */
+            inferenceProfile: "ACCURACY";
+            triggerType?: components["schemas"]["AiAnalysisTriggerType"];
+            /** Format: uuid */
+            assetId: string;
+        };
+        /** @enum {string} */
+        AiExecutionStatus: "PENDING" | "READY" | "RUNNING" | "RETRY_WAIT" | "SUCCEEDED" | "FAILED" | "REJECTED" | "CANCELLED";
+        AiInferenceExecution: {
+            /** Format: uuid */
+            taskId?: string;
+            /** Format: uuid */
+            assetId?: string | null;
+            status?: components["schemas"]["AiExecutionStatus"];
+            /** Format: uuid */
+            inferenceId?: string | null;
+            attemptCount?: number;
+            maxAttempts?: number;
+            errorCode?: string | null;
+            errorMessage?: string | null;
+            triggerType?: components["schemas"]["AiAnalysisTriggerType"] | null;
+            preferredProvider?: string | null;
+            actualProvider?: string | null;
+            /** @enum {string|null} */
+            orchestrationMode?: "DIFY_PREFERRED" | "SPRING_AI_LOCAL" | null;
+            /** @default false */
+            fallback: boolean;
+            fallbackReason?: string | null;
+            /** Format: date-time */
+            createdAt?: string | null;
+            /** Format: date-time */
+            startedAt?: string | null;
+            /** Format: date-time */
+            finishedAt?: string | null;
+            /** Format: date-time */
+            updatedAt?: string | null;
+        };
         AiInferenceRetryRequest: {
             /** @description 可选，指定另一个已批准模型；提供者与能力默认沿用原任务 */
             modelId?: string;
+        };
+        AiIntelligentAnalysisRequest: {
+            /** @description 业务类型，例如 BUILDING / AI_INFERENCE */
+            businessType?: string;
+            /** Format: uuid */
+            businessId?: string;
+            question: string;
+            /** @description 后端白名单上下文（仅读取 assetId 等已知键，忽略未知键） */
+            context?: {
+                [key: string]: unknown;
+            };
         };
         AiInferenceReviewRequest: {
             /** @enum {string} */
@@ -4924,7 +5076,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description 已创建任务 */
+            /** @description 已创建同步/普通推理任务 */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -4933,6 +5085,22 @@ export interface operations {
                     "application/json": {
                         success?: boolean;
                         data?: components["schemas"]["AiInferenceDetail"];
+                        error?: unknown;
+                        requestId?: string;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+            /** @description ACCURACY 高精度视觉任务已进入后台队列 */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success?: boolean;
+                        data?: components["schemas"]["AiAsyncInferenceSubmission"];
                         error?: unknown;
                         requestId?: string;
                         /** Format: date-time */
@@ -4991,6 +5159,71 @@ export interface operations {
             };
         };
     };
+    listAiInferenceExecutions: {
+        parameters: {
+            query: {
+                inspectionTaskId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 执行任务列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success?: boolean;
+                        data?: components["schemas"]["AiInferenceExecution"][];
+                        error?: unknown;
+                        requestId?: string;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+        };
+    };
+    getAiInferenceExecution: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 执行任务详情 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        success?: boolean;
+                        data?: components["schemas"]["AiInferenceExecution"];
+                        error?: unknown;
+                        requestId?: string;
+                        /** Format: date-time */
+                        timestamp?: string;
+                    };
+                };
+            };
+            /** @description 执行任务不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getAiInference: {
         parameters: {
             query?: never;
@@ -5042,6 +5275,62 @@ export interface operations {
             };
             /** @description 任务状态不可重试 */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    runIntelligentAnalysis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AiIntelligentAnalysisRequest"];
+            };
+        };
+        responses: {
+            /** @description 返回执行轨迹与辅助答案 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 请求参数无效 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Spring AI / DeepSeek 未配置 */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getIntelligentAnalysisExecution: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                executionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 返回执行详情与步骤 */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -1,0 +1,233 @@
+openapi: 3.0.3
+info:
+  title: UrbanSafe AI Dashboard API
+  version: 1.0.0
+paths:
+  /api/v1/ai-dashboard/overview:
+    get:
+      tags: [AiDashboard]
+      operationId: getAiDashboardOverview
+      summary: 查询 AI 城市建筑安全态势总览
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiDashboardOverviewSuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v1/ai-dashboard/activity:
+    get:
+      tags: [AiDashboard]
+      operationId: getAiDashboardActivity
+      summary: 查询 AI 态势实时活动
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiDashboardActivitySuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v1/ai-dashboard/buildings:
+    get:
+      tags: [AiDashboard]
+      operationId: getAiDashboardBuildings
+      summary: 查询 AI 态势楼栋聚合列表
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiDashboardBuildingsSuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+components:
+  responses:
+    Unauthorized:
+      description: 未登录
+      content:
+        application/json:
+          schema:
+            $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: 无权访问
+      content:
+        application/json:
+          schema:
+            $ref: '../common-response/openapi-common-response.yaml#/components/schemas/ErrorResponse'
+  schemas:
+    AiDashboardFinding:
+      type: object
+      required: [classCode, className, count]
+      properties:
+        classCode: { type: string }
+        className: { type: string }
+        count: { type: integer, format: int64 }
+        maxConfidence: { type: number, format: double, nullable: true }
+    AiDashboardEvidenceCounts:
+      type: object
+      required: [visual, inspection, archive, formalRisk]
+      properties:
+        visual: { type: integer, format: int64 }
+        inspection: { type: integer, format: int64 }
+        archive: { type: integer, format: int64 }
+        formalRisk: { type: integer, format: int64 }
+    AiDashboardBuilding:
+      type: object
+      required:
+        - buildingId
+        - buildingName
+        - aiAttentionLevel
+        - aiAttentionReasons
+        - pendingReviewCount
+        - findings
+        - evidenceCounts
+      properties:
+        buildingId: { type: string, format: uuid }
+        buildingCode: { type: string, nullable: true }
+        buildingName: { type: string }
+        communityId: { type: string, format: uuid, nullable: true }
+        communityName: { type: string, nullable: true }
+        longitude: { type: number, format: double, nullable: true }
+        latitude: { type: number, format: double, nullable: true }
+        riskLevel: { type: string, nullable: true }
+        riskScore: { type: number, format: double, nullable: true }
+        priorityLevel: { type: string, nullable: true }
+        freshness: { type: string, nullable: true }
+        needManualReview: { type: boolean }
+        aiAttentionLevel:
+          type: string
+          enum: [HIGH, MEDIUM, LOW, NONE]
+        aiAttentionReasons:
+          type: array
+          items: { type: string }
+        latestAiSummary: { type: string, nullable: true }
+        latestAiAt: { type: string, format: date-time, nullable: true }
+        latestInspectionAt: { type: string, format: date-time, nullable: true }
+        pendingReviewCount: { type: integer, format: int64 }
+        findings:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiDashboardFinding'
+        evidenceCounts:
+          $ref: '#/components/schemas/AiDashboardEvidenceCounts'
+    AiDashboardMetrics:
+      type: object
+      required:
+        - buildingCount
+        - aiAnalyzedBuildingCount
+        - aiAnalyzedImageCount
+        - detectionCount
+        - highRiskCount
+        - pendingReviewCount
+        - inspectionAttentionCount
+        - dataIssueCount
+        - analysisCoverageRate
+      properties:
+        buildingCount: { type: integer, format: int64 }
+        aiAnalyzedBuildingCount: { type: integer, format: int64 }
+        aiAnalyzedImageCount: { type: integer, format: int64 }
+        detectionCount: { type: integer, format: int64 }
+        highRiskCount: { type: integer, format: int64 }
+        pendingReviewCount: { type: integer, format: int64 }
+        inspectionAttentionCount: { type: integer, format: int64 }
+        dataIssueCount: { type: integer, format: int64 }
+        analysisCoverageRate: { type: number, format: double }
+    AiDashboardToday:
+      type: object
+      required: [totalAnalyses, succeeded, running, failed, crackCount, spallingCount, waterStainCount, otherDetectionCount]
+      properties:
+        totalAnalyses: { type: integer, format: int64 }
+        succeeded: { type: integer, format: int64 }
+        running: { type: integer, format: int64 }
+        failed: { type: integer, format: int64 }
+        crackCount: { type: integer, format: int64 }
+        spallingCount: { type: integer, format: int64 }
+        waterStainCount: { type: integer, format: int64 }
+        otherDetectionCount: { type: integer, format: int64 }
+    AiDashboardOverview:
+      type: object
+      required: [generatedAt, metrics, today, attention]
+      properties:
+        generatedAt: { type: string, format: date-time }
+        metrics:
+          $ref: '#/components/schemas/AiDashboardMetrics'
+        today:
+          $ref: '#/components/schemas/AiDashboardToday'
+        attention:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiDashboardBuilding'
+    AiDashboardActivityItem:
+      type: object
+      required: [id, occurredAt, type, title]
+      properties:
+        id: { type: string }
+        occurredAt: { type: string, format: date-time }
+        type: { type: string }
+        status: { type: string, nullable: true }
+        buildingId: { type: string, format: uuid, nullable: true }
+        buildingName: { type: string, nullable: true }
+        communityName: { type: string, nullable: true }
+        title: { type: string }
+        description: { type: string, nullable: true }
+    AiDashboardActivity:
+      type: object
+      required: [generatedAt, items]
+      properties:
+        generatedAt: { type: string, format: date-time }
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiDashboardActivityItem'
+    AiDashboardOverviewSuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data:
+          $ref: '#/components/schemas/AiDashboardOverview'
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    AiDashboardActivitySuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data:
+          $ref: '#/components/schemas/AiDashboardActivity'
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    AiDashboardBuildingsSuccessResponse:
+      type: object
+      required: [success, data, requestId, timestamp]
+      properties:
+        success: { type: boolean }
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiDashboardBuilding'
+        error: { nullable: true }
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }

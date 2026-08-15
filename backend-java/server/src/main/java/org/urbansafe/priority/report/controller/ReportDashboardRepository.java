@@ -27,7 +27,8 @@ public class ReportDashboardRepository {
                 SELECT b.id AS "buildingId", b.building_code AS "buildingCode",
                        b.building_name AS "buildingName", c.id AS "communityId",
                        c.community_name AS "communityName",
-                       ST_X(g.centroid) AS "longitude", ST_Y(g.centroid) AS "latitude",
+                       COALESCE(ST_X(g.centroid), ST_X(bl.centroid)) AS "longitude",
+                       COALESCE(ST_Y(g.centroid), ST_Y(bl.centroid)) AS "latitude",
                        r.risk_score AS "riskScore", r.risk_level AS "riskLevel",
                        r.confidence_score AS "confidenceScore",
                        co.completeness_score AS "completenessScore",
@@ -39,6 +40,7 @@ public class ReportDashboardRepository {
                 FROM core.building b
                 JOIN core.community c ON c.id=b.community_id AND c.deleted_at IS NULL
                 LEFT JOIN geo.building_geometry g ON g.building_id=b.id AND g.deleted_at IS NULL
+                LEFT JOIN geo.building_location bl ON bl.building_id=b.id AND bl.deleted_at IS NULL
                 LEFT JOIN LATERAL (
                     SELECT x.* FROM core.risk_assessment x
                     WHERE x.building_id=b.id AND x.status IN ('CURRENT','STALE')

@@ -2,20 +2,34 @@ package org.urbansafe.priority.ai.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/** Spring AI 在线模型直连配置。 */
+/** Spring AI DeepSeek 文本模型直连配置。 */
 @ConfigurationProperties(prefix = "urban-safe.ai.spring-ai-provider")
 public class SpringAiProviderProperties {
 
+    public static final String DEFAULT_PROVIDER_TYPE = "DEEPSEEK";
+    public static final String DEFAULT_BASE_URL = "https://api.deepseek.com";
+    public static final String DEFAULT_MODEL = "deepseek-v4-flash";
+
     private boolean enabled;
-    private String providerType = "OPENAI_COMPATIBLE";
+    private String providerType = DEFAULT_PROVIDER_TYPE;
     private String apiKey;
-    private String baseUrl = "https://api.openai.com";
-    private String model;
+    private String baseUrl = DEFAULT_BASE_URL;
+    private String model = DEFAULT_MODEL;
+    /** Spring Boot 实际启用的 Spring AI Chat 模型类型；DeepSeek 走 OpenAI 兼容协议。 */
+    private String chatModel = "none";
     private int connectTimeoutMs = 3000;
     private int readTimeoutMs = 30000;
 
     public boolean configured() {
-        return notBlank(providerType) && notBlank(apiKey) && notBlank(baseUrl) && notBlank(model);
+        return notBlank(providerType)
+                && notBlank(apiKey)
+                && notBlank(baseUrl)
+                && notBlank(model)
+                && chatModelEnabled();
+    }
+
+    public boolean chatModelEnabled() {
+        return notBlank(chatModel) && !"none".equalsIgnoreCase(chatModel.trim());
     }
 
     private static boolean notBlank(String value) {
@@ -32,6 +46,8 @@ public class SpringAiProviderProperties {
     public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
     public String getModel() { return model; }
     public void setModel(String model) { this.model = model; }
+    public String getChatModel() { return chatModel; }
+    public void setChatModel(String chatModel) { this.chatModel = chatModel; }
     public int getConnectTimeoutMs() { return connectTimeoutMs; }
     public void setConnectTimeoutMs(int connectTimeoutMs) { this.connectTimeoutMs = connectTimeoutMs; }
     public int getReadTimeoutMs() { return readTimeoutMs; }

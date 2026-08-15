@@ -2,15 +2,12 @@ package org.urbansafe.priority.ai.client;
 
 import java.net.SocketTimeoutException;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.util.MimeType;
-import org.springframework.util.MimeTypeUtils;
 import org.springframework.web.client.RestClientResponseException;
 import org.urbansafe.priority.ai.orchestration.AiErrorCodes;
 import org.urbansafe.priority.ai.orchestration.AiOrchestrationRequest;
 import org.urbansafe.priority.ai.provider.AiProviderException;
 
-/** 基于 Spring AI ChatClient 的受控多模态调用网关。 */
+/** 基于 Spring AI ChatClient 的受控 DeepSeek 文本调用网关。 */
 public class DefaultSpringAiChatGateway implements SpringAiChatGateway {
 
     private static final String OUTPUT_INSTRUCTION = """
@@ -31,14 +28,7 @@ public class DefaultSpringAiChatGateway implements SpringAiChatGateway {
     public String generate(AiOrchestrationRequest request) {
         try {
             return chatClient.prompt()
-                    .user(user -> {
-                        user.text(OUTPUT_INSTRUCTION + "\n任务：" + safePrompt(request.prompt()));
-                        byte[] imageBytes = request.imageBytes();
-                        if (imageBytes != null && imageBytes.length > 0) {
-                            user.media(resolveMimeType(request.contentType()),
-                                    new ByteArrayResource(imageBytes));
-                        }
-                    })
+                    .user(OUTPUT_INSTRUCTION + "\n任务：" + safePrompt(request.prompt()))
                     .call()
                     .content();
         } catch (RestClientResponseException ex) {
@@ -46,10 +36,10 @@ public class DefaultSpringAiChatGateway implements SpringAiChatGateway {
         } catch (Exception ex) {
             if (hasTimeoutCause(ex)) {
                 throw new AiProviderException(
-                        AiErrorCodes.AI_PROVIDER_TIMEOUT, "在线模型调用超时", ex);
+                        AiErrorCodes.AI_PROVIDER_TIMEOUT, "DeepSeek 调用超时", ex);
             }
             throw new AiProviderException(
-                    AiErrorCodes.AI_PROVIDER_UNAVAILABLE, "在线模型暂时不可用", ex);
+                    AiErrorCodes.AI_PROVIDER_UNAVAILABLE, "DeepSeek 暂时不可用", ex);
         }
     }
 
@@ -57,33 +47,22 @@ public class DefaultSpringAiChatGateway implements SpringAiChatGateway {
         return prompt == null || prompt.isBlank() ? "分析输入并给出辅助建议" : prompt;
     }
 
-    private static MimeType resolveMimeType(String contentType) {
-        if (contentType == null || contentType.isBlank()) {
-            return MimeTypeUtils.IMAGE_JPEG;
-        }
-        try {
-            return MimeType.valueOf(contentType);
-        } catch (IllegalArgumentException ex) {
-            return MimeTypeUtils.APPLICATION_OCTET_STREAM;
-        }
-    }
-
     private static AiProviderException mapHttpException(RestClientResponseException ex) {
         int status = ex.getStatusCode().value();
         if (status == 401 || status == 403) {
             return new AiProviderException(
-                    AiErrorCodes.AI_PROVIDER_AUTH_FAILED, "在线模型身份认证失败", ex);
+                    AiErrorCodes.AI_PROVIDER_AUTH_FAILED, "DeepSeek 身份认证失败", ex);
         }
         if (status == 404) {
             return new AiProviderException(
-                    AiErrorCodes.AI_MODEL_UNAVAILABLE, "在线模型不存在或不可用", ex);
+                    AiErrorCodes.AI_MODEL_UNAVAILABLE, "DeepSeek 模型不存在或不可用", ex);
         }
         if (status == 408 || status == 504) {
             return new AiProviderException(
-                    AiErrorCodes.AI_PROVIDER_TIMEOUT, "在线模型调用超时", ex);
+                    AiErrorCodes.AI_PROVIDER_TIMEOUT, "DeepSeek 调用超时", ex);
         }
         return new AiProviderException(
-                AiErrorCodes.AI_PROVIDER_UNAVAILABLE, "在线模型暂时不可用", ex);
+                AiErrorCodes.AI_PROVIDER_UNAVAILABLE, "DeepSeek 暂时不可用", ex);
     }
 
     private static boolean hasTimeoutCause(Throwable throwable) {

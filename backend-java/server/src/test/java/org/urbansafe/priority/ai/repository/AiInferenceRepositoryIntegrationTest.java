@@ -192,7 +192,8 @@ class AiInferenceRepositoryIntegrationTest extends PostgreSqlIntegrationTestBase
                 new AiInferenceResponse.ImageInfo(64, 64, "ACCEPTABLE", "APPLICABLE"),
                 List.of(new AiInferenceResponse.Detection(
                         1, "CRACK", "裂缝", 0.82,
-                        new AiInferenceResponse.BoundingBox(0.1, 0.1, 0.2, 0.2, "NORMALIZED_XYWH"))),
+                        new AiInferenceResponse.BoundingBox(0.1, 0.1, 0.2, 0.2, "NORMALIZED_XYWH"),
+                        null)),
                 new AiInferenceResponse.Summary(1, Map.of("CRACK", 1)),
                 12L,
                 List.of("模拟结果仅用于业务链路验证"));

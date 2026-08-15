@@ -56,8 +56,8 @@ describe('spatial map store', () => {
       generatedAt: '2026-08-08T10:00:00+08:00',
       disclaimer: 'demo',
       buildings: [
-        { buildingId: 'b1', buildingCode: 'B1', buildingName: '一号楼', communityId: 'c1', communityName: '一号小区', riskScore: 88, riskLevel: 'HIGH', completenessScore: 82, priorityScore: 91, priorityLevel: 'P1', freshness: 'CURRENT' },
-        { buildingId: 'b2', buildingCode: 'B2', buildingName: '二号楼', communityId: 'c1', communityName: '一号小区', riskScore: 36, riskLevel: 'LOW', completenessScore: 70, priorityScore: 42, priorityLevel: 'P3', freshness: 'CURRENT' },
+        { buildingId: 'b1', buildingCode: 'B1', buildingName: '一号楼', communityId: 'c1', communityName: '一号小区', longitude: 114.31, latitude: 30.52, riskScore: 88, riskLevel: 'HIGH', completenessScore: 82, priorityScore: 91, priorityLevel: 'P1', freshness: 'CURRENT' },
+        { buildingId: 'b2', buildingCode: 'B2', buildingName: '二号楼', communityId: 'c1', communityName: '一号小区', longitude: 114.32, latitude: 30.53, riskScore: 36, riskLevel: 'LOW', completenessScore: 70, priorityScore: 42, priorityLevel: 'P3', freshness: 'CURRENT' },
       ],
     })
   })
@@ -76,6 +76,18 @@ describe('spatial map store', () => {
     ])
   })
 
+  it('keeps business buildings visible when the current viewport has no verified polygons', async () => {
+    mocks.querySpatialCommunities.mockResolvedValue({ type: 'FeatureCollection', features: [] })
+    mocks.querySpatialBuildings.mockResolvedValue({ type: 'FeatureCollection', features: [] })
+
+    const store = useSpatialMapStore()
+    await store.loadViewport(viewport)
+
+    expect(store.visibleBuildings).toEqual([])
+    expect(store.visibleRiskBuildings.map((item) => item.buildingId)).toEqual(['b1', 'b2'])
+    expect(store.visibleRiskBuildings[0]?.longitude).toBe(114.31)
+  })
+
   it('selected community scopes both polygon and risk loading', async () => {
     const store = useSpatialMapStore()
     store.selectCommunity('c1')
@@ -85,18 +97,21 @@ describe('spatial map store', () => {
     expect(mocks.getRiskMap).toHaveBeenCalledWith('COMMUNITY', 'c1')
   })
 
-  it('risk and text filters affect map/list projection without mutating source polygons', async () => {
+  it('risk and text filters affect both business rows and polygon projections without mutating source polygons', async () => {
     const store = useSpatialMapStore()
     await store.loadViewport(viewport)
 
     store.setRiskLevels(['HIGH'])
     expect(store.visibleBuildings.map((item) => item.feature.id)).toEqual(['b1'])
+    expect(store.visibleRiskBuildings.map((item) => item.buildingId)).toEqual(['b1'])
     expect(store.buildingFeatures).toHaveLength(2)
 
     store.setSearchKeyword('二号')
     expect(store.visibleBuildings).toEqual([])
+    expect(store.visibleRiskBuildings).toEqual([])
     store.setRiskLevels([])
     expect(store.visibleBuildings.map((item) => item.feature.id)).toEqual(['b2'])
+    expect(store.visibleRiskBuildings.map((item) => item.buildingId)).toEqual(['b2'])
   })
 
   it('keeps multi-building selection and clears it when community changes', () => {

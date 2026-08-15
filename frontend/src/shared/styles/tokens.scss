@@ -43,13 +43,14 @@
 
   /* Radius */
   --usp-radius-xs: 6px;
-  --usp-radius-sm: 8px;
+  --usp-radius-sm: 10px;
   --usp-radius-md: 12px;
   --usp-radius-lg: 16px;
   --usp-radius-xl: 20px;
   --usp-radius: var(--usp-radius-lg);
 
   /* Shadow */
+  --usp-shadow-xs: 0 1px 2px rgb(16 24 40 / 5%);
   --usp-shadow-sm: 0 1px 2px rgb(16 24 40 / 6%), 0 1px 3px rgb(16 24 40 / 8%);
   --usp-shadow-md: 0 8px 24px rgb(16 24 40 / 8%);
   --usp-shadow-lg: 0 18px 48px rgb(16 24 40 / 12%);
@@ -77,7 +78,9 @@
   --el-color-warning: var(--usp-color-warning);
   --el-color-danger: var(--usp-color-danger);
   --el-color-info: var(--usp-color-info);
-  --el-border-radius-base: var(--usp-radius-sm);
+  --el-border-radius-base: var(--usp-radius-md);
+  --el-border-radius-small: var(--usp-radius-sm);
+  --el-border-radius-round: 999px;
   --el-border-color: var(--usp-color-border);
   --el-text-color-primary: var(--usp-color-text);
   --el-text-color-regular: var(--usp-color-text-secondary);

@@ -68,10 +68,18 @@ paths:
     $ref: './phase2/openapi-phase2.yaml#/paths/~1api~1v1~1assets~1{assetId}~1content'
   /api/v1/ai-inferences:
     $ref: './ai-inference/openapi-ai-inference.yaml#/paths/~1api~1v1~1ai-inferences'
+  /api/v1/ai-inference-executions:
+    $ref: './ai-inference/openapi-ai-inference.yaml#/paths/~1api~1v1~1ai-inference-executions'
+  /api/v1/ai-inference-executions/{taskId}:
+    $ref: './ai-inference/openapi-ai-inference.yaml#/paths/~1api~1v1~1ai-inference-executions~1{taskId}'
   /api/v1/ai-inferences/{inferenceId}:
     $ref: './ai-inference/openapi-ai-inference.yaml#/paths/~1api~1v1~1ai-inferences~1{inferenceId}'
   /api/v1/ai-inferences/{inferenceId}/retry:
     $ref: './ai-inference/openapi-ai-inference.yaml#/paths/~1api~1v1~1ai-inferences~1{inferenceId}~1retry'
+  /api/v1/ai-intelligent-analysis:
+    $ref: './ai-inference/openapi-ai-inference.yaml#/paths/~1api~1v1~1ai-intelligent-analysis'
+  /api/v1/ai-intelligent-analysis/executions/{executionId}:
+    $ref: './ai-inference/openapi-ai-inference.yaml#/paths/~1api~1v1~1ai-intelligent-analysis~1executions~1{executionId}'
   /api/v1/ai-inferences/{inferenceId}/review:
     $ref: './ai-inference-review/openapi-ai-inference-review.yaml#/paths/~1api~1v1~1ai-inferences~1{inferenceId}~1review'
   /api/v1/public/feedback/communities:

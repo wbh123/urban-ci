@@ -28,17 +28,49 @@ public record AiInferenceResponse(
     public record ImageInfo(int width, int height, String qualityStatus, String applicability) {
     }
 
-    /** 单个检测对象。 */
+    /**
+     * 单个检测对象；segmentation 与 PRECISION trust/diagnostics 均为可选，旧 FastAPI
+     * 响应和旧测试仍可使用六参数构造器。
+     */
     public record Detection(
             int sequence,
             String classCode,
             String className,
             double confidence,
-            BoundingBox boundingBox) {
+            BoundingBox boundingBox,
+            Segmentation segmentation,
+            String trustLevel,
+            List<String> trustReasons,
+            Map<String, Object> diagnostics) {
+
+        public Detection(
+                int sequence,
+                String classCode,
+                String className,
+                double confidence,
+                BoundingBox boundingBox,
+                Segmentation segmentation) {
+            this(sequence, classCode, className, confidence, boundingBox, segmentation,
+                    null, List.of(), Map.of());
+        }
+
+        public Detection {
+            trustReasons = trustReasons == null ? List.of() : List.copyOf(trustReasons);
+            diagnostics = diagnostics == null ? Map.of() : Map.copyOf(diagnostics);
+        }
     }
 
     /** 归一化左上角宽高检测框。 */
-    public record BoundingBox(double x, double y, double width, double height, String coordinateType) {
+    public record BoundingBox(
+            double x,
+            double y,
+            double width,
+            double height,
+            String coordinateType) {
+    }
+
+    /** SAM2 掩膜简化后的归一化轮廓多边形（可选）。 */
+    public record Segmentation(String type, List<List<Double>> points) {
     }
 
     /** 检测汇总。 */

@@ -9,7 +9,7 @@ from __future__ import annotations
 import io
 from dataclasses import dataclass
 
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 from .config import Settings
 from .errors import (
@@ -30,14 +30,65 @@ FORMAT_TO_CONTENT_TYPE = {
 
 @dataclass
 class DecodedImage:
-    """解码后的图片信息。"""
+    """解码后的图片信息。
+
+    ``bytes_`` 是模型推理使用的字节：普通图片保持原字节，带旋转 EXIF 的图片会
+    转正后重新编码；``source_bytes`` 始终保留原始上传字节用于审计/追溯。
+    """
 
     bytes_: bytes
+    source_bytes: bytes
     width: int
     height: int
     content_type: str
     quality_status: QualityStatus
     applicability: Applicability
+
+
+def open_normalized_image(data: bytes) -> tuple[Image.Image, str]:
+    """按 EXIF Orientation 转正图片，返回浏览器可见方向对应的 Pillow 图像与原始格式。"""
+
+    try:
+        image = Image.open(io.BytesIO(data))
+        image.load()
+    except (UnidentifiedImageError, OSError, ValueError) as ex:
+        raise ImageDecodeFailedError() from ex
+
+    raw_format = (image.format or "").upper()
+    try:
+        normalized = ImageOps.exif_transpose(image)
+    except (OSError, ValueError) as ex:
+        raise ImageDecodeFailedError() from ex
+    return normalized, raw_format
+
+
+def _exif_orientation(data: bytes) -> int:
+    try:
+        with Image.open(io.BytesIO(data)) as image:
+            value = image.getexif().get(274, 1)
+            return int(value) if value is not None else 1
+    except (UnidentifiedImageError, OSError, ValueError, TypeError):
+        return 1
+
+
+def _inference_bytes(data: bytes, normalized: Image.Image, raw_format: str) -> bytes:
+    """仅在 EXIF 需要转正时重新编码，避免普通图片无意义地改变输入字节。"""
+
+    if _exif_orientation(data) in (0, 1):
+        return data
+    buffer = io.BytesIO()
+    try:
+        if raw_format == "JPEG":
+            normalized.convert("RGB").save(buffer, format="JPEG", quality=95)
+        elif raw_format == "PNG":
+            normalized.save(buffer, format="PNG")
+        elif raw_format == "WEBP":
+            normalized.save(buffer, format="WEBP", lossless=True)
+        else:
+            return data
+    except (OSError, ValueError) as ex:
+        raise ImageDecodeFailedError() from ex
+    return buffer.getvalue()
 
 
 def decode_image(data: bytes, settings: Settings) -> DecodedImage:
@@ -54,14 +105,7 @@ def decode_image(data: bytes, settings: Settings) -> DecodedImage:
     if len(data) > settings.max_image_size_bytes:
         raise ImageTooLargeError()
 
-    try:
-        image = Image.open(io.BytesIO(data))
-        image.load()
-    except (UnidentifiedImageError, OSError, ValueError) as ex:
-        # UnidentifiedImageError / OSError 均表示无法解码为图片。
-        raise ImageDecodeFailedError() from ex
-
-    raw_format = (image.format or "").upper()
+    image, raw_format = open_normalized_image(data)
     content_type = FORMAT_TO_CONTENT_TYPE.get(raw_format)
     if content_type is None:
         # Pillow 解码成功但格式不在白名单（例如 GIF/BMP），按不支持格式拒绝。
@@ -80,7 +124,8 @@ def decode_image(data: bytes, settings: Settings) -> DecodedImage:
         applicability = Applicability.APPLICABLE
 
     return DecodedImage(
-        bytes_=data,
+        bytes_=_inference_bytes(data, image, raw_format),
+        source_bytes=data,
         width=width,
         height=height,
         content_type=content_type,

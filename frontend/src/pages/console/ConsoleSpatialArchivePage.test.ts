@@ -2,9 +2,13 @@ import { describe, expect, it } from 'vitest'
 import source from './ConsoleSpatialArchivePage.vue?raw'
 
 describe('ConsoleSpatialArchivePage R3/R4 lifecycle', () => {
-  it('loads scoped community/building directories and current boundary', () => {
-    expect(source).toContain('listCommunities')
-    expect(source).toContain('listBuildings')
+  it('uses the global spatial object selector and loads the current boundary', () => {
+    expect(source).toContain("import SpatialObjectSelector from '@/shared/components/SpatialObjectSelector.vue'")
+    expect(source).toContain('<SpatialObjectSelector')
+    expect(source).toContain('mode="both"')
+    expect(source).toContain('handleSpatialSelection')
+    expect(source).not.toContain('listCommunities')
+    expect(source).not.toContain('listBuildings')
     expect(source).toContain('getCommunityBoundary')
     expect(source).toContain('getBuildingBoundary')
   })
@@ -21,7 +25,7 @@ describe('ConsoleSpatialArchivePage R3/R4 lifecycle', () => {
   it('previews AMap candidates without dirtying the draft until explicit adoption', () => {
     expect(source).toContain('previewCommunityBoundaryCandidate')
     expect(source).toContain('editor.previewGeometry(result.geometry)')
-    expect(source).toContain('采用候选作为草稿')
+    expect(source).toContain('采用为草稿')
     expect(source).toContain('candidateAdopted.value = true')
     expect(source).toContain('editor.loadGeometry(candidate.value.geometry)')
     expect(source).toContain("sourceType: candidateAdopted.value")
@@ -38,13 +42,13 @@ describe('ConsoleSpatialArchivePage R3/R4 lifecycle', () => {
 
   it('revokes an adopted candidate by restoring the server boundary without saving', () => {
     expect(source).toContain('const wasAdopted = candidateAdopted.value')
-    expect(source).toContain("candidateAdopted ? '撤销采用' : '取消候选预览'")
+    expect(source).toContain("candidateAdopted ? '撤销采用' : '取消预览'")
     expect(source).toContain('已撤销采用，并恢复服务器当前边界')
     expect(source).toContain('await loadCurrentBoundary()')
   })
 
   it('keeps manual drawing and GeoJSON available when AMap candidates fail', () => {
-    expect(source).toContain('人工绘制和 GeoJSON 导入仍可继续使用')
+    expect(source).toContain('可继续使用人工绘制或 GeoJSON 导入')
     expect(source).toContain('绘制新边界')
     expect(source).toContain('导入 GCJ-02 GeoJSON')
   })
@@ -55,7 +59,7 @@ describe('ConsoleSpatialArchivePage R3/R4 lifecycle', () => {
     expect(source).toContain('handleGeoJsonFile')
     expect(source).toContain('dirtyGeometry.value ?? editor.exportGeometry()')
     expect(source).toContain('导入 GCJ-02 GeoJSON')
-    expect(source).toContain('地图不可用时仍可通过 GeoJSON 建档')
+    expect(source).toContain('地图服务当前不可用')
   })
 
   it('cancels local geometry changes by restoring the server boundary without saving', () => {
@@ -75,7 +79,7 @@ describe('ConsoleSpatialArchivePage R3/R4 lifecycle', () => {
     expect(source).toContain('loadCurrentBoundary')
   })
 
-  it('consumes archive management deep-link query and preselects the requested object', () => {
+  it('consumes archive management deep-link query and lets the selector restore the requested object', () => {
     expect(source).toContain('useRoute')
     expect(source).toContain('route.query.entityType')
     expect(source).toContain('route.query.entityId')

@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
   title: UrbanSafe Priority 人工智能治理接口
-  version: 1.3.0
+  version: 1.4.0
   description: |
-    面向系统管理员的人工智能提供者配置状态、缓存真实运行状态、近七日任务统计与业务开关。
+    面向系统管理员的人工智能提供者配置状态、缓存真实运行状态、近七日任务统计、业务开关与默认视觉模型。
     接口不返回密钥、基础地址、模型权重路径、完整供应商响应或内部堆栈。
 paths:
   /api/v1/ai-governance/status:
@@ -26,7 +26,7 @@ paths:
   /api/v1/ai-governance/automation-settings:
     get:
       operationId: getAiAutomationSettings
-      summary: 查询人工智能业务开关
+      summary: 查询人工智能业务开关与默认视觉模型
       description: 只允许 ADMIN 调用；不返回任何 Provider 密钥或模型私有配置。
       tags: [AiAutomationSettings]
       responses:
@@ -40,11 +40,13 @@ paths:
         '403': { description: 非管理员无权访问 }
     put:
       operationId: updateAiAutomationSettings
-      summary: 更新人工智能业务开关
+      summary: 更新人工智能业务开关与默认视觉模型
       description: |
-        只允许 ADMIN 调用。开启视觉自动识别前要求 FastAPI 本地视觉提供者已配置；
+        只允许 ADMIN 调用。modelId 可选；未提供时保持当前默认视觉模型。
+        更换默认视觉模型时要求模型业务状态为 APPROVED，且 FastAPI 真实运行时已加载并可选。
+        开启视觉自动识别前要求 FastAPI 本地视觉提供者及当前默认模型已就绪；
         开启智能工作流前要求 Dify WORKFLOW 能力已配置；开启知识问答前要求 Spring AI / DeepSeek 文本能力已配置。
-        这些业务开关不会修改第三方 API Key 或 Provider 环境变量。
+        这些设置不会修改第三方 API Key、Provider 环境变量、模型权重或正式评分资格。
       tags: [AiAutomationSettings]
       requestBody:
         required: true
@@ -62,7 +64,7 @@ paths:
         '400': { description: 请求值无效 }
         '401': { description: 未登录 }
         '403': { description: 非管理员无权访问 }
-        '409': { description: 对应人工智能能力尚未配置完整 }
+        '409': { description: 对应人工智能能力或所选模型运行时尚未就绪 }
 components:
   schemas:
     AiProviderMetrics:
@@ -131,7 +133,7 @@ components:
           description: 是否允许知识问答以及 Spring AI 编排使用知识检索工具
         modelId:
           type: string
-          description: 自动识别使用的稳定本地视觉模型登记编号，当前默认 AI-VISION-LOCAL-001
+          description: 当前持久化的默认视觉模型登记编号；迁移初始值为 AI-VISION-LOCAL-001
         providerCode:
           type: string
           description: 当前固定为 FAST_API
@@ -149,6 +151,12 @@ components:
         autoInferenceOnUpload: { type: boolean }
         intelligentWorkflowEnabled: { type: boolean }
         knowledgeQaEnabled: { type: boolean }
+        modelId:
+          type: string
+          minLength: 1
+          maxLength: 128
+          nullable: true
+          description: 可选的新默认视觉模型编号；为空时保持当前默认模型，切换前必须通过真实运行时可用性校验
     AiGovernanceStatusSuccessResponse:
       type: object
       required: [success, data, requestId, timestamp]

@@ -16,6 +16,8 @@ public class AiAutomationSettingsRepository {
     static final String AUTO_INFERENCE_ON_UPLOAD = "AUTO_INFERENCE_ON_UPLOAD";
     static final String INTELLIGENT_WORKFLOW_ENABLED = "INTELLIGENT_WORKFLOW_ENABLED";
     static final String KNOWLEDGE_QA_ENABLED = "KNOWLEDGE_QA_ENABLED";
+    static final String DEFAULT_VISION_MODEL_ID = "DEFAULT_VISION_MODEL_ID";
+    private static final String FALLBACK_VISION_MODEL_ID = "AI-VISION-LOCAL-001";
 
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -37,6 +39,19 @@ public class AiAutomationSettingsRepository {
         return findBoolean(KNOWLEDGE_QA_ENABLED, true);
     }
 
+    public String findDefaultVisionModelId(String fallback) {
+        List<String> values = jdbc.query("""
+                SELECT text_value
+                FROM ai.governance_setting
+                WHERE setting_key=:key AND text_value IS NOT NULL
+                """, Map.of("key", DEFAULT_VISION_MODEL_ID),
+                (rs, rowNum) -> rs.getString("text_value"));
+        if (values.isEmpty() || values.get(0) == null || values.get(0).isBlank()) {
+            return fallback;
+        }
+        return values.get(0).trim();
+    }
+
     public OffsetDateTime findUpdatedAt() {
         List<OffsetDateTime> values = jdbc.query("""
                 SELECT updated_at
@@ -47,9 +62,25 @@ public class AiAutomationSettingsRepository {
                 """, Map.of("keys", List.of(
                         AUTO_INFERENCE_ON_UPLOAD,
                         INTELLIGENT_WORKFLOW_ENABLED,
-                        KNOWLEDGE_QA_ENABLED)),
+                        KNOWLEDGE_QA_ENABLED,
+                        DEFAULT_VISION_MODEL_ID)),
                 (rs, rowNum) -> rs.getObject("updated_at", OffsetDateTime.class));
         return values.isEmpty() ? null : values.get(0);
+    }
+
+    /** 旧调用兼容：只更新三个布尔开关时保持当前默认视觉模型不变。 */
+    @Transactional
+    public void update(
+            boolean autoInferenceOnUpload,
+            boolean intelligentWorkflowEnabled,
+            boolean knowledgeQaEnabled,
+            UUID updatedBy) {
+        update(
+                autoInferenceOnUpload,
+                intelligentWorkflowEnabled,
+                knowledgeQaEnabled,
+                findDefaultVisionModelId(FALLBACK_VISION_MODEL_ID),
+                updatedBy);
     }
 
     @Transactional
@@ -57,34 +88,53 @@ public class AiAutomationSettingsRepository {
             boolean autoInferenceOnUpload,
             boolean intelligentWorkflowEnabled,
             boolean knowledgeQaEnabled,
+            String defaultVisionModelId,
             UUID updatedBy) {
-        upsert(AUTO_INFERENCE_ON_UPLOAD, autoInferenceOnUpload, updatedBy);
-        upsert(INTELLIGENT_WORKFLOW_ENABLED, intelligentWorkflowEnabled, updatedBy);
-        upsert(KNOWLEDGE_QA_ENABLED, knowledgeQaEnabled, updatedBy);
+        upsertBoolean(AUTO_INFERENCE_ON_UPLOAD, autoInferenceOnUpload, updatedBy);
+        upsertBoolean(INTELLIGENT_WORKFLOW_ENABLED, intelligentWorkflowEnabled, updatedBy);
+        upsertBoolean(KNOWLEDGE_QA_ENABLED, knowledgeQaEnabled, updatedBy);
+        upsertText(DEFAULT_VISION_MODEL_ID, defaultVisionModelId, updatedBy);
     }
 
     private boolean findBoolean(String key, boolean defaultValue) {
         List<Boolean> values = jdbc.query("""
                 SELECT boolean_value
                 FROM ai.governance_setting
-                WHERE setting_key=:key
+                WHERE setting_key=:key AND boolean_value IS NOT NULL
                 """, Map.of("key", key),
                 (rs, rowNum) -> rs.getBoolean("boolean_value"));
         return values.isEmpty() ? defaultValue : Boolean.TRUE.equals(values.get(0));
     }
 
-    private void upsert(String key, boolean enabled, UUID updatedBy) {
+    private void upsertBoolean(String key, boolean enabled, UUID updatedBy) {
         jdbc.update("""
                 INSERT INTO ai.governance_setting
-                    (setting_key, boolean_value, updated_by, updated_at)
-                VALUES (:key, :enabled, :updatedBy, CURRENT_TIMESTAMP)
+                    (setting_key, boolean_value, text_value, updated_by, updated_at)
+                VALUES (:key, :enabled, NULL, :updatedBy, CURRENT_TIMESTAMP)
                 ON CONFLICT (setting_key) DO UPDATE
                 SET boolean_value=EXCLUDED.boolean_value,
+                    text_value=NULL,
                     updated_by=EXCLUDED.updated_by,
                     updated_at=CURRENT_TIMESTAMP
                 """, new MapSqlParameterSource()
                 .addValue("key", key)
                 .addValue("enabled", enabled)
+                .addValue("updatedBy", updatedBy));
+    }
+
+    private void upsertText(String key, String value, UUID updatedBy) {
+        jdbc.update("""
+                INSERT INTO ai.governance_setting
+                    (setting_key, boolean_value, text_value, updated_by, updated_at)
+                VALUES (:key, NULL, :value, :updatedBy, CURRENT_TIMESTAMP)
+                ON CONFLICT (setting_key) DO UPDATE
+                SET boolean_value=NULL,
+                    text_value=EXCLUDED.text_value,
+                    updated_by=EXCLUDED.updated_by,
+                    updated_at=CURRENT_TIMESTAMP
+                """, new MapSqlParameterSource()
+                .addValue("key", key)
+                .addValue("value", value)
                 .addValue("updatedBy", updatedBy));
     }
 }

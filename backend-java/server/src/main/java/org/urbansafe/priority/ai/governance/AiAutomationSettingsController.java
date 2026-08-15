@@ -35,6 +35,7 @@ public class AiAutomationSettingsController implements AiAutomationSettingsApi {
                 request.getAutoInferenceOnUpload(),
                 request.getIntelligentWorkflowEnabled(),
                 request.getKnowledgeQaEnabled(),
+                request.getModelId(),
                 CurrentUser.getUserId())));
     }
 

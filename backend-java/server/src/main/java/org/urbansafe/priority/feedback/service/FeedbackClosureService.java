@@ -80,7 +80,7 @@ public class FeedbackClosureService {
     public Map<String, Object> createReinspection(UUID reportId, UUID actor) {
         Map<String, Object> report = requireResolvedReport(reportId);
         var existing = closureRepository.latestReinspection(reportId);
-        if (existing.isPresent() && !"CANCELLED".equals(String.valueOf(existing.get().get("status")))) {
+        if (existing.isPresent() && reusableReinspection(existing.get())) {
             Map<String, Object> reused = new LinkedHashMap<>(existing.get());
             reused.put("reportId", reportId);
             reused.put("reportCode", report.get("reportCode"));
@@ -164,6 +164,14 @@ public class FeedbackClosureService {
                 "FEEDBACK_REPORT_NOT_FOUND", "反馈工单不存在"));
         return closureRepository.latestReinspection(reportId).orElse(null);
     }
+
+    private static boolean reusableReinspection(Map<String, Object> task) {
+        String status = String.valueOf(task.get("status"));
+        boolean resultRecorded = Boolean.TRUE.equals(task.get("resultRecorded"));
+        return !"CANCELLED".equals(status)
+                && !("COMPLETED".equals(status) && resultRecorded);
+    }
+
     private Map<String, Object> requireResolvedReport(UUID reportId) {
         return requireStatus(reportId, "RESOLVED", "只有已完成整改、等待复验的反馈才能进入复查复验流程");
     }

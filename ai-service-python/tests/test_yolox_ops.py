@@ -16,7 +16,8 @@ def test_letterbox_preserves_ratio_and_pads_bottom_for_wide_image():
     assert ratio == 2.0
     assert tensor.shape == (3, 200, 200)
     assert tensor.dtype == np.float32
-    assert np.all(tensor[:, 50, 50] == np.array([10, 20, 30], dtype=np.float32))
+    # 官方 YOLOX ONNXRuntime demo 使用 cv2 BGR 输入；Pillow RGB 必须转换成 BGR。
+    assert np.all(tensor[:, 50, 50] == np.array([30, 20, 10], dtype=np.float32))
     assert np.all(tensor[:, 150, 50] == 114.0)
 
 

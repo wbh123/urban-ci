@@ -88,8 +88,8 @@ SUPPORTED_INPUT_INTERPOLATIONS = {"BILINEAR", "BICUBIC", "LANCZOS"}
 def load_model_manifest(path: str | Path, model_root: str | Path) -> ModelManifest:
     """加载已批准模型清单，并验证权重路径、摘要和推理契约。
 
-    按清单 adapter 字段分派：零样本视觉模型（grounded-sam2-tiny-v1）委托给
-    vision_manifest；其余继续走 CUDA-only ONNX 准入逻辑。ONNX 路径保持不变。
+    按清单 adapter 字段分派：零样本视觉模型委托给 vision_manifest；YOLOX
+    建筑病害检测委托给 yolox_manifest；其余继续走 CUDA-only ONNX 分割准入逻辑。
     """
 
     root = Path(model_root).expanduser().resolve()
@@ -104,6 +104,10 @@ def load_model_manifest(path: str | Path, model_root: str | Path) -> ModelManife
         from .vision_manifest import load_zero_shot_manifest
 
         return load_zero_shot_manifest(manifest_path, root)
+    if adapter == "yolox-building-defect-v1":
+        from .yolox_manifest import load_yolox_manifest
+
+        return load_yolox_manifest(manifest_path, root)
 
     try:
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))

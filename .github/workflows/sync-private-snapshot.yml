@@ -178,7 +178,7 @@ jobs:
           done
 
           patterns='-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9_-]{20,}'
-          if grep -R -I -n -E "$patterns" \
+          if grep -R -I -n -E -e "$patterns" \
               --exclude='package-lock.json' --exclude='*.lock' -- mirror; then
             echo "Potential secret material detected in public mirror."
             exit 1

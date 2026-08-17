@@ -58,7 +58,7 @@ jobs:
           token: ${{ secrets.URBAN_PRIVATE_REPO_TOKEN }}
           path: private-source
           fetch-depth: 1
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Verify exact private source commit
         shell: bash

@@ -8,14 +8,13 @@ interface ImportMetaEnv {
   /** 地图运行配置接口路径。 */
   readonly VITE_MAP_CONFIG_ENDPOINT?: string
   readonly VITE_MAP_PROVIDER?: string
-  readonly VITE_MAP_SECURITY_MODE?: string
+  /** 高德代理服务固定一级路由，默认 /_AMapService。 */
   readonly VITE_MAP_SERVICE_HOST?: string
   readonly VITE_AMAP_JS_API_VERSION?: string
   readonly VITE_MAP_DEFAULT_CENTER_LONGITUDE?: string
   readonly VITE_MAP_DEFAULT_CENTER_LATITUDE?: string
   readonly VITE_MAP_DEFAULT_ZOOM?: string
   readonly VITE_AMAP_JS_API_KEY?: string
-  readonly VITE_AMAP_SECURITY_JS_CODE?: string
 }
 
 interface ImportMeta {

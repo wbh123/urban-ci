@@ -17,6 +17,15 @@ describe('ConsoleFeedbackPage reinspection human decision', () => {
     expect(drawerOpen).toBeGreaterThan(recommendationLoad)
   })
 
+  it('waits for the recommendation before exposing the standalone waiver dialog', () => {
+    const waiverBlock = source.slice(
+      source.indexOf('async function openWaiver'),
+      source.indexOf('async function submitWaiver'),
+    )
+    expect(waiverBlock.indexOf('await loadRecommendation')).toBeGreaterThan(-1)
+    expect(waiverBlock.indexOf('waiverVisible.value = true')).toBeGreaterThan(waiverBlock.indexOf('await loadRecommendation'))
+  })
+
   it('requires an auditable reason for waiver or overriding the recommendation', () => {
     expect(source).toContain('decisionNeedsReason')
     expect(source).toContain('人工判断理由（必填）')

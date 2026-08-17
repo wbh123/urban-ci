@@ -411,8 +411,8 @@ async function openWaiver(row: FeedbackManagementRow): Promise<void> {
   current.value = row
   waiverReason.value = ''
   recommendation.value = null
-  waiverVisible.value = true
   await loadRecommendation(row.reportId)
+  waiverVisible.value = true
 }
 
 async function submitWaiver(): Promise<void> {

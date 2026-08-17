@@ -19,7 +19,8 @@ for test_file in \
   "${repository_root}/scripts/dev/tests/test_showcase_wuhan_adcode_fallback.py" \
   "${repository_root}/scripts/dev/tests/test_prepare_showcase_assets.py" \
   "${repository_root}/scripts/dev/tests/test_generate_showcase_closure.py" \
-  "${repository_root}/scripts/dev/tests/test_normalize_showcase_sql.py"; do
+  "${repository_root}/scripts/dev/tests/test_normalize_showcase_sql.py" \
+  "${repository_root}/scripts/dev/tests/test_showcase_reinspection_decision_sql.py"; do
   python3 "${test_file}"
 done
 

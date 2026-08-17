@@ -10,9 +10,11 @@ asset_script="${repository_root}/scripts/dev/prepare-showcase-assets.sh"
 closure_generator="${repository_root}/scripts/dev/generate-showcase-closure.py"
 sql_normalizer="${repository_root}/scripts/dev/normalize-showcase-diversity-sql.py"
 operations_sql="${repository_root}/scripts/dev/enrich-wuhan-competition-operations.sql"
+decision_sql="${repository_root}/scripts/dev/enrich-feedback-reinspection-decisions.sql"
 assessment_script="${repository_root}/scripts/dev/calculate-showcase-assessments.sh"
 risk_coverage_sql="${repository_root}/scripts/dev/ensure-wuhan-competition-risk-coverage.sql"
 verify_sql="${repository_root}/scripts/dev/verify-wuhan-competition-data.sql"
+decision_verify_sql="${repository_root}/scripts/dev/verify-feedback-reinspection-decisions.sql"
 public_catalog="${SHOWCASE_WUHAN_PUBLIC_CATALOG_FILE:-${repository_root}/data/showcase-sources/wuhan-old-community-catalog-v1.json}"
 asset_dir="${SHOWCASE_ASSET_DIR:-${repository_root}/data/showcase-assets/inspection}"
 
@@ -39,7 +41,7 @@ usage() {
   SHOWCASE_WUHAN_RESERVE_PER_DISTRICT=12
 
 脚本先运行完全离线的语法/单元测试；通过后才允许发起高德请求。
-最终只有 100 小区逐楼栋闭环硬闸门全部通过才打印 [PASS]。
+最终只有 100 小区逐楼栋闭环和复检人工决策 real-mode 专项硬闸门全部通过才打印 [PASS]。
 EOF
 }
 
@@ -50,8 +52,8 @@ fi
 
 required_files=(
   "${env_file}" "${compose_file}" "${base_generator}" "${preflight_script}"
-  "${asset_script}" "${closure_generator}" "${sql_normalizer}" "${operations_sql}" "${assessment_script}"
-  "${risk_coverage_sql}" "${verify_sql}" "${public_catalog}"
+  "${asset_script}" "${closure_generator}" "${sql_normalizer}" "${operations_sql}" "${decision_sql}"
+  "${assessment_script}" "${risk_coverage_sql}" "${verify_sql}" "${decision_verify_sql}" "${public_catalog}"
 )
 for file in "${required_files[@]}"; do
   [[ -f "${file}" ]] || { echo "缺少必要文件：${file}" >&2; exit 1; }
@@ -81,7 +83,7 @@ export SHOWCASE_CALCULATE_ASSESSMENTS=0
 (( SHOWCASE_AMAP_MAX_NETWORK_REQUESTS >= 0 )) || { echo "高德网络请求预算不能为负数。" >&2; exit 2; }
 
 # 任何语法/单元测试错误都必须在消耗高德 API 额度之前暴露。
-echo "[0/7] 执行离线生成器预检（不会访问高德）..."
+echo "[0/8] 执行离线生成器预检（不会访问高德）..."
 bash "${preflight_script}"
 
 compose=(docker compose --env-file "${env_file}" -f "${compose_file}")
@@ -134,10 +136,10 @@ echo " 目标：${SHOWCASE_COMMUNITY_COUNT} 小区 / 每小区至少 ${SHOWCASE_
 echo " 高德 HTTP 尝试预算：${SHOWCASE_AMAP_MAX_NETWORK_REQUESTS}（缓存命中不计费）"
 echo "============================================================"
 
-echo "[1/7] 生成真实武汉空间底座与 24 个月历史业务数据..."
+echo "[1/8] 生成真实武汉空间底座与 24 个月历史业务数据..."
 bash "${base_generator}" "${base_args[@]}"
 
-echo "[2/7] 生成并上传无人物/车牌的演示巡检图片..."
+echo "[2/8] 生成并上传无人物/车牌的演示巡检图片..."
 SHOWCASE_ASSET_DIR="${asset_dir}" bash "${asset_script}" "${env_file}"
 asset_bucket="${SHOWCASE_ASSET_BUCKET:-$(read_dotenv_value URBAN_SAFE_MINIO_ASSETS_BUCKET '')}"
 [[ -n "${asset_bucket}" ]] || { echo "无法解析 URBAN_SAFE_MINIO_ASSETS_BUCKET。" >&2; exit 3; }
@@ -145,7 +147,7 @@ asset_bucket="${SHOWCASE_ASSET_BUCKET:-$(read_dotenv_value URBAN_SAFE_MINIO_ASSE
 closure_sql="$(mktemp)"
 trap 'rm -f "${closure_sql}"' EXIT
 
-echo "[3/7] 为每栋楼补齐巡检 → AI → 人工复核 → 治理闭环..."
+echo "[3/8] 为每栋楼补齐巡检 → AI → 人工复核 → 治理闭环..."
 SHOWCASE_ASSET_MANIFEST="${asset_dir}/manifest.json" \
 SHOWCASE_ASSET_BUCKET="${asset_bucket}" \
 SHOWCASE_CLOSURE_SQL_FILE="${closure_sql}" \
@@ -158,21 +160,27 @@ SHOWCASE_SQL_FILE="${closure_sql}" python3 "${sql_normalizer}"
 "${compose[@]}" exec -T postgresql sh -eu -c \
   'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "${closure_sql}"
 
-echo "[4/7] 补齐 AI 结构化结果、降级审计与居民反馈时间线..."
+echo "[4/8] 补齐 AI 结构化结果、降级审计与居民反馈时间线..."
 "${compose[@]}" exec -T postgresql sh -eu -c \
   'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "${operations_sql}"
 
-echo "[5/7] 使用完整闭环输入为全部楼栋计算正式风险评分..."
+echo "[5/8] 补齐复检系统建议 + 人工最终决策 real-mode 专项样例..."
+"${compose[@]}" exec -T postgresql sh -eu -c \
+  'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "${decision_sql}"
+
+echo "[6/8] 使用完整闭环输入为全部楼栋计算正式风险评分..."
 SHOWCASE_ASSESSMENT_LIMIT=0 SHOWCASE_MIN_ASSESSMENT_SUCCESS_RATE=100 \
   bash "${assessment_script}" "${env_file}"
 
-echo "[6/7] 整理比赛风险等级/治理优先级分布（不制造 NO_RESULT）..."
+echo "[7/8] 整理比赛风险等级/治理优先级分布（不制造 NO_RESULT）..."
 "${compose[@]}" exec -T postgresql sh -eu -c \
   'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "${risk_coverage_sql}"
 
-echo "[7/7] 执行 100 小区逐楼栋完整性硬闸门..."
+echo "[8/8] 执行 100 小区逐楼栋 + 复检人工决策完整性硬闸门..."
 "${compose[@]}" exec -T postgresql sh -eu -c \
   'psql -v ON_ERROR_STOP=1 -P pager=off -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "${verify_sql}"
+"${compose[@]}" exec -T postgresql sh -eu -c \
+  'psql -v ON_ERROR_STOP=1 -P pager=off -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "${decision_verify_sql}"
 
 echo "============================================================"
 echo " [PASS] 武汉 100 小区比赛展示数据已通过完整性闸门"

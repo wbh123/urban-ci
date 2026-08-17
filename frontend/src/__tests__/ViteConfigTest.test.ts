@@ -1,7 +1,16 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath, URL } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import frontendEnvExample from '../../.env.example?raw'
-import envDeclarationSource from '../env.d.ts?raw'
 import viteConfigSource from '../../vite.config.ts?raw'
+
+const frontendEnvExample = readFileSync(
+  fileURLToPath(new URL('../../.env.example', import.meta.url)),
+  'utf8',
+)
+const envDeclarationSource = readFileSync(
+  fileURLToPath(new URL('../env.d.ts', import.meta.url)),
+  'utf8',
+)
 
 describe('vite config', () => {
   it('keeps AMap proxy on the fixed first-level route and security code server-side', () => {

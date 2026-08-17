@@ -105,7 +105,7 @@ public class FeedbackClosureService {
                 reinspectionDecision,
                 decisionReason,
                 actor,
-                true);
+                reinspectionDecision != null && !reinspectionDecision.isBlank());
     }
 
     private Map<String, Object> submitRectificationInternal(

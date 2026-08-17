@@ -27,6 +27,7 @@ export interface AssetImageRow {
   contentType: string
   fileSize: number
   storageProvider: string
+  bindingRole?: string
   createdAt: string
   previewUrl?: string
 }

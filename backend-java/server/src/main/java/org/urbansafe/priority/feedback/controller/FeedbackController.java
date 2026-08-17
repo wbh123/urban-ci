@@ -18,12 +18,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 import org.urbansafe.priority.auth.security.CurrentUser;
+import org.urbansafe.priority.common.exception.InvalidRequestException;
 import org.urbansafe.priority.common.response.ResponseMetadata;
 import org.urbansafe.priority.common.response.ResponseMetadataFactory;
+import org.urbansafe.priority.feedback.service.FeedbackClosureService;
 import org.urbansafe.priority.feedback.service.FeedbackManagementQueryService;
 import org.urbansafe.priority.feedback.service.FeedbackService;
 
-/** 公众反馈公开入口和内部处理接口。 */
+/** 公众反馈公开入口、内部处理以及整改复验闭环接口。 */
 @Controller
 @ResponseBody
 @RequestMapping("/api/v1")
@@ -34,12 +36,15 @@ public class FeedbackController {
 
     private final FeedbackService service;
     private final FeedbackManagementQueryService managementQueryService;
+    private final FeedbackClosureService closureService;
 
     public FeedbackController(
             FeedbackService service,
-            FeedbackManagementQueryService managementQueryService) {
+            FeedbackManagementQueryService managementQueryService,
+            FeedbackClosureService closureService) {
         this.service = service;
         this.managementQueryService = managementQueryService;
+        this.closureService = closureService;
     }
 
     @GetMapping("/public/feedback/communities")
@@ -137,7 +142,85 @@ public class FeedbackController {
     public ResponseEntity<Map<String, Object>> updateStatus(
             @PathVariable UUID reportId,
             @RequestBody Map<String, Object> body) {
+        String requestedStatus = text(body.get("status"));
+        if ("RESOLVED".equalsIgnoreCase(requestedStatus)) {
+            throw new InvalidRequestException(
+                    "FEEDBACK_RECTIFICATION_ENDPOINT_REQUIRED",
+                    "整改完成必须通过整改提交入口并校验整改证据");
+        }
+        if ("CLOSED".equalsIgnoreCase(requestedStatus)) {
+            throw new InvalidRequestException(
+                    "FEEDBACK_REINSPECTION_ENDPOINT_REQUIRED",
+                    "工单关闭必须通过整改闭环或复查复验专用入口");
+        }
         return ResponseEntity.ok(success(service.updateStatus(reportId, body, CurrentUser.getUserId())));
+    }
+
+    @GetMapping("/feedback/reports/{reportId}/reinspection/recommendation")
+    @PreAuthorize(MANAGER_ROLES)
+    public ResponseEntity<Map<String, Object>> reinspectionRecommendation(@PathVariable UUID reportId) {
+        return ResponseEntity.ok(success(closureService.recommendReinspection(reportId)));
+    }
+
+    @PostMapping("/feedback/reports/{reportId}/rectification/submit")
+    @PreAuthorize(MANAGER_ROLES)
+    public ResponseEntity<Map<String, Object>> submitRectification(
+            @PathVariable UUID reportId,
+            @RequestBody Map<String, Object> body) {
+        return ResponseEntity.ok(success(closureService.submitRectification(
+                reportId,
+                text(body.get("handlingSummary")),
+                text(body.get("message")),
+                text(body.get("reinspectionDecision")),
+                text(body.get("decisionReason")),
+                CurrentUser.getUserId())));
+    }
+
+    @PostMapping("/feedback/reports/{reportId}/reinspection")
+    @PreAuthorize(MANAGER_ROLES)
+    public ResponseEntity<Map<String, Object>> createReinspection(@PathVariable UUID reportId) {
+        return ResponseEntity.ok(success(closureService.createReinspection(
+                reportId,
+                CurrentUser.getUserId())));
+    }
+
+    @GetMapping("/feedback/reports/{reportId}/reinspection")
+    @PreAuthorize(MANAGER_ROLES)
+    public ResponseEntity<Map<String, Object>> latestReinspection(@PathVariable UUID reportId) {
+        return ResponseEntity.ok(success(closureService.latestReinspection(reportId)));
+    }
+
+    @PostMapping("/feedback/reports/{reportId}/reinspection/waive")
+    @PreAuthorize(MANAGER_ROLES)
+    public ResponseEntity<Map<String, Object>> waiveReinspection(
+            @PathVariable UUID reportId,
+            @RequestBody Map<String, Object> body) {
+        return ResponseEntity.ok(success(closureService.waiveReinspection(
+                reportId,
+                text(body.get("decisionReason")),
+                CurrentUser.getUserId())));
+    }
+
+    @PostMapping("/feedback/reports/{reportId}/reinspection/result")
+    @PreAuthorize(MANAGER_ROLES)
+    public ResponseEntity<Map<String, Object>> completeReinspection(
+            @PathVariable UUID reportId,
+            @RequestBody Map<String, Object> body) {
+        Object passedValue = body.get("passed");
+        if (!(passedValue instanceof Boolean passed)) {
+            throw new InvalidRequestException(
+                    "FEEDBACK_REINSPECTION_RESULT_REQUIRED",
+                    "passed 必须为布尔值");
+        }
+        return ResponseEntity.ok(success(closureService.completeReinspection(
+                reportId,
+                passed,
+                text(body.get("summary")),
+                CurrentUser.getUserId())));
+    }
+
+    private static String text(Object value) {
+        return value == null ? null : String.valueOf(value);
     }
 
     private static Map<String, Object> success(Object data) {

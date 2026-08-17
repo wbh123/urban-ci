@@ -34,7 +34,7 @@ class DatabasePlatformIntegrationTest extends PostgreSqlIntegrationTestBase {
     @Autowired
     private OperationLogRepository operationLogRepository;
 
-    /** 验证 V1 至当前最新 V38 均已成功执行。 */
+    /** 验证 V1 至当前最新 V42 均已成功执行。 */
     @Test
     void flywayShouldApplyThroughLatestVersion() {
         List<String> versions = jdbcTemplate.queryForList(
@@ -45,8 +45,8 @@ class DatabasePlatformIntegrationTest extends PostgreSqlIntegrationTestBase {
                 "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
                 "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
                 "21", "22", "23", "24", "25", "26", "27", "28", "29", "30",
-                "31", "32", "33", "34", "35", "36", "37", "38");
-        assertThat(versions.getLast()).isEqualTo("38");
+                "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42");
+        assertThat(versions.getLast()).isEqualTo("42");
     }
 
     @Test
@@ -74,6 +74,21 @@ class DatabasePlatformIntegrationTest extends PostgreSqlIntegrationTestBase {
         assertThat(model.get("deployment_stage")).isEqualTo("VALIDATING");
         assertThat(model.get("quality_status")).isEqualTo("VALIDATING");
         assertThat(model.get("formal_evidence_enabled")).isEqualTo(false);
+    }
+
+    @Test
+    void difyReviewAssistShouldBeEnabledForAuxiliaryUseOnly() {
+        Map<String, Object> workflow = jdbcTemplate.queryForMap("""
+                SELECT enabled, quality_status AS "qualityStatus",
+                       formal_evidence_enabled AS "formalEvidenceEnabled", current_version AS "currentVersion"
+                FROM ai.workflow_definition
+                WHERE workflow_code='DIFY-REVIEW-ASSIST-001'
+                """);
+
+        assertThat(workflow.get("enabled")).isEqualTo(true);
+        assertThat(workflow.get("qualityStatus")).isEqualTo("VALIDATING");
+        assertThat(workflow.get("formalEvidenceEnabled")).isEqualTo(false);
+        assertThat(workflow.get("currentVersion")).isEqualTo("review-assist-v1.0.0");
     }
 
     /** 验证固定测试镜像预装 PostGIS、vector 与 pgcrypto。 */

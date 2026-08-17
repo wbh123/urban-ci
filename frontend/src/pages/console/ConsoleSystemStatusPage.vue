@@ -3,9 +3,11 @@ import { computed, onMounted, ref } from 'vue'
 import {
   getAiAutomationSettings,
   getAiGovernanceStatus,
+  listAiModels,
   updateAiAutomationSettings,
   type AiAutomationSettings,
   type AiGovernanceStatus,
+  type AiModelCatalogItem,
   type AiProviderStatus,
 } from '@/shared/api'
 import { useAppStore } from '@/stores/app'
@@ -15,6 +17,7 @@ const loading = ref(false)
 const savingAutomation = ref(false)
 const status = ref<AiGovernanceStatus | null>(null)
 const automationSettings = ref<AiAutomationSettings | null>(null)
+const modelCatalog = ref<AiModelCatalogItem[]>([])
 
 const PROVIDER_LABELS: Record<string, string> = {
   FAST_API: '本地视觉模型',
@@ -31,6 +34,18 @@ const total = computed(() => status.value?.total7d)
 const configuredCount = computed(
   () => status.value?.providers.filter((item) => item.configurationStatus === 'CONFIGURED').length ?? 0,
 )
+const defaultVisionModels = computed(() => modelCatalog.value.filter((model) => (
+  model.mode === 'REAL'
+  && model.status === 'APPROVED'
+  && (model.providerCode ?? 'FAST_API') === 'FAST_API'
+  && (model.capabilityType ?? 'VISION_INFERENCE') === 'VISION_INFERENCE'
+)))
+const selectedDefaultModel = computed(() => {
+  const modelId = automationSettings.value?.modelId
+  if (!modelId) return null
+  return defaultVisionModels.value.find((model) => model.modelId === modelId) ?? null
+})
+const selectedModelReady = computed(() => selectedDefaultModel.value?.runtimeReady === true && selectedDefaultModel.value?.selectable === true)
 
 function providerUsable(providerCode: string, capability: string): boolean {
   const provider = status.value?.providers.find((item) => item.providerCode === providerCode)
@@ -43,6 +58,7 @@ function providerUsable(providerCode: string, capability: string): boolean {
 const visionReady = computed(() => providerUsable('FAST_API', 'VISION_INFERENCE'))
 const workflowReady = computed(() => providerUsable('DIFY', 'WORKFLOW'))
 const knowledgeReady = computed(() => providerUsable('SPRING_AI', 'TEXT_GENERATION'))
+const autoInferenceReady = computed(() => visionReady.value && selectedModelReady.value)
 
 function tagType(item: AiProviderStatus): 'success' | 'warning' | 'info' {
   if (item.configurationStatus === 'CONFIGURED') return 'success'
@@ -88,15 +104,33 @@ function percent(value: number | undefined): string {
   return `${Number(value ?? 0).toFixed(2)}%`
 }
 
+function modelStageLabel(stage: AiModelCatalogItem['deploymentStage']): string {
+  const labels: Record<AiModelCatalogItem['deploymentStage'], string> = {
+    VALIDATING: '验证中',
+    DEMO: '演示',
+    SHADOW: '影子运行',
+    ACTIVE: '正式启用',
+    SUSPENDED: '已暂停',
+  }
+  return labels[stage] ?? stage
+}
+
+function modelOptionLabel(model: AiModelCatalogItem): string {
+  const runtime = model.runtimeReady ? '运行时就绪' : '运行时未就绪'
+  return `${model.modelName} · ${model.modelId} · ${runtime}`
+}
+
 async function load(): Promise<void> {
   loading.value = true
   try {
-    const [governance, automation] = await Promise.all([
+    const [governance, automation, models] = await Promise.all([
       getAiGovernanceStatus(),
       getAiAutomationSettings(),
+      listAiModels(),
     ])
     status.value = governance
     automationSettings.value = automation
+    modelCatalog.value = models.content
   } catch (error) {
     appStore.notify(error instanceof Error ? error.message : '人工智能运行状态加载失败', 'error')
   } finally {
@@ -112,10 +146,13 @@ async function saveAutomationSettings(successMessage: string): Promise<void> {
       autoInferenceOnUpload: automationSettings.value.autoInferenceOnUpload,
       intelligentWorkflowEnabled: automationSettings.value.intelligentWorkflowEnabled,
       knowledgeQaEnabled: automationSettings.value.knowledgeQaEnabled,
+      modelId: automationSettings.value.modelId,
     })
+    const models = await listAiModels()
+    modelCatalog.value = models.content
     appStore.notify(successMessage, 'success')
   } catch (error) {
-    appStore.notify(error instanceof Error ? error.message : '人工智能业务开关保存失败', 'error')
+    appStore.notify(error instanceof Error ? error.message : '人工智能业务设置保存失败', 'error')
     await load()
   } finally {
     savingAutomation.value = false
@@ -180,25 +217,59 @@ onMounted(load)
       <template #header>
         <div class="card-title-row">
           <div>
-            <strong>智能能力开关</strong>
-            <p>控制业务是否使用对应能力，不会在网页中修改 API Key 或模型环境。</p>
+            <strong>智能能力与默认模型</strong>
+            <p>控制业务是否使用对应能力，并选择后续视觉任务默认使用的模型；不会在网页中修改密钥或模型权重。</p>
           </div>
         </div>
       </template>
 
       <div class="automation-list">
+        <div class="automation-setting model-setting">
+          <div>
+            <div class="setting-title">
+              <strong>默认视觉模型</strong>
+              <el-tag type="success" round>业务已批准</el-tag>
+              <el-tag :type="selectedModelReady ? 'success' : 'warning'" round>
+                {{ selectedModelReady ? '运行时就绪' : '运行时未就绪' }}
+              </el-tag>
+              <el-tag v-if="selectedDefaultModel" type="info" effect="plain" round>
+                {{ selectedDefaultModel.deploymentStage }} · {{ modelStageLabel(selectedDefaultModel.deploymentStage) }}
+              </el-tag>
+            </div>
+            <p>APPROVED 只表示模型身份与业务登记已批准；真实推理仍要求运行时加载成功。VALIDATING 模型可以查看，但运行时未就绪时不能设为默认。</p>
+            <p v-if="selectedDefaultModel?.runtimeErrorMessage" class="model-runtime-error">
+              当前运行时：{{ selectedDefaultModel.runtimeErrorMessage }}
+            </p>
+          </div>
+          <el-select
+            v-model="automationSettings.modelId"
+            class="model-select"
+            :disabled="savingAutomation"
+            placeholder="选择默认视觉模型"
+            @change="saveAutomationSettings('已切换默认视觉模型')"
+          >
+            <el-option
+              v-for="model in defaultVisionModels"
+              :key="model.modelId"
+              :label="modelOptionLabel(model)"
+              :value="model.modelId"
+              :disabled="!model.selectable"
+            />
+          </el-select>
+        </div>
+
         <div class="automation-setting">
           <div>
             <div class="setting-title">
               <strong>上传后自动视觉识别</strong>
-              <el-tag :type="visionReady ? 'success' : 'warning'" round>{{ visionReady ? '服务可用' : '服务未就绪' }}</el-tag>
+              <el-tag :type="autoInferenceReady ? 'success' : 'warning'" round>{{ autoInferenceReady ? '服务可用' : '默认模型未就绪' }}</el-tag>
             </div>
-            <p>巡检图片上传成功后自动创建后台高精度视觉分析任务；该开关只依赖本地视觉底座，Dify 未启用或不可用时仍可正常识别，失败也不会回滚图片上传。</p>
+            <p>巡检图片上传成功后自动创建后台高精度视觉分析任务；任务使用上方默认视觉模型。模型或服务未就绪时不能开启，失败也不会回滚图片上传。</p>
           </div>
           <el-switch
             v-model="automationSettings.autoInferenceOnUpload"
             :loading="savingAutomation"
-            :disabled="savingAutomation || (!visionReady && !automationSettings.autoInferenceOnUpload)"
+            :disabled="savingAutomation || (!autoInferenceReady && !automationSettings.autoInferenceOnUpload)"
             inline-prompt active-text="开启" inactive-text="关闭"
             @change="saveAutomationSettings(automationSettings.autoInferenceOnUpload ? '已开启上传后自动视觉识别' : '已关闭上传后自动视觉识别')"
           />
@@ -324,6 +395,9 @@ onMounted(load)
 .automation-setting:last-child { padding-bottom: 2px; border-bottom: 0; }
 .setting-title { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .automation-setting p { max-width: 860px; margin: 7px 0 0; color: #667085; line-height: 1.6; }
+.model-setting { align-items: flex-start; }
+.model-select { width: min(520px, 46vw); flex: 0 0 auto; }
+.model-runtime-error { color: var(--el-color-warning-dark-2) !important; font-size: 12px; }
 .technical-card { border: 1px solid var(--usp-color-border); background: var(--usp-color-surface); }
 .technical-card :deep(.el-collapse-item__header) { padding: 0 16px; border-radius: var(--usp-radius-xl); font-weight: 700; }
 .technical-card :deep(.el-collapse-item__content) { padding: 0 12px 14px; }
@@ -334,6 +408,8 @@ onMounted(load)
 @media (max-width: 1100px) {
   .capability-grid { grid-template-columns: 1fr; }
   .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .model-setting { flex-direction: column; }
+  .model-select { width: 100%; }
 }
 @media (max-width: 720px) {
   .automation-setting { align-items: flex-start; flex-direction: column; }

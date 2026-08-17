@@ -43,11 +43,22 @@ import org.urbansafe.priority.ai.workflow.AiWorkflowRegistry;
 })
 public class AiServiceConfiguration {
 
-    /** FAST/PRECISION、模型信息与轻量预检客户端。 */
+    /** FAST、模型信息与轻量预检客户端。 */
     @Bean
     public RestClient aiFastApiRestClient(AiInferenceProperties properties) {
         SimpleClientHttpRequestFactory factory = requestFactory(
                 properties.getConnectTimeoutMs(), properties.getReadTimeoutMs());
+        return RestClient.builder()
+                .baseUrl(properties.getBaseUrl())
+                .requestFactory(factory)
+                .build();
+    }
+
+    /** PRECISION 精度优先档位专用长超时客户端；不放宽轻量接口失败等待时间。 */
+    @Bean
+    public RestClient aiFastApiPrecisionRestClient(AiInferenceProperties properties) {
+        SimpleClientHttpRequestFactory factory = requestFactory(
+                properties.getConnectTimeoutMs(), properties.getPrecisionReadTimeoutMs());
         return RestClient.builder()
                 .baseUrl(properties.getBaseUrl())
                 .requestFactory(factory)
@@ -68,10 +79,12 @@ public class AiServiceConfiguration {
     @Bean
     public AiFastApiClient aiFastApiClient(
             @Qualifier("aiFastApiRestClient") RestClient restClient,
+            @Qualifier("aiFastApiPrecisionRestClient") RestClient precisionRestClient,
             @Qualifier("aiFastApiAccuracyRestClient") RestClient accuracyRestClient,
             ObjectMapper objectMapper,
             AiInferenceProperties properties) {
-        return new AiFastApiClient(restClient, accuracyRestClient, objectMapper, properties);
+        return new AiFastApiClient(
+                restClient, precisionRestClient, accuracyRestClient, objectMapper, properties);
     }
 
     /** 兼容直接单元测试构造；生产 Spring Bean 使用上面的双客户端方法。 */

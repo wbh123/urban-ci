@@ -6,6 +6,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestClient;
 import org.urbansafe.priority.ai.config.AiInferenceProperties;
 
@@ -183,6 +185,24 @@ class AiFastApiClientTest {
         AiFastApiException ex = assertThrows(AiFastApiException.class,
                 () -> client.infer(new byte[]{1}, metadata("req-1"), "req-1"));
         assertEquals("AI_SERVICE_INVALID_RESPONSE", ex.getErrorCode());
+    }
+
+    @Test
+    void resolveInferenceClientSelectsProfileSpecificClients() {
+        RestClient normal = RestClient.create();
+        RestClient precision = RestClient.create();
+        RestClient accuracy = RestClient.create();
+        AiFastApiClient profileClient = new AiFastApiClient(
+                normal, precision, accuracy, new ObjectMapper(), new AiInferenceProperties());
+
+        assertSame(normal, ReflectionTestUtils.invokeMethod(
+                profileClient, "resolveInferenceClient", Map.of("inferenceProfile", "FAST")));
+        assertSame(normal, ReflectionTestUtils.invokeMethod(
+                profileClient, "resolveInferenceClient", Map.of()));
+        assertSame(precision, ReflectionTestUtils.invokeMethod(
+                profileClient, "resolveInferenceClient", Map.of("inferenceProfile", "PRECISION")));
+        assertSame(accuracy, ReflectionTestUtils.invokeMethod(
+                profileClient, "resolveInferenceClient", Map.of("inferenceProfile", "ACCURACY")));
     }
 
     private Map<String, Object> metadata(String requestId) {

@@ -18,6 +18,8 @@ export type FeedbackReportType =
   | 'ILLEGAL_MODIFICATION'
   | 'FIRE_ACCESS'
   | 'OTHER'
+export type FeedbackReinspectionStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED'
+export type FeedbackReinspectionDecision = 'REQUIRED' | 'WAIVED'
 
 export interface PublicFeedbackCommunity {
   communityId: string
@@ -108,6 +110,13 @@ export interface FeedbackManagementRow extends Omit<PublicFeedbackDetail, 'event
   communityId: string
   buildingId?: string
   imageCount: number
+  reinspectionTaskId?: string
+  reinspectionTaskCode?: string
+  reinspectionStatus?: FeedbackReinspectionStatus
+  reinspectionDecision?: FeedbackReinspectionDecision
+  reinspectionRecommendedDecision?: FeedbackReinspectionDecision
+  reinspectionManualOverride?: boolean
+  reinspectionDecisionReason?: string
 }
 
 export interface FeedbackPage {
@@ -137,6 +146,84 @@ export interface UpdateFeedbackStatusPayload {
   handlingSummary?: string
   message?: string
   publicVisible?: boolean
+}
+
+export interface FeedbackReinspectionRecommendation {
+  reportId: string
+  reportCode?: string
+  recommendedDecision: FeedbackReinspectionDecision
+  reasons: string[]
+  source: 'STRUCTURED_RULES'
+  disclaimer: string
+  formalRiskChanged: false
+}
+
+export interface SubmitFeedbackRectificationPayload {
+  handlingSummary: string
+  message?: string
+  reinspectionDecision?: FeedbackReinspectionDecision
+  decisionReason?: string
+}
+
+export interface FeedbackRectificationResult {
+  reportId: string
+  reportCode?: string
+  status: 'RESOLVED' | 'CLOSED'
+  rectificationEvidenceCount: number
+  reinspectionDecision: FeedbackReinspectionDecision
+  recommendedDecision?: FeedbackReinspectionDecision
+  recommendationReasons?: string[]
+  manualOverride?: boolean
+  decisionReason?: string
+  formalRiskChanged: false
+  nextStep?: string
+}
+
+export interface FeedbackReinspection {
+  reportId?: string
+  reportCode?: string
+  taskId: string
+  taskCode?: string
+  buildingId?: string
+  inspectionType?: string
+  status: FeedbackReinspectionStatus
+  reused?: boolean
+  formalRiskChanged?: false
+  formalRiskNotice?: string
+}
+
+export interface WaiveFeedbackReinspectionPayload {
+  decisionReason: string
+}
+
+export interface FeedbackReinspectionWaiverResult {
+  reportId: string
+  reportCode?: string
+  status: 'CLOSED'
+  reinspectionDecision: 'WAIVED'
+  recommendedDecision?: FeedbackReinspectionDecision
+  recommendationReasons?: string[]
+  manualOverride?: boolean
+  decisionReason: string
+  formalRiskChanged: false
+  nextStep?: string
+}
+
+export interface CompleteFeedbackReinspectionPayload {
+  passed: boolean
+  summary: string
+}
+
+export interface FeedbackReinspectionResult {
+  reportId: string
+  reportCode?: string
+  status: FeedbackStatus
+  taskId: string
+  taskCode?: string
+  reinspectionPassed: boolean
+  reinspectionDecision?: 'REQUIRED'
+  formalRiskChanged: false
+  nextStep?: string
 }
 
 export function listPublicFeedbackCommunities(): Promise<PublicFeedbackCommunity[]> {
@@ -207,4 +294,39 @@ export function updateFeedbackStatus(
   payload: UpdateFeedbackStatusPayload,
 ): Promise<Record<string, unknown>> {
   return apiPost(`/api/v1/feedback/reports/${reportId}/status`, payload)
+}
+
+export function getFeedbackReinspectionRecommendation(
+  reportId: string,
+): Promise<FeedbackReinspectionRecommendation> {
+  return apiGet(`/api/v1/feedback/reports/${reportId}/reinspection/recommendation`)
+}
+
+export function submitFeedbackRectification(
+  reportId: string,
+  payload: SubmitFeedbackRectificationPayload,
+): Promise<FeedbackRectificationResult> {
+  return apiPost(`/api/v1/feedback/reports/${reportId}/rectification/submit`, payload)
+}
+
+export function createFeedbackReinspection(reportId: string): Promise<FeedbackReinspection> {
+  return apiPost(`/api/v1/feedback/reports/${reportId}/reinspection`, {})
+}
+
+export function getFeedbackReinspection(reportId: string): Promise<FeedbackReinspection | null> {
+  return apiGet(`/api/v1/feedback/reports/${reportId}/reinspection`)
+}
+
+export function waiveFeedbackReinspection(
+  reportId: string,
+  payload: WaiveFeedbackReinspectionPayload,
+): Promise<FeedbackReinspectionWaiverResult> {
+  return apiPost(`/api/v1/feedback/reports/${reportId}/reinspection/waive`, payload)
+}
+
+export function completeFeedbackReinspection(
+  reportId: string,
+  payload: CompleteFeedbackReinspectionPayload,
+): Promise<FeedbackReinspectionResult> {
+  return apiPost(`/api/v1/feedback/reports/${reportId}/reinspection/result`, payload)
 }

@@ -23,7 +23,7 @@ public class BuildingOverviewTool {
         this.accessService = accessService;
     }
 
-    @Tool(description = """
+    @Tool(name = "building_overview", description = """
             查询楼栋基本档案概览（名称、地址、结构、楼层、户数、档案完整度等）。
             在需要了解楼栋基础信息时使用。只读，不修改任何业务数据。
             """)

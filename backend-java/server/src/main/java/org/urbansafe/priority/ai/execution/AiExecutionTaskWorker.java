@@ -16,6 +16,7 @@ public class AiExecutionTaskWorker {
     private final AiExecutionTaskRepository repository;
     private final AiExecutionTaskService service;
     private final AiAccuracyExecutionTaskExecutor accuracyExecutor;
+    private final AiIntelligentAnalysisExecutionTaskExecutor intelligentAnalysisExecutor;
     private final AiExecutionProperties properties;
     private final String workerId;
 
@@ -23,10 +24,12 @@ public class AiExecutionTaskWorker {
             AiExecutionTaskRepository repository,
             AiExecutionTaskService service,
             AiAccuracyExecutionTaskExecutor accuracyExecutor,
+            AiIntelligentAnalysisExecutionTaskExecutor intelligentAnalysisExecutor,
             AiExecutionProperties properties) {
         this.repository = repository;
         this.service = service;
         this.accuracyExecutor = accuracyExecutor;
+        this.intelligentAnalysisExecutor = intelligentAnalysisExecutor;
         this.properties = properties;
         this.workerId = properties.getWorkerId() + "-" + UUID.randomUUID().toString().substring(0, 8);
     }
@@ -44,6 +47,10 @@ public class AiExecutionTaskWorker {
             }
             try {
                 AiExecutionTask task = claimed.get();
+                if (AiIntelligentAnalysisExecutionTaskExecutor.WORKFLOW_CODE.equals(task.workflowCode())) {
+                    intelligentAnalysisExecutor.execute(task);
+                    continue;
+                }
                 Object profile = task.inputs().get("inferenceProfile");
                 if (profile != null && "ACCURACY".equalsIgnoreCase(String.valueOf(profile))) {
                     accuracyExecutor.execute(task);

@@ -2,6 +2,7 @@ package org.urbansafe.priority.ai.provider;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -78,6 +79,44 @@ class DifyWorkflowProviderTest {
     }
 
     @Test
+    void acceptsMarkdownFencedJsonStringFromReviewAssist() throws Exception {
+        String payload = "{\"summary\":\"证据需人工复核\",\"needsHumanReview\":true,\"warnings\":[]}";
+        JsonNode response = responseWithTextResult("run-fence", "```json\n" + payload + "\n```");
+        DifyWorkflowProvider provider = provider(response, definition("review-assist-v1.2.0"));
+
+        AiStructuredResult result = provider.execute(request());
+
+        assertEquals("SUCCEEDED", result.status());
+        assertEquals("证据需人工复核", result.summary());
+    }
+
+    @Test
+    void acceptsOneLayerDoubleEncodedJsonStringFromReviewAssist() throws Exception {
+        String payload = "{\"summary\":\"发现证据冲突\",\"needsHumanReview\":true,\"warnings\":[]}";
+        String doubleEncoded = objectMapper.writeValueAsString(payload);
+        JsonNode response = responseWithTextResult("run-double", doubleEncoded);
+        DifyWorkflowProvider provider = provider(response, definition("review-assist-v1.2.0"));
+
+        AiStructuredResult result = provider.execute(request());
+
+        assertEquals("SUCCEEDED", result.status());
+        assertEquals("发现证据冲突", result.summary());
+    }
+
+    @Test
+    void rejectsNaturalLanguageWrappedJsonInsteadOfGuessingPayload() throws Exception {
+        String value = "复核结果如下：{\"summary\":\"不应通过正则截取\"}";
+        JsonNode response = responseWithTextResult("run-natural-language", value);
+        DifyWorkflowProvider provider = provider(response, definition("review-assist-v1.2.0"));
+
+        AiProviderException exception = assertThrows(AiProviderException.class,
+                () -> provider.execute(request()));
+
+        assertEquals(AiErrorCodes.AI_INVALID_RESPONSE, exception.getErrorCode());
+        assertTrue(exception.getMessage().contains("JSON 对象"));
+    }
+
+    @Test
     void version11ShouldRejectMissingImageEcho() throws Exception {
         JsonNode response = objectMapper.readTree("""
                 {"workflow_run_id":"run-12","data":{"status":"succeeded","outputs":{"result":{
@@ -94,7 +133,7 @@ class DifyWorkflowProviderTest {
     }
 
     @Test
-    void rejectsFailedWorkflow() throws Exception {
+    void rejectsFailedWorkflowAndPreservesDifyErrorAndRunId() throws Exception {
         JsonNode response = objectMapper.readTree("""
                 {"workflow_run_id":"run-2","data":{"status":"failed","error":"node failed"}}
                 """);
@@ -104,6 +143,8 @@ class DifyWorkflowProviderTest {
                 () -> provider.execute(request()));
 
         assertEquals(AiErrorCodes.AI_WORKFLOW_FAILED, exception.getErrorCode());
+        assertTrue(exception.getMessage().contains("node failed"));
+        assertTrue(exception.getMessage().contains("run-2"));
     }
 
     @Test
@@ -133,6 +174,15 @@ class DifyWorkflowProviderTest {
                 () -> provider.execute(request()));
 
         assertEquals(AiErrorCodes.AI_INVALID_RESPONSE, exception.getErrorCode());
+    }
+
+    private JsonNode responseWithTextResult(String runId, String result) {
+        return objectMapper.valueToTree(Map.of(
+                "workflow_run_id", runId,
+                "data", Map.of(
+                        "status", "succeeded",
+                        "elapsed_time", 0.1,
+                        "outputs", Map.of("result", result))));
     }
 
     private DifyWorkflowProvider provider(JsonNode response, AiWorkflowDefinition definition) {

@@ -26,13 +26,14 @@ class FastApiAiInferenceProviderRiskSignalTest {
         assertEquals("HIGH", signals.get(0).level());
         assertEquals(0.78, signals.get(0).confidence());
         assertTrue(signals.get(0).description().contains("疑似裂缝"));
+        assertTrue(signals.get(0).description().contains("辅助关注等级"));
         assertTrue(signals.get(0).description().contains("不代表正式风险等级"));
         assertEquals("VISUAL_WATER_STAIN", signals.get(1).code());
-        assertEquals("LOW", signals.get(1).level());
+        assertEquals("MEDIUM", signals.get(1).level());
     }
 
     @Test
-    void precisionTrustLevelShouldOverrideRawConfidenceHeuristic() {
+    void lowerModelTrustShouldNotSuppressHighSensitivityAttentionLevel() {
         AiInferenceResponse.Detection highRawButLowTrust = new AiInferenceResponse.Detection(
                 1,
                 "CRACK",
@@ -48,9 +49,21 @@ class FastApiAiInferenceProviderRiskSignalTest {
                 FastApiAiInferenceProvider.toVisualRiskSignals(List.of(highRawButLowTrust));
 
         assertEquals(1, signals.size());
-        assertEquals("LOW", signals.get(0).level());
+        assertEquals("HIGH", signals.get(0).level());
         assertEquals(0.91, signals.get(0).confidence());
-        assertTrue(signals.get(0).description().contains("模型候选可信度 LOW"));
+        assertTrue(signals.get(0).description().contains("模型信任等级 LOW"));
+        assertTrue(signals.get(0).description().contains("辅助关注等级 HIGH"));
+    }
+
+    @Test
+    void shouldUseSensitiveHighAndMediumCutoffs() {
+        List<AiOrchestrationResult.RiskSignal> signals = FastApiAiInferenceProvider.toVisualRiskSignals(List.of(
+                detection(1, "CRACK", "疑似裂缝", 0.56),
+                detection(2, "SPALLING", "疑似剥落", 0.26),
+                detection(3, "CORROSION", "疑似锈蚀", 0.20)));
+        assertTrue(signals.stream().anyMatch(s -> "VISUAL_CRACK".equals(s.code()) && "HIGH".equals(s.level())));
+        assertTrue(signals.stream().anyMatch(s -> "VISUAL_SPALLING".equals(s.code()) && "MEDIUM".equals(s.level())));
+        assertTrue(signals.stream().anyMatch(s -> "VISUAL_CORROSION".equals(s.code()) && "LOW".equals(s.level())));
     }
 
     @Test

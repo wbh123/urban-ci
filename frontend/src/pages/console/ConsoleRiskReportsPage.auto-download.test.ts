@@ -14,6 +14,7 @@ describe('risk report automatic download', () => {
     expect(source).toContain('autoDownloadAfterGenerate.value')
     expect(source).toContain('findGeneratedReport')
     expect(source).toContain('await download(generatedReport)')
-    expect(source).toContain('自动下载失败不影响已生成报告')
+    expect(source).toContain('报告已生成，但自动下载失败')
+    expect(source).toContain('可从历史报告手动下载')
   })
 })

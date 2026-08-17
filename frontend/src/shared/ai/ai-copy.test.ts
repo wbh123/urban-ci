@@ -15,6 +15,7 @@ describe('AI 统一文案', () => {
   it('普通业务页面不直接展示 Provider 配置错误码', () => {
     expect(translateAiBusinessError('AI_PROVIDER_NOT_CONFIGURED')).toBe('智能工作流不可用，已使用本地高精度模型')
     expect(translateAiBusinessError('AI_PROVIDER_UNAVAILABLE')).toBe('智能服务暂时不可用，基础业务不受影响')
+    expect(translateAiBusinessError('AI_PROVIDER_INSUFFICIENT_BALANCE')).toBe('DeepSeek 账户余额不足，已降级展示本地结构化证据')
     expect(translateAiBusinessError('SOME_INTERNAL_CODE')).toBe('AI 辅助能力暂时不可用，基础业务不受影响')
   })
 })

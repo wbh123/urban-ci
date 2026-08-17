@@ -35,14 +35,16 @@ public class RiskAssessmentTool {
             Map<String, Object> summary = assessmentService.summary(id);
             Object risk = summary.get("risk");
             Object completeness = summary.get("completeness");
+            Map<?, ?> riskMap = risk instanceof Map<?, ?> map ? map : Map.of();
+            Map<?, ?> completenessMap = completeness instanceof Map<?, ?> map ? map : Map.of();
             AiAgentTrace.finishStep(step, AiAgentStepStatus.SUCCEEDED, null, null);
             return new RiskSummaryResult(
                     stringValue(summary.get("buildingId")),
                     stringValue(summary.get("buildingName")),
                     stringValue(summary.get("communityName")),
-                    risk == null ? null : String.valueOf(((Map<?, ?>) risk).get("level")),
-                    risk == null ? null : stringValue(((Map<?, ?>) risk).get("score")),
-                    completeness == null ? null : String.valueOf(((Map<?, ?>) completeness).get("score")),
+                    stringValue(riskMap.get("riskLevel")),
+                    stringValue(riskMap.get("riskScore")),
+                    stringValue(completenessMap.get("completenessScore")),
                     stringValue(summary.get("disclaimer")));
         } catch (RuntimeException ex) {
             AiAgentTrace.finishStep(step, AiAgentStepStatus.FAILED, ex.getClass().getSimpleName(), ex.getMessage());

@@ -4,18 +4,18 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-SQL_FILE = Path(os.environ["SHOWCASE_DIVERSITY_SQL_FILE"])
+SQL_FILE = Path(os.environ.get("SHOWCASE_SQL_FILE") or os.environ["SHOWCASE_DIVERSITY_SQL_FILE"])
 
 
-def cast_make_interval_days(sql: str) -> tuple[str, int]:
-    """Ensure every make_interval(days => expr) receives integer days.
+def cast_make_interval_integer_arg(sql: str, unit: str) -> tuple[str, int]:
+    """Ensure make_interval integer arguments receive PostgreSQL integer values.
 
-    PostgreSQL make_interval(days => ...) expects integer, while row_number()
-    returns bigint. The generated showcase SQL intentionally uses row_number()
-    heavily, so normalize the complete generated SQL instead of maintaining a
-    fragile list of individual casts.
+    PostgreSQL make_interval() expects integer for years/months/weeks/days/hours/mins,
+    while row_number() returns bigint. Showcase SQL intentionally uses row_number()
+    heavily, so normalize generated SQL centrally instead of maintaining a fragile
+    list of individual casts.
     """
-    token = "make_interval(days =>"
+    token = f"make_interval({unit} =>"
     output: list[str] = []
     cursor = 0
     count = 0
@@ -49,14 +49,23 @@ def cast_make_interval_days(sql: str) -> tuple[str, int]:
             index += 1
 
         if depth != 0:
-            raise RuntimeError("无法解析生成 SQL 中的 make_interval(days => ...) 表达式")
+            raise RuntimeError(f"无法解析生成 SQL 中的 make_interval({unit} => ...) 表达式")
 
         argument = sql[arg_start:index].strip()
-        output.append(f"make_interval(days => (({argument})::int))")
+        output.append(f"make_interval({unit} => (({argument})::int))")
         cursor = index + 1
         count += 1
 
     return "".join(output), count
+
+
+def cast_make_interval_days(sql: str) -> tuple[str, int]:
+    """Backward-compatible wrapper used by earlier showcase generation code."""
+    return cast_make_interval_integer_arg(sql, "days")
+
+
+def cast_make_interval_hours(sql: str) -> tuple[str, int]:
+    return cast_make_interval_integer_arg(sql, "hours")
 
 
 def normalize_resident_report_types(sql: str) -> tuple[str, int]:
@@ -75,12 +84,15 @@ def normalize_resident_report_types(sql: str) -> tuple[str, int]:
 
 def main() -> None:
     sql = SQL_FILE.read_text(encoding="utf-8")
-    sql, interval_count = cast_make_interval_days(sql)
+    sql, day_interval_count = cast_make_interval_days(sql)
+    sql, hour_interval_count = cast_make_interval_hours(sql)
     sql, report_type_count = normalize_resident_report_types(sql)
     SQL_FILE.write_text(sql, encoding="utf-8")
     print(
-        "场景增强 SQL 类型规范化完成："
-        f"make_interval={interval_count}，residentReportType={report_type_count}",
+        "展示 SQL 类型规范化完成："
+        f"make_interval_days={day_interval_count}，"
+        f"make_interval_hours={hour_interval_count}，"
+        f"residentReportType={report_type_count}",
         flush=True,
     )
 

@@ -58,8 +58,31 @@ public class SpringAiOrchestrationService {
             - 不得修改正式风险等级或更新优先级；
             - 不得替代专业人员作出正式结论；
             - 证据不足时应明确说明信息不足并建议补充资料；
+            - 当上下文已提供刚完成的 REAL 视觉推理编号时，必须复用该结果，
+              不得重新调用实时视觉模型；
             - 某个工具不可用（如 Dify 复核辅助）时，明确说明该能力当前不可用，
               并基于已有业务与视觉证据继续给出基础辅助说明，不编造工具结果。
+
+            输出必须使用下面八个 Markdown 二级标题，并严格按此顺序组织；即使某一项没有数据，
+            也必须保留对应标题并写明“暂无数据”“信息不足”或具体不可用原因：
+            ## 核心结论
+            ## 楼栋概况
+            ## 巡检证据
+            ## 风险与优先级
+            ## 视觉病害
+            ## 判断依据
+            ## 人工复核建议
+            ## 能力限制
+
+            输出格式要求：
+            - “核心结论”控制在 2 至 4 句，优先概括最重要事实、风险线索和不确定性；
+            - 楼栋概况、风险与优先级等紧凑事实优先使用 Markdown 表格；
+            - 巡检证据、判断依据、人工复核建议优先使用简短项目列表；
+            - 视觉病害必须继续使用“疑似”措辞；若工具提供置信度，应如实保留，不得自行提高或改写；
+            - 工具失败或能力关闭统一放在“能力限制”，不要在每个章节重复长篇说明；
+            - 不输出一级标题，不重复八个固定标题，不输出 HTML，不输出 JSON，不使用代码围栏；
+            - 不在结尾追加“如需我可继续”“请告知”等邀请性文字；
+            - 内容应紧凑、可扫描，避免同一事实在多个章节反复叙述。
             """;
 
     private final ObjectProvider<ChatClient.Builder> chatClientBuilder;
@@ -152,13 +175,24 @@ public class SpringAiOrchestrationService {
                 finalStatus = resolveFinalStatus(execution.steps());
             }
         } catch (RuntimeException ex) {
-            log.warn("Spring AI 智能编排失败：{}", ex.getMessage());
-            finalStatus = AiAgentExecutionStatus.FAILED;
-            answer = "DeepSeek 智能编排当前不可用，无法生成新的综合研判。已获得的结构化工具结果摘要：\n"
-                    + summarizeToolSteps(execution)
-                    + "\n基础业务、原始证据与人工复核仍可继续使用。";
-            execution.setErrorCode(AiErrorCodes.AI_PROVIDER_UNAVAILABLE);
-            execution.setErrorMessage(ex.getMessage());
+            String providerErrorCode = providerFailureCode(ex);
+            if (AiErrorCodes.AI_PROVIDER_INSUFFICIENT_BALANCE.equals(providerErrorCode)) {
+                log.warn("Spring AI / DeepSeek 余额不足，切换结构化证据降级路径: {}", safeProviderMessage(ex));
+                finalStatus = AiAgentExecutionStatus.PARTIAL_SUCCEEDED;
+                answer = hasToolSteps(execution)
+                        ? buildBalanceFallbackFromExistingSteps(execution)
+                        : buildDeterministicEvidenceFallback(businessType, businessId, context);
+                execution.setErrorCode(providerErrorCode);
+                execution.setErrorMessage("DeepSeek 账户余额不足，未生成新的语言模型综合结论");
+            } else {
+                log.warn("Spring AI 智能编排失败", ex);
+                finalStatus = AiAgentExecutionStatus.FAILED;
+                answer = "DeepSeek 智能编排当前不可用，无法生成新的综合研判。已获得的结构化工具结果摘要：\n"
+                        + summarizeToolSteps(execution)
+                        + "\n基础业务、原始证据与人工复核仍可继续使用。";
+                execution.setErrorCode(providerErrorCode);
+                execution.setErrorMessage(safeProviderMessage(ex));
+            }
         } finally {
             AiAgentTrace.end();
         }
@@ -192,14 +226,14 @@ public class SpringAiOrchestrationService {
         if (automationSettingsService.knowledgeQaEnabled()) {
             tools.add(knowledgeRetrievalTool);
         }
-        if (context != null && context.get("assetId") != null) {
+        boolean boundToCompletedVision = context != null && context.get("sourceInferenceId") != null;
+        if (context != null && context.get("assetId") != null && !boundToCompletedVision) {
             tools.add(visionAnalysisTool);
         }
         if (automationSettingsService.intelligentWorkflowEnabled()
                 && ("BUILDING".equalsIgnoreCase(businessType)
                 || "AI_INFERENCE".equalsIgnoreCase(businessType))) {
             tools.add(difyReviewAssistTool);
-            tools.add(difyReportDraftTool);
         }
         return tools.toArray();
     }
@@ -221,6 +255,10 @@ public class SpringAiOrchestrationService {
         appendContext(prompt, context, "riskScore", "正式风险分");
         appendContext(prompt, context, "priorityLevel", "更新优先级");
         appendContext(prompt, context, "freshness", "风险结果新鲜度");
+        if (context != null && context.get("sourceInferenceId") != null) {
+            prompt.append("本次综合研判已绑定刚完成的 REAL 视觉推理（sourceInferenceId），")
+                    .append("必须复用该推理结果，不得重新调用实时视觉模型。\n");
+        }
         prompt.append("用户问题：").append(question == null ? "综合分析" : question).append("\n");
         return prompt.toString();
     }
@@ -251,6 +289,198 @@ public class SpringAiOrchestrationService {
             return "智能文本能力暂不可用，现有图片与结构化识别结果仍可继续查看，基础业务不受影响。";
         }
         return "智能文本能力暂不可用，当前页面仍可继续使用已有业务数据和确定性结果，需由人工完成最终判断。";
+    }
+
+    /**
+     * DeepSeek 首轮请求因余额不足而没有机会触发 Tool Calling 时，直接执行核心只读 Tool。
+     * 这不是语言模型综合结论，而是可审计的确定性结构化证据快照。
+     */
+    private String buildDeterministicEvidenceFallback(
+            String businessType, UUID businessId, Map<String, Object> context) {
+        UUID buildingId = resolveBuildingId(businessType, businessId, context);
+        if (buildingId == null) {
+            return "## 核心结论\nDeepSeek 账户余额不足，无法生成新的语言模型综合结论。\n\n"
+                    + "## 楼栋概况\n暂无可确定的楼栋标识。\n\n"
+                    + "## 巡检证据\n暂无结构化降级证据。\n\n"
+                    + "## 风险与优先级\n暂无结构化降级证据。\n\n"
+                    + "## 视觉病害\n暂无结构化降级证据。\n\n"
+                    + "## 判断依据\n仅记录供应商计费能力不可用，不编造分析。\n\n"
+                    + "## 人工复核建议\n可继续依据页面原始业务数据进行人工复核。\n\n"
+                    + "## 能力限制\nDeepSeek 402 Insufficient Balance；未调用语言模型生成结论。";
+        }
+
+        String id = buildingId.toString();
+        BuildingOverviewTool.BuildingOverviewResult building = safeCall(() -> buildingOverviewTool.overview(id));
+        InspectionEvidenceTool.InspectionOverviewResult inspection = safeCall(() -> inspectionEvidenceTool.overview(id));
+        LatestVisionAnalysisTool.LatestVisionResult vision = safeCall(() -> latestVisionAnalysisTool.latest(id));
+        RiskAssessmentTool.RiskSummaryResult risk = safeCall(() -> riskAssessmentTool.summary(id));
+        RenewalPriorityTool.PriorityResult priority = safeCall(() -> renewalPriorityTool.priority(id));
+        DifyReviewAssistTool.DifyToolResult review = null;
+        if (automationSettingsService.intelligentWorkflowEnabled()
+                && ("BUILDING".equalsIgnoreCase(businessType)
+                || "AI_INFERENCE".equalsIgnoreCase(businessType))) {
+            review = safeCall(() -> difyReviewAssistTool.run(id));
+        }
+
+        StringBuilder out = new StringBuilder();
+        out.append("## 核心结论\n")
+                .append("DeepSeek 账户余额不足，本次未生成新的语言模型综合结论。")
+                .append("以下内容为系统直接读取的结构化降级证据，可继续用于人工复核，但不替代专业结论。\n\n");
+
+        out.append("## 楼栋概况\n");
+        if (building == null) {
+            out.append("楼栋档案读取失败或不可用。\n\n");
+        } else {
+            out.append("- 名称：").append(value(building.buildingName())).append("（")
+                    .append(value(building.buildingCode())).append("）\n")
+                    .append("- 地址：").append(value(building.address())).append("\n")
+                    .append("- 结构/建成年代：").append(value(building.structureType())).append(" / ")
+                    .append(value(building.constructionYear())).append("\n")
+                    .append("- 楼层/户数/人数：").append(value(building.floorCount())).append(" / ")
+                    .append(value(building.householdCount())).append(" / ")
+                    .append(value(building.residentCount())).append("\n")
+                    .append("- 档案完整度：").append(value(building.archiveCompletenessScore())).append("\n\n");
+        }
+
+        out.append("## 巡检证据\n");
+        if (inspection == null) {
+            out.append("巡检证据概况读取失败或不可用。\n\n");
+        } else {
+            out.append("- 巡检任务：").append(inspection.inspectionTaskCount()).append("\n")
+                    .append("- 巡检记录：").append(inspection.inspectionRecordCount()).append("\n")
+                    .append("- 证据数量：").append(inspection.evidenceCount()).append("\n\n");
+        }
+
+        out.append("## 风险与优先级\n");
+        if (risk == null && priority == null) {
+            out.append("正式风险与更新优先级读取失败或不可用。\n\n");
+        } else {
+            out.append("- 正式风险：")
+                    .append(risk == null ? "暂无" : value(risk.riskLevel()) + " / " + value(risk.riskScore()))
+                    .append("\n")
+                    .append("- 更新优先级：")
+                    .append(priority == null ? "暂无" : value(priority.priorityLevel()) + " / " + value(priority.priorityScore()))
+                    .append("\n\n");
+        }
+
+        out.append("## 视觉病害\n");
+        if (vision == null) {
+            out.append("REAL 视觉结果读取失败或不可用。\n\n");
+        } else {
+            out.append("- 绑定推理：").append(value(vision.inferenceId())).append("\n")
+                    .append("- 图片资产：").append(value(vision.assetId())).append("\n")
+                    .append("- 状态/复核：").append(value(vision.status())).append(" / ")
+                    .append(value(vision.reviewStatus())).append("\n")
+                    .append("- 模型：").append(value(vision.modelId())).append("\n")
+                    .append("- 检出数：").append(vision.detectionCount()).append("\n\n");
+        }
+
+        out.append("## 判断依据\n")
+                .append("- 本节仅汇总 Spring Boot 只读 Tool 与已持久化 REAL 视觉结果。\n")
+                .append("- 未使用 DeepSeek 对证据进行新的语言模型推断。\n");
+        if (review != null) {
+            out.append("- Dify Review Assist：").append(value(review.status())).append("；")
+                    .append(value(review.summary())).append("\n");
+        }
+        out.append("\n");
+
+        out.append("## 人工复核建议\n");
+        if (review != null && review.recommendations() != null && !review.recommendations().isEmpty()) {
+            for (String item : review.recommendations()) {
+                out.append("- ").append(item).append("\n");
+            }
+        } else {
+            out.append("- 继续结合原始巡检图片、检测框、现场记录和正式风险结果进行人工确认。\n");
+        }
+        out.append("\n## 能力限制\n")
+                .append("- DeepSeek 返回 402 Insufficient Balance，当前账户余额不足。\n")
+                .append("- 本页展示的是结构化降级证据，不是新的 DeepSeek 综合研判结论。\n")
+                .append("- 正式风险评分和更新优先级未被本次降级流程修改。\n");
+        return out.toString();
+    }
+
+    private static String buildBalanceFallbackFromExistingSteps(AiAgentExecution execution) {
+        return "## 核心结论\nDeepSeek 账户余额不足，未能完成新的语言模型综合归纳。\n\n"
+                + "## 楼栋概况\n已执行工具结果请见下方执行轨迹。\n\n"
+                + "## 巡检证据\n已执行工具结果请见下方执行轨迹。\n\n"
+                + "## 风险与优先级\n已执行工具结果请见下方执行轨迹。\n\n"
+                + "## 视觉病害\n已执行工具结果请见下方执行轨迹。\n\n"
+                + "## 判断依据\n结构化工具执行摘要：\n" + summarizeToolSteps(execution) + "\n"
+                + "## 人工复核建议\n继续依据已获得的业务与视觉证据完成人工复核。\n\n"
+                + "## 能力限制\nDeepSeek 402 Insufficient Balance；未完成最终语言模型归纳。";
+    }
+
+    private static boolean hasToolSteps(AiAgentExecution execution) {
+        return execution.steps().stream().anyMatch(step -> "TOOL".equals(step.type().name()));
+    }
+
+    static String providerFailureCode(Throwable throwable) {
+        Throwable current = throwable;
+        int depth = 0;
+        while (current != null && depth++ < 8) {
+            String message = current.getMessage() == null ? "" : current.getMessage().toLowerCase();
+            if (message.contains("402")
+                    && (message.contains("insufficient balance")
+                    || message.contains("insufficient_balance")
+                    || message.contains("balance"))) {
+                return AiErrorCodes.AI_PROVIDER_INSUFFICIENT_BALANCE;
+            }
+            current = current.getCause();
+        }
+        return AiErrorCodes.AI_PROVIDER_UNAVAILABLE;
+    }
+
+    private static String safeProviderMessage(Throwable throwable) {
+        Throwable current = throwable;
+        String last = null;
+        int depth = 0;
+        while (current != null && depth++ < 8) {
+            if (current.getMessage() != null && !current.getMessage().isBlank()) {
+                last = current.getMessage();
+            }
+            current = current.getCause();
+        }
+        if (last == null) {
+            return throwable == null ? "Unknown provider error" : throwable.getClass().getSimpleName();
+        }
+        return last.length() <= 1000 ? last : last.substring(0, 1000);
+    }
+
+    private static UUID resolveBuildingId(String businessType, UUID businessId, Map<String, Object> context) {
+        UUID contextBuildingId = uuid(context == null ? null : context.get("buildingId"));
+        if (contextBuildingId != null) {
+            return contextBuildingId;
+        }
+        if ("BUILDING".equalsIgnoreCase(businessType)
+                || "AI_INFERENCE".equalsIgnoreCase(businessType)
+                || "RISK_ASSESSMENT".equalsIgnoreCase(businessType)) {
+            return businessId;
+        }
+        return null;
+    }
+
+    private static UUID uuid(Object value) {
+        if (value instanceof UUID id) return id;
+        if (value == null || String.valueOf(value).isBlank()) return null;
+        try {
+            return UUID.fromString(String.valueOf(value));
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private static String value(Object value) {
+        return value == null || String.valueOf(value).isBlank() ? "暂无" : String.valueOf(value);
+    }
+
+    private static <T> T safeCall(java.util.concurrent.Callable<T> call) {
+        try {
+            return call.call();
+        } catch (RuntimeException ex) {
+            return null;
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     /** 任一工具步骤 FAILED（预期能力失败）→ PARTIAL_SUCCEEDED；否则 SUCCEEDED。 */

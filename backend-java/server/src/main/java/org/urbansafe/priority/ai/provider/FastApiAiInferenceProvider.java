@@ -17,6 +17,8 @@ import org.urbansafe.priority.ai.orchestration.AiOrchestrationResult;
 public class FastApiAiInferenceProvider implements AiInferenceProvider, AiCapabilityProvider {
 
     public static final String PROVIDER_CODE = "FAST_API";
+    private static final double HIGH_ATTENTION_CONFIDENCE = 0.55d;
+    private static final double MEDIUM_ATTENTION_CONFIDENCE = 0.25d;
 
     private static final Map<String, String> RISK_CODES = Map.of(
             "CRACK", "VISUAL_CRACK",
@@ -160,29 +162,32 @@ public class FastApiAiInferenceProvider implements AiInferenceProvider, AiCapabi
                 .map(entry -> {
                     AiInferenceResponse.Detection detection = entry.getValue();
                     double confidence = detection.confidence();
-                    String level = visualTrustLevel(detection, confidence);
+                    String level = auxiliaryAttentionLevel(confidence);
+                    String modelTrust = normalizeModelTrust(detection.trustLevel());
                     String className = detection.className() == null || detection.className().isBlank()
                             ? entry.getKey()
                             : detection.className();
                     String description = String.format(Locale.ROOT,
-                            "视觉模型检测到%s候选，原始置信度 %.0f%%，模型候选可信度 %s；该信号仅用于专业复核，不代表正式风险等级。",
-                            className, confidence * 100.0, level);
+                            "视觉模型检测到%s候选，原始置信度 %.0f%%，模型信任等级 %s，辅助关注等级 %s；采用高敏感筛查口径，该信号仅用于专业复核，不代表正式风险等级。",
+                            className, confidence * 100.0, modelTrust, level);
                     return new AiOrchestrationResult.RiskSignal(
                             RISK_CODES.get(entry.getKey()), level, description, confidence);
                 })
                 .toList();
     }
 
-    private static String visualTrustLevel(
-            AiInferenceResponse.Detection detection, double confidence) {
-        String trust = detection.trustLevel();
-        if (trust != null) {
-            String normalized = trust.trim().toUpperCase(Locale.ROOT);
-            if (Set.of("HIGH", "MEDIUM", "LOW").contains(normalized)) {
-                return normalized;
-            }
+    private static String auxiliaryAttentionLevel(double confidence) {
+        return confidence >= HIGH_ATTENTION_CONFIDENCE
+                ? "HIGH"
+                : confidence >= MEDIUM_ATTENTION_CONFIDENCE ? "MEDIUM" : "LOW";
+    }
+
+    private static String normalizeModelTrust(String trust) {
+        if (trust == null || trust.isBlank()) {
+            return "UNKNOWN";
         }
-        return confidence >= 0.65 ? "HIGH" : confidence >= 0.40 ? "MEDIUM" : "LOW";
+        String normalized = trust.trim().toUpperCase(Locale.ROOT);
+        return Set.of("HIGH", "MEDIUM", "LOW").contains(normalized) ? normalized : "UNKNOWN";
     }
 
     private static String stringInput(AiOrchestrationRequest request, String key) {

@@ -12,7 +12,10 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.urbansafe.priority.ai.orchestration.AiBoundingBoxNormalizer;
+import org.urbansafe.priority.ai.orchestration.AiErrorCodes;
 import org.urbansafe.priority.ai.orchestration.AiStructuredResult;
+import org.urbansafe.priority.ai.provider.AiProviderException;
 
 /** 第七阶段编排审计与统一结果持久层，不修改第三阶段冻结仓储语义。 */
 @Repository
@@ -96,9 +99,7 @@ public class AiOrchestrationRepository {
         int sequence = 1;
         for (AiStructuredResult.Detection detection : result.detections()) {
             AiStructuredResult.BoundingBox box = detection.boundingBox();
-            if (box == null || !validBox(box)) {
-                continue;
-            }
+            AiBoundingBoxNormalizer.Box normalized = normalizeBox(box);
             jdbc.update("""
                     INSERT INTO ai.detection
                       (id,inference_result_id,sequence_no,class_code,class_name,confidence,
@@ -112,10 +113,10 @@ public class AiOrchestrationRepository {
                     .addValue("classCode", defaultText(detection.classCode(), "UNKNOWN"))
                     .addValue("className", defaultText(detection.className(), "未分类候选"))
                     .addValue("confidence", defaultConfidence(detection.confidence()))
-                    .addValue("x", box.x())
-                    .addValue("y", box.y())
-                    .addValue("width", box.width())
-                    .addValue("height", box.height())
+                    .addValue("x", normalized.x())
+                    .addValue("y", normalized.y())
+                    .addValue("width", normalized.width())
+                    .addValue("height", normalized.height())
                     .addValue("coordinateType", defaultText(
                             box.coordinateType(), "NORMALIZED_XYWH"))
                     .addValue("extraData", "{}"));
@@ -176,10 +177,13 @@ public class AiOrchestrationRepository {
         }
     }
 
-    private static boolean validBox(AiStructuredResult.BoundingBox box) {
-        return box.x() != null && box.y() != null && box.width() != null && box.height() != null
-                && box.x() >= 0d && box.y() >= 0d && box.width() > 0d && box.height() > 0d
-                && box.x() + box.width() <= 1d && box.y() + box.height() <= 1d;
+    /** 统一归一化并校验检测框；真正非法坐标抛出明确异常，绝不静默丢弃。 */
+    private static AiBoundingBoxNormalizer.Box normalizeBox(AiStructuredResult.BoundingBox box) {
+        if (box == null) {
+            throw new AiProviderException(
+                    AiErrorCodes.AI_INVALID_RESPONSE, "检测对象缺少检测框");
+        }
+        return AiBoundingBoxNormalizer.normalize(box.x(), box.y(), box.width(), box.height());
     }
 
     private static String defaultText(String value, String fallback) {

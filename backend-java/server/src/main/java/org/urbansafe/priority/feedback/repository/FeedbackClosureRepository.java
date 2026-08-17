@@ -12,6 +12,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class FeedbackClosureRepository {
 
+    private static final String UUID_PATTERN =
+            "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$";
+
     private final NamedParameterJdbcTemplate jdbc;
     private final ColumnMapRowMapper rowMapper = new ColumnMapRowMapper();
 
@@ -30,17 +33,31 @@ public class FeedbackClosureRepository {
                            t.planned_at AS "plannedAt",
                            t.started_at AS "startedAt",
                            t.completed_at AS "completedAt",
+                           EXISTS (
+                             SELECT 1
+                             FROM core.resident_report_event result_event
+                             WHERE result_event.resident_report_id=e.resident_report_id
+                               AND result_event.event_type IN ('REINSPECTION_PASSED','REINSPECTION_FAILED')
+                               AND COALESCE(result_event.event_data->>'taskId','')=COALESCE(e.event_data->>'taskId','')
+                               AND result_event.created_at>=e.created_at
+                           ) AS "resultRecorded",
                            e.created_at AS "linkedAt"
                     FROM core.resident_report_event e
                     JOIN core.inspection_task t
-                      ON t.id=(e.event_data->>'taskId')::uuid
+                      ON t.id=CASE
+                           WHEN COALESCE(e.event_data->>'taskId','') ~ :uuidPattern
+                           THEN (e.event_data->>'taskId')::uuid
+                           ELSE NULL
+                         END
                      AND t.deleted_at IS NULL
                     WHERE e.resident_report_id=:reportId
                       AND e.event_type='REINSPECTION_CREATED'
-                      AND e.event_data ? 'taskId'
+                      AND jsonb_exists(e.event_data, 'taskId')
                     ORDER BY e.created_at DESC, e.id DESC
                     LIMIT 1
-                    """, Map.of("reportId", reportId), rowMapper));
+                    """, Map.of(
+                    "reportId", reportId,
+                    "uuidPattern", UUID_PATTERN), rowMapper));
         } catch (EmptyResultDataAccessException ex) {
             return Optional.empty();
         }

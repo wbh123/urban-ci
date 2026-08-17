@@ -53,6 +53,7 @@ export interface AiAutomationSettingsUpdate {
   autoInferenceOnUpload: boolean
   intelligentWorkflowEnabled: boolean
   knowledgeQaEnabled: boolean
+  modelId: string
 }
 
 export function getAiGovernanceStatus(): Promise<AiGovernanceStatus> {

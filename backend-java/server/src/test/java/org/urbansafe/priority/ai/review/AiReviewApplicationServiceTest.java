@@ -12,15 +12,18 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.urbansafe.priority.ai.command.ReviewCommand;
 import org.urbansafe.priority.ai.service.AiInferenceService;
+import org.urbansafe.priority.assessment.service.AssessmentInvalidationService;
 import org.urbansafe.priority.common.exception.InvalidRequestException;
 
 class AiReviewApplicationServiceTest {
 
     @Test
-    void normalizesAndPersistsReviewedAuxiliaryRiskLevel() {
+    void normalizesAndPersistsReviewedAuxiliaryRiskLevelAndStalesFormalAssessments() {
         AiInferenceService inferenceService = mock(AiInferenceService.class);
         AiReviewCorrectionRepository repository = mock(AiReviewCorrectionRepository.class);
-        AiReviewApplicationService service = new AiReviewApplicationService(inferenceService, repository);
+        AssessmentInvalidationService invalidationService = mock(AssessmentInvalidationService.class);
+        AiReviewApplicationService service = new AiReviewApplicationService(
+                inferenceService, repository, invalidationService);
         UUID inferenceId = UUID.randomUUID();
         UUID reviewerId = UUID.randomUUID();
         ReviewCommand command = new ReviewCommand(
@@ -34,11 +37,35 @@ class AiReviewApplicationServiceTest {
                 "reviewStatus", "CORRECTED"));
         when(repository.updateLatest(eq(inferenceId), eq(reviewerId), eq(Map.of("reviewedRiskLevel", "HIGH"))))
                 .thenReturn(1);
+        when(invalidationService.invalidateAfterAiReview(inferenceId)).thenReturn(true);
 
         Map<String, Object> result = service.review(command);
 
         verify(repository).updateLatest(inferenceId, reviewerId, Map.of("reviewedRiskLevel", "HIGH"));
+        verify(invalidationService).invalidateAfterAiReview(inferenceId);
         assertThat(result.get("correctedData")).isEqualTo(Map.of("reviewedRiskLevel", "HIGH"));
+        assertThat(result.get("assessmentRefreshRequired")).isEqualTo(true);
+    }
+
+    @Test
+    void returnsNoRefreshRequirementWhenInferenceIsNotBoundToBuilding() {
+        AiInferenceService inferenceService = mock(AiInferenceService.class);
+        AiReviewCorrectionRepository repository = mock(AiReviewCorrectionRepository.class);
+        AssessmentInvalidationService invalidationService = mock(AssessmentInvalidationService.class);
+        AiReviewApplicationService service = new AiReviewApplicationService(
+                inferenceService, repository, invalidationService);
+        UUID inferenceId = UUID.randomUUID();
+        ReviewCommand command = new ReviewCommand(
+                inferenceId, "CONFIRMED", "确认", UUID.randomUUID(), Map.of());
+        when(inferenceService.review(command)).thenReturn(Map.of(
+                "inferenceId", inferenceId,
+                "reviewStatus", "CONFIRMED"));
+        when(invalidationService.invalidateAfterAiReview(inferenceId)).thenReturn(false);
+
+        Map<String, Object> result = service.review(command);
+
+        verify(invalidationService).invalidateAfterAiReview(inferenceId);
+        assertThat(result.get("assessmentRefreshRequired")).isEqualTo(false);
     }
 
     @Test

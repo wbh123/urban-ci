@@ -62,7 +62,7 @@ function sources(overrides: Partial<BuildingDetailSources> = {}): BuildingDetail
 }
 
 describe('loadBuildingDetail', () => {
-  it('aggregates existing domains into R4-2 view models without inventing disposal or reinspection data', async () => {
+  it('aggregates existing domains without inventing disposal or reinspection data', async () => {
     const model = await loadBuildingDetail('b-1', sources())
 
     expect(model.summary).toMatchObject({
@@ -100,6 +100,31 @@ describe('loadBuildingDetail', () => {
     expect(model.warnings).toEqual([])
   })
 
+  it('projects real rectification and reinspection work into lifecycle nodes', async () => {
+    const model = await loadBuildingDetail('b-1', sources({
+      listFeedbackReports: vi.fn().mockResolvedValue({
+        content: [
+          { reportId: 'f-1', status: 'PROCESSING', buildingId: 'b-1' },
+          { reportId: 'f-2', status: 'CLOSED', buildingId: 'b-1' },
+        ],
+        page: { page: 0, size: 100, totalElements: 2, totalPages: 1 },
+      }),
+      listInspectionTasks: vi.fn().mockResolvedValue([
+        { taskId: 't-1', status: 'COMPLETED', inspectionType: 'ROUTINE' },
+        { taskId: 't-r', status: 'PENDING', inspectionType: 'REINSPECTION' },
+      ]),
+    }))
+
+    expect(model.lifecycle.find((node) => node.stage === 'DISPOSAL')).toMatchObject({
+      status: 'IN_PROGRESS',
+      count: 2,
+    })
+    expect(model.lifecycle.find((node) => node.stage === 'REINSPECTION')).toMatchObject({
+      status: 'PENDING',
+      count: 1,
+    })
+  })
+
   it('keeps the page usable when optional domains fail and records domain warnings', async () => {
     const model = await loadBuildingDetail('b-1', sources({
       getCommunity: vi.fn().mockRejectedValue(new Error('community unavailable')),
@@ -108,6 +133,7 @@ describe('loadBuildingDetail', () => {
       listAiInferences: vi.fn().mockRejectedValue(new Error('ai unavailable')),
       getCurrentBuildingAssessment: vi.fn().mockRejectedValue(new Error('assessment unavailable')),
       listRiskReports: vi.fn().mockRejectedValue(new Error('report unavailable')),
+      listFeedbackReports: vi.fn().mockRejectedValue(new Error('feedback unavailable')),
     }))
 
     expect(model.summary.buildingName).toBe('1号楼')
@@ -117,7 +143,7 @@ describe('loadBuildingDetail', () => {
     expect(model.evidence).toEqual([])
     expect(model.lifecycle.find((node) => node.stage === 'INSPECTION')?.status).toBe('NOT_STARTED')
     expect(model.warnings.map((warning) => warning.domain)).toEqual(expect.arrayContaining([
-      'COMMUNITY', 'SPATIAL', 'INSPECTION', 'ANALYSIS', 'ASSESSMENT', 'REPORT',
+      'COMMUNITY', 'SPATIAL', 'INSPECTION', 'ANALYSIS', 'ASSESSMENT', 'DISPOSAL', 'REPORT',
     ]))
   })
 

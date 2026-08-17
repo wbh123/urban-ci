@@ -49,6 +49,7 @@ public final class AiInferenceConverter {
     private static void decorate(Map<String, Object> item) {
         item.put("resultAvailable", "SUCCEEDED".equals(item.get("status")));
         item.put("detectionCount", detectionCount(item));
+        item.put("detectionConsistency", detectionConsistency(item));
         AiAssessmentEvidencePolicy.Decision decision = AiAssessmentEvidencePolicy.evaluate(item);
         item.put("assessmentEligibility", decision.assessmentEligibility());
         item.put("eligibleForFormalAssessment", decision.eligibleForFormalAssessment());
@@ -57,16 +58,87 @@ public final class AiInferenceConverter {
         item.remove("version");
     }
 
-    @SuppressWarnings("unchecked")
-    private static int detectionCount(Map<String, Object> task) {
-        Object detections = task.get("detections");
-        if (detections instanceof List<?> list) {
-            return list.size();
+    /**
+     * 统一视觉检测数量口径。
+     *
+     * <p>详情响应中 structuredResult 保存的是模型成功返回时的原始结构化检测集合；ai.detection
+     * 是它的持久化投影。历史版本曾因检测框校验口径不一致而出现“structuredResult 有框、投影表为 0”
+     * 的脏数据，因此当详情同时携带 structuredResult 时，以其 detections 为展示与 Tool 的 canonical
+     * 数量，并通过 detectionConsistency 显式暴露投影不一致。列表行通常不携带 structuredResult，
+     * 此时继续使用 SQL 从 ai.detection 汇总的 detectionCount。
+     */
+    static int detectionCount(Map<String, Object> task) {
+        Integer structuredCount = structuredDetectionCount(task);
+        if (structuredCount != null) {
+            return structuredCount;
+        }
+        Integer directCount = numericCount(task.get("detectionCount"));
+        if (directCount != null) {
+            return directCount;
+        }
+        Integer detailCount = listCount(task.get("detections"));
+        if (detailCount != null) {
+            return detailCount;
         }
         Object summary = task.get("summary");
-        if (summary instanceof Map<?, ?> summaryMap && summaryMap.get("detectionCount") instanceof Number number) {
-            return number.intValue();
+        if (summary instanceof Map<?, ?> summaryMap) {
+            Integer summaryCount = numericCount(summaryMap.get("detectionCount"));
+            if (summaryCount != null) {
+                return summaryCount;
+            }
         }
         return 0;
+    }
+
+    /** 检测结构化结果、持久化投影和摘要计数是否一致；只比较当前响应实际携带的数据源。 */
+    static String detectionConsistency(Map<String, Object> task) {
+        Integer structuredCount = structuredDetectionCount(task);
+        Integer directCount = numericCount(task.get("detectionCount"));
+        Integer detailCount = listCount(task.get("detections"));
+        Integer summaryCount = null;
+        Object summary = task.get("summary");
+        if (summary instanceof Map<?, ?> summaryMap) {
+            summaryCount = numericCount(summaryMap.get("detectionCount"));
+        }
+
+        Integer reference = structuredCount != null
+                ? structuredCount
+                : directCount != null ? directCount : detailCount != null ? detailCount : summaryCount;
+        if (reference == null) {
+            return "CONSISTENT";
+        }
+        if ((directCount != null && !directCount.equals(reference))
+                || (detailCount != null && !detailCount.equals(reference))
+                || (summaryCount != null && !summaryCount.equals(reference))) {
+            return "MISMATCH";
+        }
+        return "CONSISTENT";
+    }
+
+    private static Integer structuredDetectionCount(Map<String, Object> task) {
+        Object structured = task.get("structuredResult");
+        if (structured instanceof Map<?, ?> structuredMap
+                && structuredMap.get("detections") instanceof List<?> structuredDetections) {
+            return structuredDetections.size();
+        }
+        return null;
+    }
+
+    private static Integer listCount(Object value) {
+        return value instanceof List<?> list ? list.size() : null;
+    }
+
+    private static Integer numericCount(Object value) {
+        if (value instanceof Number number) {
+            return Math.max(0, number.intValue());
+        }
+        if (value == null || String.valueOf(value).isBlank()) {
+            return null;
+        }
+        try {
+            return Math.max(0, Integer.parseInt(String.valueOf(value)));
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 }

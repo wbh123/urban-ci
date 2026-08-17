@@ -162,12 +162,13 @@ class FeedbackServiceTest {
     @Test
     void terminalStatusCannotTransition() {
         UUID reportId = UUID.randomUUID();
-        when(repository.findReport(reportId)).thenReturn(Optional.of(Map.of(
+        when(repository.lockReport(reportId)).thenReturn(Optional.of(Map.of(
                 "reportId", reportId,
                 "reportCode", "FB-1",
                 "status", "CLOSED")));
 
         assertThrows(ResourceConflictException.class, () -> service.updateStatus(
                 reportId, Map.of("status", "PROCESSING"), UUID.randomUUID()));
+        verify(repository).lockReport(reportId);
     }
 }

@@ -4,6 +4,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aMultipart;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
@@ -80,11 +81,21 @@ class DifyApiClientTest {
     }
 
     @Test
-    void textWorkflowShouldUseItsOwnApiKeyWithoutImageUpload() {
+    void textWorkflowShouldUseItsOwnApiKeyAndSendOnlyDeclaredInputs() {
         when(workflowRegistry.requireByWorkflowCode("DIFY-KNOWLEDGE-QA-001"))
                 .thenReturn(definition("DIFY-KNOWLEDGE-QA-001", "qa-key", true));
         wireMock.stubFor(post(urlEqualTo("/workflows/run"))
                 .withHeader("Authorization", equalTo("Bearer qa-key"))
+                .withRequestBody(equalToJson("""
+                        {
+                          "inputs": {
+                            "assetId": "asset-1",
+                            "requestCode": "request-1"
+                          },
+                          "response_mode": "blocking",
+                          "user": "request-1"
+                        }
+                        """))
                 .willReturn(aResponse().withStatus(200)
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"workflow_run_id\":\"run-qa\",\"data\":{\"status\":\"succeeded\",\"outputs\":{\"result\":{\"summary\":\"answer\"}}}}")));

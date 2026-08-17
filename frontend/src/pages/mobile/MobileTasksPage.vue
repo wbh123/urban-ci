@@ -23,6 +23,13 @@ function selectStatus(value: (typeof statusOptions)[number]): void {
   status.value = value
 }
 
+function inspectionTypeLabel(value?: string | null): string {
+  if (value === 'ROUTINE') return '日常巡检'
+  if (value === 'SPECIAL') return '专项巡检'
+  if (value === 'REINSPECTION') return '复查复验'
+  return value || '其他巡检'
+}
+
 async function loadTasks(): Promise<void> {
   loading.value = true
   errorMessage.value = ''
@@ -72,7 +79,7 @@ onMounted(loadTasks)
           <span>{{ task.buildingName || task.buildingId }}</span>
         </div>
         <AppStatusTag :status="task.status" variant="task" />
-        <small>{{ task.taskCode }} · {{ task.inspectionType }}</small>
+        <small>{{ task.taskCode }} · {{ inspectionTypeLabel(task.inspectionType) }}</small>
       </button>
       <AppEmpty v-if="!filteredTasks.length" description="当前筛选条件下暂无任务" />
     </div>

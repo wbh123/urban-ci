@@ -18,15 +18,16 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import org.urbansafe.priority.ai.config.AiInferenceProperties;
+import org.urbansafe.priority.ai.orchestration.AiBoundingBoxNormalizer;
 
 /** 调用 FastAPI 内部模型目录、图片质量预检与推理接口的 HTTP 客户端。 */
 public class AiFastApiClient {
 
-    private static final double EPSILON = 1e-9;
     private static final String CUDA_EXECUTION_PROVIDER = "CUDAExecutionProvider";
     private static final String PY_TORCH_CUDA_PROVIDER = "PyTorch-CUDA";
 
     private final RestClient restClient;
+    private final RestClient precisionRestClient;
     private final RestClient accuracyRestClient;
     private final ObjectMapper objectMapper;
     private final AiInferenceProperties properties;
@@ -35,7 +36,7 @@ public class AiFastApiClient {
             RestClient restClient,
             ObjectMapper objectMapper,
             AiInferenceProperties properties) {
-        this(restClient, restClient, objectMapper, properties);
+        this(restClient, restClient, restClient, objectMapper, properties);
     }
 
     public AiFastApiClient(
@@ -43,7 +44,17 @@ public class AiFastApiClient {
             RestClient accuracyRestClient,
             ObjectMapper objectMapper,
             AiInferenceProperties properties) {
+        this(restClient, restClient, accuracyRestClient, objectMapper, properties);
+    }
+
+    public AiFastApiClient(
+            RestClient restClient,
+            RestClient precisionRestClient,
+            RestClient accuracyRestClient,
+            ObjectMapper objectMapper,
+            AiInferenceProperties properties) {
         this.restClient = restClient;
+        this.precisionRestClient = precisionRestClient;
         this.accuracyRestClient = accuracyRestClient;
         this.objectMapper = objectMapper;
         this.properties = properties;
@@ -60,7 +71,7 @@ public class AiFastApiClient {
         }
 
         String body;
-        RestClient inferenceClient = isAccuracyProfile(metadata) ? accuracyRestClient : restClient;
+        RestClient inferenceClient = resolveInferenceClient(metadata);
         try {
             body = inferenceClient.post()
                     .uri("/internal/api/v1/ai/inferences")
@@ -142,9 +153,16 @@ public class AiFastApiClient {
         return CUDA_EXECUTION_PROVIDER.equals(provider) || PY_TORCH_CUDA_PROVIDER.equals(provider);
     }
 
-    private static boolean isAccuracyProfile(Map<String, Object> metadata) {
+    /** 按推理档位选择专用 RestClient：ACCURACY / PRECISION 各自长超时，FAST 与缺省走普通客户端。 */
+    private RestClient resolveInferenceClient(Map<String, Object> metadata) {
         String value = stringValue(metadata == null ? null : metadata.get("inferenceProfile"));
-        return "ACCURACY".equalsIgnoreCase(value);
+        if ("ACCURACY".equalsIgnoreCase(value)) {
+            return accuracyRestClient;
+        }
+        if ("PRECISION".equalsIgnoreCase(value)) {
+            return precisionRestClient;
+        }
+        return restClient;
     }
 
     private AiImageQualityResponse parseImageQuality(String body, String requestId) {
@@ -246,24 +264,16 @@ public class AiFastApiClient {
             if (box == null) {
                 throw new AiFastApiException("AI_SERVICE_INVALID_RESPONSE", "检测对象缺少检测框");
             }
-            if (!inRange(box.x(), 0.0, 1.0)
-                    || !inRange(box.y(), 0.0, 1.0)
-                    || !inRangeExclusive(box.width(), 0.0, 1.0)
-                    || !inRangeExclusive(box.height(), 0.0, 1.0)
-                    || box.x() + box.width() > 1.0 + EPSILON
-                    || box.y() + box.height() > 1.0 + EPSILON
-                    || !inRange(detection.confidence(), 0.0, 1.0)) {
+            if (!AiBoundingBoxNormalizer.isValid(box.x(), box.y(), box.width(), box.height())
+                    || !confidenceInRange(detection.confidence())) {
                 throw new AiFastApiException("AI_SERVICE_INVALID_RESPONSE", "FastAPI 返回非法检测框");
             }
         }
     }
 
-    private boolean inRange(double value, double min, double max) {
-        return value >= min - EPSILON && value <= max + EPSILON;
-    }
-
-    private boolean inRangeExclusive(double value, double min, double max) {
-        return value > min - EPSILON && value <= max + EPSILON;
+    private boolean confidenceInRange(double value) {
+        return value >= 0.0 - AiBoundingBoxNormalizer.EPSILON
+                && value <= 1.0 + AiBoundingBoxNormalizer.EPSILON;
     }
 
     private AiFastApiException mapNetworkError(ResourceAccessException ex) {

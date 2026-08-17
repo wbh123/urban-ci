@@ -3,10 +3,12 @@ import {
   getCommunity,
   getCurrentBuildingAssessment,
   listAiInferences,
+  listFeedbackReports,
   listInspectionTasks,
   listRiskReports,
   type AiInferenceTask,
   type BuildingCurrentAssessment,
+  type FeedbackManagementRow,
   type InspectionTask,
   type RiskReportRow,
 } from '@/shared/api'
@@ -14,6 +16,7 @@ import { getBuildingBoundary } from '@/shared/api/endpoints/spatial'
 import {
   buildBuildingLifecycle,
   type BuildingLifecycleNode,
+  type GenericWorkflowSnapshot,
 } from '@/shared/components/business/building-lifecycle'
 import type {
   BuildingEvidenceGalleryItem,
@@ -27,6 +30,7 @@ export type BuildingDetailDomain =
   | 'INSPECTION'
   | 'ANALYSIS'
   | 'ASSESSMENT'
+  | 'DISPOSAL'
   | 'REPORT'
 
 export interface BuildingDetailWarning {
@@ -54,6 +58,7 @@ export interface BuildingDetailSources {
   listAiInferences: typeof listAiInferences
   getCurrentBuildingAssessment: typeof getCurrentBuildingAssessment
   listRiskReports: typeof listRiskReports
+  listFeedbackReports?: typeof listFeedbackReports
 }
 
 const defaultSources: BuildingDetailSources = {
@@ -64,6 +69,7 @@ const defaultSources: BuildingDetailSources = {
   listAiInferences,
   getCurrentBuildingAssessment,
   listRiskReports,
+  listFeedbackReports,
 }
 
 interface OptionalResult<T> {
@@ -77,8 +83,9 @@ export async function loadBuildingDetail(
 ): Promise<BuildingDetailModel> {
   const building = await sources.getBuilding(buildingId)
   const communityId = building.communityId ?? ''
+  const feedbackLoader = sources.listFeedbackReports
 
-  const [communityResult, boundaryResult, inspectionResult, analysisResult, assessmentResult, reportResult] = await Promise.all([
+  const [communityResult, boundaryResult, inspectionResult, analysisResult, assessmentResult, reportResult, feedbackResult] = await Promise.all([
     communityId
       ? optional('COMMUNITY', () => sources.getCommunity(communityId))
       : Promise.resolve<OptionalResult<Awaited<ReturnType<typeof getCommunity>>>>({
@@ -90,6 +97,9 @@ export async function loadBuildingDetail(
     optional('ANALYSIS', () => sources.listAiInferences({ buildingId, page: 0, size: 50 })),
     optional('ASSESSMENT', () => sources.getCurrentBuildingAssessment(buildingId)),
     optional('REPORT', () => sources.listRiskReports({ buildingId, page: 0, size: 20 })),
+    feedbackLoader
+      ? optional('DISPOSAL', () => feedbackLoader({ buildingId, page: 0, size: 100 }))
+      : Promise.resolve<OptionalResult<Awaited<ReturnType<typeof listFeedbackReports>>>>({ value: null }),
   ])
 
   const community = communityResult.value
@@ -98,6 +108,7 @@ export async function loadBuildingDetail(
   const analyses = analysisResult.value?.content ?? []
   const assessment = assessmentResult.value
   const reports = reportResult.value?.content ?? []
+  const feedbacks = feedbackResult.value?.content ?? []
   const communityName = community?.communityName || assessment?.communityName || '所属小区'
 
   const summary: BuildingSummaryView = {
@@ -131,6 +142,7 @@ export async function loadBuildingDetail(
     assessedAt: assessment?.risk?.assessedAt,
   }
 
+  const reinspectionTasks = inspections.filter((item) => item.inspectionType === 'REINSPECTION')
   const lifecycle = buildBuildingLifecycle({
     building: {
       id: summary.buildingId,
@@ -153,6 +165,8 @@ export async function loadBuildingDetail(
       needManualReview: risk.needManualReview,
       updatedAt: risk.assessedAt,
     },
+    disposal: disposalSnapshot(feedbacks),
+    reinspection: reinspectionSnapshot(reinspectionTasks),
     reports: reports.map((item) => ({
       reportStatus: item.reportStatus,
       updatedAt: item.generatedAt ?? item.createdAt,
@@ -166,6 +180,7 @@ export async function loadBuildingDetail(
     analysisResult.warning,
     assessmentResult.warning,
     reportResult.warning,
+    feedbackResult.warning,
   ].filter((warning): warning is BuildingDetailWarning => Boolean(warning))
 
   return {
@@ -195,6 +210,28 @@ async function optional<T>(
         message: error instanceof Error ? error.message : `${domain} 数据暂时不可用`,
       },
     }
+  }
+}
+
+function disposalSnapshot(items: FeedbackManagementRow[]): GenericWorkflowSnapshot | undefined {
+  if (!items.length) return undefined
+  return {
+    total: items.length,
+    pending: items.filter((item) => item.status === 'SUBMITTED' || item.status === 'ACCEPTED').length,
+    inProgress: items.filter((item) => item.status === 'PROCESSING').length,
+    completed: items.filter((item) => item.status === 'RESOLVED' || item.status === 'CLOSED').length,
+    attention: items.filter((item) => item.status === 'NEED_MORE_INFO').length,
+  }
+}
+
+function reinspectionSnapshot(items: InspectionTask[]): GenericWorkflowSnapshot | undefined {
+  if (!items.length) return undefined
+  return {
+    total: items.length,
+    pending: items.filter((item) => item.status === 'PENDING').length,
+    inProgress: items.filter((item) => item.status === 'IN_PROGRESS').length,
+    completed: items.filter((item) => item.status === 'COMPLETED').length,
+    attention: items.filter((item) => item.status === 'CANCELLED').length,
   }
 }
 

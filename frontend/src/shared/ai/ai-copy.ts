@@ -12,6 +12,7 @@ export const AI_COPY = {
 const BUSINESS_ERROR_COPY: Record<string, string> = {
   AI_PROVIDER_NOT_CONFIGURED: '智能工作流不可用，已使用本地高精度模型',
   AI_PROVIDER_UNAVAILABLE: '智能服务暂时不可用，基础业务不受影响',
+  AI_PROVIDER_INSUFFICIENT_BALANCE: 'DeepSeek 账户余额不足，已降级展示本地结构化证据',
   AI_PROVIDER_AUTH_ERROR: '智能服务暂时不可用，基础业务不受影响',
   AI_PROVIDER_TIMEOUT: '智能服务响应较慢，基础业务不受影响',
 }

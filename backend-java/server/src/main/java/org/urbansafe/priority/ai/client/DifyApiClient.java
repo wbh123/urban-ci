@@ -46,10 +46,10 @@ public class DifyApiClient implements DifyWorkflowClient {
         requireReady(workflow);
         try {
             String uploadFileId = uploadIfNecessary(request, workflow);
+            // Dify Start 节点只接受工作流显式声明的输入变量。
+            // workflowCode/workflowVersion/inputSchemaVersion 属于 Spring Boot 治理元数据，
+            // 保留在本地注册表与审计中，不再无条件注入远端 Workflow inputs。
             Map<String, Object> inputs = new LinkedHashMap<>(request.inputs());
-            inputs.putIfAbsent("workflowCode", workflow.workflowCode());
-            inputs.putIfAbsent("workflowVersion", workflow.currentVersion());
-            inputs.putIfAbsent("inputSchemaVersion", workflow.inputSchemaVersion());
             if (uploadFileId != null) {
                 inputs.put("image", Map.of(
                         "type", "image",

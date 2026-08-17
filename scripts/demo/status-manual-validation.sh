@@ -18,6 +18,17 @@ status_http() {
   fi
 }
 
+has_env() {
+  [[ -n "$(env_value "$1" || true)" ]]
+}
+
+is_true() {
+  case "${1,,}" in
+    true|1|yes|on) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 echo "========================================"
 echo " 城安智序手动验证环境状态"
 echo "========================================"
@@ -53,14 +64,48 @@ print('executionProvider=', m.get('executionProvider'))
 PY
 fi
 
-echo "\n[云端 AI 配置，仅显示是否配置，不输出密钥]"
-for key in URBAN_SAFE_SPRING_AI_API_KEY URBAN_SAFE_DIFY_REVIEW_ASSIST_API_KEY URBAN_SAFE_DIFY_REPORT_DRAFT_API_KEY; do
-  value="$(env_value "${key}" || true)"
-  if [[ -n "${value}" ]]; then
-    echo "[CONFIGURED] ${key}"
+echo "\n[云端 AI 主演示能力，仅显示状态，不输出密钥]"
+if is_true "$(env_value URBAN_SAFE_DIFY_ENABLED || true)"; then
+  echo "[READY] Dify Provider"
+else
+  echo "[OFF  ] Dify Provider"
+fi
+if has_env URBAN_SAFE_DIFY_REVIEW_ASSIST_API_KEY; then
+  echo "[READY] Dify Review Assist · 主演示依赖"
+else
+  echo "[MISS ] Dify Review Assist · 缺少专用 API Key"
+fi
+if has_env URBAN_SAFE_DIFY_REPORT_DRAFT_API_KEY; then
+  echo "[HOLD ] Dify Report Draft · 已配置但当前综合研判不暴露"
+else
+  echo "[SKIP ] Dify Report Draft · 主演示不依赖"
+fi
+if has_env URBAN_SAFE_SPRING_AI_API_KEY; then
+  echo "[READY] Spring AI / DeepSeek Key"
+else
+  echo "[MISS ] Spring AI / DeepSeek Key"
+fi
+
+echo "\n[黄金演示楼栋]"
+if docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" ps --status running --services 2>/dev/null | grep -qx postgresql; then
+  golden_count="$(
+    docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" exec -T postgresql sh -eu -c \
+      'psql -At -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' 2>/dev/null <<'SQL' || echo 0
+SELECT count(*)
+FROM core.building
+WHERE deleted_at IS NULL
+  AND COALESCE(extra_attributes->>'showcaseGolden','false')='true';
+SQL
+  )"
+  golden_count="${golden_count//$'\r'/}"
+  golden_count="${golden_count//$'\n'/}"
+  if [[ "${golden_count}" =~ ^[0-9]+$ ]] && (( golden_count >= 3 )); then
+    echo "[READY] 黄金楼栋 ${golden_count} 栋"
   else
-    echo "[UNCONFIG  ] ${key}"
+    echo "[MISS ] 黄金楼栋不足 3 栋；执行 bash scripts/dev/prepare-showcase-golden-buildings.sh"
   fi
-done
+else
+  echo "[SKIP ] PostgreSQL 未运行，无法检查黄金楼栋"
+fi
 
 echo "\n日志目录：${LOG_DIR}"

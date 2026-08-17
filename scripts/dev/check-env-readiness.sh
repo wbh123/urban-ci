@@ -15,7 +15,7 @@ for arg in "$@"; do
   bash scripts/dev/check-env-readiness.sh --connectivity
 
 默认只检查 .env 配置语义和本机报告字体，不打印任何密钥。
---connectivity 额外执行只读连通性探测：Spring Boot、FastAPI、MinIO、PostgreSQL、Dify、DeepSeek。
+--connectivity 额外执行只读连通性探测：Spring Boot、FastAPI、MinIO、PostgreSQL、Dify Review Assist、DeepSeek。
 EOF
       exit 0
       ;;
@@ -168,6 +168,8 @@ echo
 info "4/7 Dify 工作流"
 dify_enabled="$(value_of URBAN_SAFE_DIFY_ENABLED)"
 dify_base="$(value_of URBAN_SAFE_DIFY_BASE_URL)"
+review_assist_key="$(value_of URBAN_SAFE_DIFY_REVIEW_ASSIST_API_KEY)"
+report_draft_key="$(value_of URBAN_SAFE_DIFY_REPORT_DRAFT_API_KEY)"
 dify_key_names=(
   URBAN_SAFE_DIFY_REVIEW_ASSIST_API_KEY
   URBAN_SAFE_DIFY_REPORT_DRAFT_API_KEY
@@ -176,15 +178,9 @@ dify_key_names=(
   URBAN_SAFE_DIFY_API_KEY
 )
 dify_configured_count=0
-first_dify_key=""
-first_dify_key_name=""
 for key_name in "${dify_key_names[@]}"; do
   if has_value "${key_name}"; then
     dify_configured_count=$((dify_configured_count + 1))
-    if [[ -z "${first_dify_key}" ]]; then
-      first_dify_key="$(value_of "${key_name}")"
-      first_dify_key_name="${key_name}"
-    fi
   fi
 done
 
@@ -197,7 +193,16 @@ fi
 if is_true "${dify_enabled}"; then
   pass "Dify Provider：已启用"
   [[ -n "${dify_base}" ]] && pass "Dify Base URL：已配置" || fail "Dify 已启用但 URBAN_SAFE_DIFY_BASE_URL 为空"
-  (( dify_configured_count > 0 )) || fail "Dify 已启用但没有任何工作流 API Key"
+  if has_value URBAN_SAFE_DIFY_REVIEW_ASSIST_API_KEY; then
+    pass "Dify Review Assist：主演示工作流 Key 已配置"
+  else
+    fail "Dify 已启用但 Review Assist 未配置；缺少 URBAN_SAFE_DIFY_REVIEW_ASSIST_API_KEY"
+  fi
+  if has_value URBAN_SAFE_DIFY_REPORT_DRAFT_API_KEY; then
+    warn "Dify Report Draft Key 已配置，但当前主演示综合研判暂不暴露该工作流，等待契约单独收口"
+  else
+    warn "Dify Report Draft 未配置；当前主演示不依赖该能力"
+  fi
 else
   if (( dify_configured_count > 0 )); then
     fail "Dify 已配置密钥但 Provider 仍被禁用；请设置 URBAN_SAFE_DIFY_ENABLED=true"
@@ -298,17 +303,17 @@ if [[ "${connectivity}" == "true" ]]; then
     warn "Spring Boot Health：HTTP ${boot_code}；若后端尚未启动可忽略"
   fi
 
-  if is_true "${dify_enabled}" && [[ -n "${first_dify_key}" && -n "${dify_base}" ]]; then
-    dify_code="$(http_status "${dify_base%/}/workflows/logs?page=1&limit=1" -H "Authorization: Bearer ${first_dify_key}")"
+  if is_true "${dify_enabled}" && [[ -n "${review_assist_key}" && -n "${dify_base}" ]]; then
+    dify_code="$(http_status "${dify_base%/}/workflows/logs?page=1&limit=1" -H "Authorization: Bearer ${review_assist_key}")"
     if [[ "${dify_code}" =~ ^2 ]]; then
-      pass "Dify 连通性：HTTP ${dify_code}（使用 ${first_dify_key_name}，密钥未输出）"
+      pass "Dify Review Assist 连通性：HTTP ${dify_code}（专用密钥未输出）"
     elif [[ "${dify_code}" == "401" || "${dify_code}" == "403" ]]; then
-      fail "Dify 连通性：HTTP ${dify_code}，请检查工作流 API Key"
+      fail "Dify Review Assist 连通性：HTTP ${dify_code}，请检查专用工作流 API Key"
     else
-      warn "Dify 连通性：HTTP ${dify_code}；请结合 Dify 服务状态与 Base URL 排查"
+      warn "Dify Review Assist 连通性：HTTP ${dify_code}；请结合 Dify 服务状态与 Base URL 排查"
     fi
   else
-    warn "Dify 连通性：未执行（未启用或缺少可探测工作流 Key）"
+    warn "Dify Review Assist 连通性：未执行（未启用或缺少专用工作流 Key）"
   fi
 
   if is_true "${spring_ai_enabled}" && [[ "${spring_ai_chat,,}" == "openai" && -n "${spring_ai_key}" && -n "${spring_ai_base}" ]]; then

@@ -36,44 +36,37 @@ WITH admin_user AS (
        '整改完成待复验、创建复查任务、复验通过关闭、复验不通过退回整改、重新评分。'),
       ('DEMO-KNOWLEDGE-EVIDENCE-001', '城安智序内部演示指南：现场证据采集', 'INTERNAL_GUIDE', '1.0.0', 'internal://demo/knowledge/evidence-capture',
        '现场证据采集：全景、中景、近景、位置、时间、构件、尺度参照、原图、整改前后对照。')
-), upserted AS (
-    INSERT INTO knowledge.document (
-        id, document_code, title, document_type, document_version, status,
-        security_level, role_scope, source_uri, content_checksum,
-        effective_from, effective_to, metadata, created_by, created_at, updated_at
-    )
-    SELECT
-        gen_random_uuid(), d.document_code, d.title, d.document_type, d.document_version, 'ACTIVE',
-        'INTERNAL', ARRAY['ADMIN','PROPERTY_INSPECTOR','EXPERT']::TEXT[], d.source_uri,
-        md5(d.content_seed), CURRENT_TIMESTAMP - INTERVAL '1 day', NULL,
-        jsonb_build_object(
-            'demo', true,
-            'reviewStatus', 'APPROVED',
-            'reviewedFor', 'COMPETITION_DEMO',
-            'sourceType', 'INTERNAL_DEMO_GUIDE',
-            'legalDisclaimer', '项目内部演示知识，不替代国家标准、地方规范或专业鉴定文件'
-        ),
-        a.id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    FROM document_data d CROSS JOIN admin_user a
-    ON CONFLICT (document_code, document_version) DO UPDATE SET
-        title=EXCLUDED.title,
-        document_type=EXCLUDED.document_type,
-        status='ACTIVE',
-        security_level='INTERNAL',
-        role_scope=EXCLUDED.role_scope,
-        source_uri=EXCLUDED.source_uri,
-        content_checksum=EXCLUDED.content_checksum,
-        effective_from=EXCLUDED.effective_from,
-        effective_to=NULL,
-        metadata=EXCLUDED.metadata,
-        updated_at=CURRENT_TIMESTAMP
-    RETURNING id, document_code
 )
-DELETE FROM knowledge.chunk c
-USING knowledge.document d
-WHERE c.document_id=d.id
-  AND d.document_code LIKE 'DEMO-KNOWLEDGE-%'
-  AND d.document_version='1.0.0';
+INSERT INTO knowledge.document (
+    id, document_code, title, document_type, document_version, status,
+    security_level, role_scope, source_uri, content_checksum,
+    effective_from, effective_to, metadata, created_by, created_at, updated_at
+)
+SELECT
+    gen_random_uuid(), d.document_code, d.title, d.document_type, d.document_version, 'ACTIVE',
+    'INTERNAL', ARRAY['ADMIN','PROPERTY_INSPECTOR','EXPERT']::TEXT[], d.source_uri,
+    md5(d.content_seed), CURRENT_TIMESTAMP - INTERVAL '1 day', NULL,
+    jsonb_build_object(
+        'demo', true,
+        'reviewStatus', 'APPROVED',
+        'reviewedFor', 'COMPETITION_DEMO',
+        'sourceType', 'INTERNAL_DEMO_GUIDE',
+        'legalDisclaimer', '项目内部演示知识，不替代国家标准、地方规范或专业鉴定文件'
+    ),
+    a.id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+FROM document_data d CROSS JOIN admin_user a
+ON CONFLICT (document_code, document_version) DO UPDATE SET
+    title=EXCLUDED.title,
+    document_type=EXCLUDED.document_type,
+    status='ACTIVE',
+    security_level='INTERNAL',
+    role_scope=EXCLUDED.role_scope,
+    source_uri=EXCLUDED.source_uri,
+    content_checksum=EXCLUDED.content_checksum,
+    effective_from=EXCLUDED.effective_from,
+    effective_to=NULL,
+    metadata=EXCLUDED.metadata,
+    updated_at=CURRENT_TIMESTAMP;
 
 WITH chunks(document_code, chunk_index, section_title, content) AS (
     VALUES
@@ -105,7 +98,7 @@ WITH chunks(document_code, chunk_index, section_title, content) AS (
       ('DEMO-KNOWLEDGE-EVIDENCE-001', 1, '整改前后证据要求',
        '整改事项建议保存整改前、整改过程和整改后证据。复查复验时优先使用与整改前相近的拍摄位置和尺度，并在巡检记录中写明是否通过以及仍需整改的内容。')
 )
-INSERT INTO knowledge.chunk (
+INSERT INTO knowledge.chunk AS existing (
     id, document_id, chunk_index, section_title, page_number, content, metadata
 )
 SELECT
@@ -113,7 +106,18 @@ SELECT
     jsonb_build_object('demo', true, 'reviewStatus', 'APPROVED')
 FROM chunks c
 JOIN knowledge.document d
-  ON d.document_code=c.document_code AND d.document_version='1.0.0';
+  ON d.document_code=c.document_code AND d.document_version='1.0.0'
+ON CONFLICT (document_id, chunk_index) DO UPDATE SET
+    section_title=EXCLUDED.section_title,
+    page_number=EXCLUDED.page_number,
+    content=EXCLUDED.content,
+    metadata=EXCLUDED.metadata,
+    embedding=CASE
+        WHEN existing.section_title IS DISTINCT FROM EXCLUDED.section_title
+          OR existing.content IS DISTINCT FROM EXCLUDED.content
+        THEN NULL
+        ELSE existing.embedding
+    END;
 
 COMMIT;
 

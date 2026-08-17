@@ -29,7 +29,7 @@ public class InspectionEvidenceTool {
         this.accessService = accessService;
     }
 
-    @Tool(description = """
+    @Tool(name = "inspection_evidence_overview", description = """
             查询楼栋巡检任务、巡检记录与证据数量概况。
             在需要了解该楼栋是否有巡检历史、证据充分性时使用。只读，不修改任何业务数据。
             """)

@@ -7,6 +7,7 @@ public final class AiErrorCodes {
     public static final String AI_PROVIDER_NOT_FOUND = "AI_PROVIDER_NOT_FOUND";
     public static final String AI_PROVIDER_NOT_CONFIGURED = "AI_PROVIDER_NOT_CONFIGURED";
     public static final String AI_PROVIDER_UNAVAILABLE = "AI_PROVIDER_UNAVAILABLE";
+    public static final String AI_PROVIDER_INSUFFICIENT_BALANCE = "AI_PROVIDER_INSUFFICIENT_BALANCE";
     public static final String AI_PROVIDER_TIMEOUT = "AI_PROVIDER_TIMEOUT";
     public static final String AI_PROVIDER_AUTH_FAILED = "AI_PROVIDER_AUTH_FAILED";
     public static final String AI_WORKFLOW_FAILED = "AI_WORKFLOW_FAILED";

@@ -24,8 +24,8 @@ import AppFilterField from '@/shared/components/AppFilterField.vue'
 import AppStatusTag from '@/shared/components/AppStatusTag.vue'
 import AppTablePager from '@/shared/components/AppTablePager.vue'
 import AppPageHeader from '@/shared/components/layout/AppPageHeader.vue'
-import AiInsightCard from '@/shared/components/ai/AiInsightCard.vue'
 import AiPageBrief from '@/shared/components/ai/AiPageBrief.vue'
+import AiStructuredAnalysisPanel from '@/shared/components/ai/AiStructuredAnalysisPanel.vue'
 import SpatialObjectSelector from '@/shared/components/SpatialObjectSelector.vue'
 import type { SpatialObjectSelection } from '@/shared/composables/useSpatialObjectSelector'
 
@@ -104,7 +104,6 @@ const pagedTopRiskBuildings = computed(() => {
   return filteredTopRiskBuildings.value.slice(start, start + topRiskPageSize.value)
 })
 const selectedAnalysisBuilding = computed(() => mapBuildings.value.find((item) => item.buildingId === analysisBuildingId.value) ?? null)
-const interpretationSummary = computed(() => riskInterpretation.value?.answer || '选择楼栋后可让 AI 对现有正式评分进行自然语言解读。')
 
 watch(autoDownloadAfterGenerate, (enabled) => {
   if (typeof window !== 'undefined') {
@@ -225,7 +224,6 @@ async function generate(buildingId: string, force = false): Promise<void> {
       if (generatedReport) {
         const downloaded = await download(generatedReport)
         if (!downloaded) {
-          // 自动下载失败不影响已生成报告，用户仍可从历史报告手动下载。
           appStore.notify('报告已生成，但自动下载失败；可从历史报告手动下载。', 'warning')
         }
       } else {
@@ -337,7 +335,7 @@ onMounted(load)
       </el-card>
 
       <el-card class="surface-card analysis-card" shadow="never">
-        <template #header><div class="card-head"><div><strong>楼栋正式风险与 AI 解读</strong><small>先查看确定性评分事实，再按需生成 AI 自然语言解释</small></div></div></template>
+        <template #header><div class="card-head"><div><strong>楼栋正式风险与 AI 解读</strong><small>正式评分事实优先展示，AI 解读在下方使用整页宽度展开</small></div></div></template>
         <div class="analysis-selector">
           <SpatialObjectSelector :key="analysisSelectorRevision" v-model:community-id="analysisCommunityId" v-model:building-id="analysisBuildingId" mode="building" @change="handleAnalysisSelection" />
         </div>
@@ -351,27 +349,36 @@ onMounted(load)
         </div>
         <AppEmpty v-else description="选择楼栋后查看正式风险与 AI 风险解读" />
 
-        <div v-if="selectedAnalysisBuilding" class="interpretation-grid">
-          <section class="formal-score-card">
-            <header><strong>正式评分因子</strong><el-tag type="success" effect="plain" round>确定性规则</el-tag></header>
-            <p>风险等级、风险分和更新优先级均来自现有正式评估链路，AI 不参与改分。</p>
-            <dl>
-              <div><dt>风险等级</dt><dd>{{ selectedAnalysisBuilding.riskLevel || '暂无结果' }}</dd></div>
-              <div><dt>风险分</dt><dd>{{ score(selectedAnalysisBuilding.riskScore) }}</dd></div>
-              <div><dt>更新优先级</dt><dd>{{ selectedAnalysisBuilding.priorityLevel || '—' }}</dd></div>
-              <div><dt>资料新鲜度</dt><dd>{{ selectedAnalysisBuilding.freshness || '—' }}</dd></div>
-            </dl>
-          </section>
+        <section v-if="selectedAnalysisBuilding" class="formal-score-card">
+          <header><div><strong>正式评分因子</strong><small>确定性规则结果 · AI 不参与改分</small></div><el-tag type="success" effect="plain" round>正式数据</el-tag></header>
+          <p>风险等级、风险分和更新优先级均来自现有正式评估链路。AI 只负责解释已有结果，不修改正式风险分数。</p>
+          <dl>
+            <div><dt>风险等级</dt><dd>{{ selectedAnalysisBuilding.riskLevel || '暂无结果' }}</dd></div>
+            <div><dt>风险分</dt><dd>{{ score(selectedAnalysisBuilding.riskScore) }}</dd></div>
+            <div><dt>更新优先级</dt><dd>{{ selectedAnalysisBuilding.priorityLevel || '—' }}</dd></div>
+            <div><dt>资料新鲜度</dt><dd>{{ selectedAnalysisBuilding.freshness || '—' }}</dd></div>
+          </dl>
+        </section>
 
-          <div class="ai-interpretation-card">
-            <AiInsightCard title="AI 风险解读" :summary="interpretationSummary" suggestion="AI 仅解释已有正式评分，不修改正式风险分数。">
-              <el-alert v-if="riskInterpretationError" :title="riskInterpretationError" type="warning" :closable="false" show-icon />
-              <template #actions>
-                <el-button type="primary" plain :loading="riskInterpretationLoading" @click="runRiskInterpretation">{{ riskInterpretation ? '刷新 AI 解读' : '生成 AI 解读' }}</el-button>
-              </template>
-            </AiInsightCard>
+        <section v-if="selectedAnalysisBuilding" class="risk-ai-stage">
+          <header class="risk-ai-stage__head">
+            <div><span>✦ AI 辅助研判</span><strong>AI 风险解读</strong><small>将正式风险事实与可访问的楼栋、巡检和证据数据组织成可复核的辅助说明。</small></div>
+            <el-button type="primary" plain :loading="riskInterpretationLoading" @click="runRiskInterpretation">{{ riskInterpretation ? '刷新 AI 解读' : '生成 AI 解读' }}</el-button>
+          </header>
+          <el-alert v-if="riskInterpretationError" :title="riskInterpretationError" type="warning" :closable="false" show-icon />
+          <div v-loading="riskInterpretationLoading" class="risk-ai-stage__body">
+            <AiStructuredAnalysisPanel
+              v-if="riskInterpretation"
+              :result="riskInterpretation"
+              title="楼栋风险辅助解读"
+              subtitle="先看确定性风险事实，再结合档案、巡检、证据与工具调用结果理解关注点和人工治理动作。AI 不修改正式评分。"
+            />
+            <div v-else class="risk-ai-placeholder">
+              <div class="risk-ai-placeholder__mark">AI</div>
+              <div><strong>等待生成结构化风险解读</strong><span>生成后将在这里以全宽卡片展示核心结论、证据、风险关联、复核建议和工具调用轨迹。</span></div>
+            </div>
           </div>
-        </div>
+        </section>
 
         <div v-if="analysisBuildingId" class="analysis-actions"><el-button @click="openPreview(analysisBuildingId)">预览报告</el-button><el-button type="primary" :loading="generatingBuildingId === analysisBuildingId" @click="generate(analysisBuildingId)">生成报告</el-button></div>
       </el-card>
@@ -400,5 +407,5 @@ onMounted(load)
 </template>
 
 <style scoped lang="scss">
-.risk-page{display:grid;gap:14px}.surface-card,.summary-card{border-radius:var(--usp-radius-xl);box-shadow:var(--usp-shadow-sm)}.analysis-selector{min-width:min(100%,430px)}.summary-grid{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:10px}.summary-card :deep(.el-card__body){display:grid;gap:5px;padding:12px 14px}.summary-card span,.analysis-grid span{color:var(--usp-color-text-secondary);font-size:11px;font-weight:700}.summary-card strong{font-size:26px;line-height:1}.summary-card[data-tone='danger'] strong{color:var(--usp-color-danger)}.summary-card[data-tone='warning'] strong{color:#b36b00}.summary-card[data-tone='muted'] strong{color:var(--usp-color-text-secondary)}.surface-card :deep(.el-card__body){display:grid;gap:12px}.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.card-head>div:first-child{display:grid;gap:2px}.card-head small{color:var(--usp-color-text-secondary)}.analysis-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.analysis-grid>div{display:grid;min-height:72px;align-content:center;gap:5px;padding:11px 13px;border:1px solid var(--usp-color-border);border-radius:var(--usp-radius-xl);background:var(--usp-color-surface-muted)}.interpretation-grid{display:grid;grid-template-columns:minmax(280px,.8fr) minmax(0,1.2fr);gap:14px;align-items:stretch}.formal-score-card{display:grid;gap:11px;padding:16px;border:1px solid var(--usp-color-border);border-radius:var(--usp-radius-xl);background:var(--usp-color-surface)}.formal-score-card header{display:flex;align-items:center;justify-content:space-between;gap:10px}.formal-score-card p{margin:0;color:var(--usp-color-text-secondary);line-height:1.6}.formal-score-card dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0}.formal-score-card dl>div{padding:9px 10px;border-radius:var(--usp-radius-lg);background:var(--usp-color-surface-muted)}.formal-score-card dt{color:var(--usp-color-text-secondary);font-size:11px}.formal-score-card dd{margin:4px 0 0;font-weight:700}.ai-interpretation-card{min-width:0}.analysis-actions{display:flex;justify-content:flex-end;gap:8px}.report-head-actions{display:flex!important;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px!important}.auto-download-control{display:flex;align-items:center;gap:7px;color:var(--usp-color-text-secondary);font-size:12px;font-weight:700}.warning-list{display:grid;gap:8px}.warning-list p{margin:0;padding:10px 12px;border-radius:var(--usp-radius-lg);background:#fffaeb}.snapshot{max-height:360px;overflow:auto;padding:12px;border-radius:var(--usp-radius-xl);background:#101828;color:#f2f4f7}.risk-page :deep(.el-input__wrapper),.risk-page :deep(.el-select__wrapper),.risk-page :deep(.el-button),.risk-page :deep(.el-table){border-radius:var(--usp-radius-lg)}@media(max-width:1100px){.summary-grid{grid-template-columns:repeat(3,1fr)}.analysis-grid{grid-template-columns:repeat(2,1fr)}.interpretation-grid{grid-template-columns:1fr}}@media(max-width:720px){.summary-grid,.analysis-grid{grid-template-columns:1fr 1fr}.analysis-selector{min-width:100%;width:100%}.formal-score-card dl{grid-template-columns:1fr}.card-head{align-items:flex-start;flex-direction:column}.report-head-actions{width:100%;justify-content:space-between}}
+.risk-page{display:grid;gap:14px}.surface-card,.summary-card{border-radius:var(--usp-radius-xl);box-shadow:var(--usp-shadow-sm)}.analysis-selector{min-width:min(100%,430px)}.summary-grid{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:10px}.summary-card :deep(.el-card__body){display:grid;gap:5px;padding:12px 14px}.summary-card span,.analysis-grid span{color:var(--usp-color-text-secondary);font-size:11px;font-weight:700}.summary-card strong{font-size:26px;line-height:1}.summary-card[data-tone='danger'] strong{color:var(--usp-color-danger)}.summary-card[data-tone='warning'] strong{color:#b36b00}.summary-card[data-tone='muted'] strong{color:var(--usp-color-text-secondary)}.surface-card :deep(.el-card__body){display:grid;gap:14px}.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.card-head>div:first-child{display:grid;gap:2px}.card-head small{color:var(--usp-color-text-secondary)}.analysis-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.analysis-grid>div{display:grid;min-height:72px;align-content:center;gap:5px;padding:11px 13px;border:1px solid var(--usp-color-border);border-radius:var(--usp-radius-xl);background:var(--usp-color-surface-muted)}.formal-score-card{display:grid;gap:11px;padding:16px;border:1px solid var(--usp-color-border);border-radius:var(--usp-radius-xl);background:linear-gradient(135deg,#fff,#f8fbfa)}.formal-score-card header{display:flex;align-items:center;justify-content:space-between;gap:10px}.formal-score-card header>div{display:grid;gap:2px}.formal-score-card header small{color:var(--usp-color-text-tertiary);font-size:10px}.formal-score-card p{margin:0;color:var(--usp-color-text-secondary);line-height:1.6}.formal-score-card dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0}.formal-score-card dl>div{padding:10px 12px;border-radius:var(--usp-radius-lg);background:var(--usp-color-surface-muted)}.formal-score-card dt{color:var(--usp-color-text-secondary);font-size:11px}.formal-score-card dd{margin:4px 0 0;font-size:15px;font-weight:800}.risk-ai-stage{display:grid;gap:12px;padding:16px;border:1px solid #d7e7e2;border-radius:var(--usp-radius-xl);background:linear-gradient(180deg,#fbfefd,#fff)}.risk-ai-stage__head{display:flex;align-items:center;justify-content:space-between;gap:14px}.risk-ai-stage__head>div{display:grid;gap:3px}.risk-ai-stage__head span{color:#176354;font-size:10px;font-weight:900;letter-spacing:.08em}.risk-ai-stage__head strong{font-size:16px}.risk-ai-stage__head small{color:var(--usp-color-text-secondary)}.risk-ai-stage__body{min-height:118px}.risk-ai-placeholder{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:14px;min-height:112px;padding:18px;border:1px dashed #cfe0db;border-radius:var(--usp-radius-xl);background:#f8fcfb}.risk-ai-placeholder__mark{display:grid;width:52px;height:52px;place-items:center;border-radius:17px;background:#176354;color:#fff;font-weight:900}.risk-ai-placeholder>div:last-child{display:grid;gap:4px}.risk-ai-placeholder span{color:var(--usp-color-text-secondary);line-height:1.6}.analysis-actions{display:flex;justify-content:flex-end;gap:8px}.report-head-actions{display:flex!important;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:10px!important}.auto-download-control{display:flex;align-items:center;gap:7px;color:var(--usp-color-text-secondary);font-size:12px;font-weight:700}.warning-list{display:grid;gap:8px}.warning-list p{margin:0;padding:10px 12px;border-radius:var(--usp-radius-lg);background:#fffaeb}.snapshot{max-height:360px;overflow:auto;padding:12px;border-radius:var(--usp-radius-xl);background:#101828;color:#f2f4f7}.risk-page :deep(.el-input__wrapper),.risk-page :deep(.el-select__wrapper),.risk-page :deep(.el-button),.risk-page :deep(.el-table){border-radius:var(--usp-radius-lg)}@media(max-width:1100px){.summary-grid{grid-template-columns:repeat(3,1fr)}.analysis-grid{grid-template-columns:repeat(2,1fr)}.formal-score-card dl{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:720px){.summary-grid,.analysis-grid{grid-template-columns:1fr 1fr}.analysis-selector{min-width:100%;width:100%}.formal-score-card dl{grid-template-columns:1fr}.card-head,.risk-ai-stage__head{align-items:flex-start;flex-direction:column}.risk-ai-stage__head :deep(.el-button){width:100%;margin-left:0}.risk-ai-placeholder{grid-template-columns:1fr}.report-head-actions{width:100%;justify-content:space-between}}
 </style>

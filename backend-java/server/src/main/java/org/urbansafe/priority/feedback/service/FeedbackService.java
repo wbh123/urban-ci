@@ -271,7 +271,7 @@ public class FeedbackService {
 
     @Transactional
     public Map<String, Object> updateStatus(UUID reportId, Map<String, Object> body, UUID updatedBy) {
-        Map<String, Object> existing = repository.findReport(reportId)
+        Map<String, Object> existing = repository.lockReport(reportId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "FEEDBACK_REPORT_NOT_FOUND", "反馈工单不存在"));
         String fromStatus = String.valueOf(existing.get("status"));

@@ -13,7 +13,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.urbansafe.priority.common.exception.InvalidRequestException;
 
-/** 管理端公众反馈查询，提供关键词、空间对象和时间范围的真实服务端分页。 */
+/** 管理端公众反馈查询，提供关键词、空间对象、时间范围和整改复验状态的真实服务端分页。 */
 @Service
 public class FeedbackManagementQueryService {
 
@@ -88,10 +88,57 @@ public class FeedbackManagementQueryService {
                          JOIN asset.file_asset fa ON fa.id=ab.asset_id
                         WHERE ab.business_type='RESIDENT_REPORT' AND ab.business_id=r.id
                           AND ab.binding_role='FEEDBACK_PHOTO' AND ab.deleted_at IS NULL
-                          AND fa.deleted_at IS NULL AND fa.upload_status='AVAILABLE') AS "imageCount"
+                          AND fa.deleted_at IS NULL AND fa.upload_status='AVAILABLE') AS "imageCount",
+                       rt.id AS "reinspectionTaskId",
+                       rt.task_code AS "reinspectionTaskCode",
+                       rt.status AS "reinspectionStatus",
+                       latest_decision.event_data->>'reinspectionDecision' AS "reinspectionDecision",
+                       latest_decision.event_data->>'recommendedDecision' AS "reinspectionRecommendedDecision",
+                       CASE
+                         WHEN lower(COALESCE(latest_decision.event_data->>'manualOverride',''))='true' THEN TRUE
+                         WHEN lower(COALESCE(latest_decision.event_data->>'manualOverride',''))='false' THEN FALSE
+                         ELSE NULL
+                       END AS "reinspectionManualOverride",
+                       latest_decision.event_data->>'decisionReason' AS "reinspectionDecisionReason"
                 FROM core.resident_report r
                 JOIN core.community c ON c.id=r.community_id
                 LEFT JOIN core.building b ON b.id=r.building_id
+                LEFT JOIN LATERAL (
+                    SELECT CASE
+                             WHEN COALESCE(e.event_data->>'taskId','') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                             THEN (e.event_data->>'taskId')::uuid
+                             ELSE NULL
+                           END AS task_id
+                    FROM core.resident_report_event e
+                    WHERE e.resident_report_id=r.id
+                      AND e.event_type='REINSPECTION_CREATED'
+                      AND jsonb_exists(e.event_data, 'taskId')
+                      AND NOT EXISTS (
+                        SELECT 1
+                        FROM core.resident_report_event result_event
+                        WHERE result_event.resident_report_id=e.resident_report_id
+                          AND result_event.event_type IN ('REINSPECTION_PASSED','REINSPECTION_FAILED')
+                          AND COALESCE(result_event.event_data->>'taskId','')=COALESCE(e.event_data->>'taskId','')
+                          AND result_event.created_at>=e.created_at
+                      )
+                    ORDER BY e.created_at DESC, e.id DESC
+                    LIMIT 1
+                ) latest_reinspection ON TRUE
+                LEFT JOIN core.inspection_task rt
+                  ON rt.id=latest_reinspection.task_id AND rt.deleted_at IS NULL
+                LEFT JOIN LATERAL (
+                    SELECT e.event_data
+                    FROM core.resident_report_event e
+                    WHERE e.resident_report_id=r.id
+                      AND e.event_type IN (
+                        'RECTIFICATION_SUBMITTED',
+                        'RECTIFICATION_CLOSED_WITHOUT_REINSPECTION',
+                        'REINSPECTION_WAIVED'
+                      )
+                      AND jsonb_exists(e.event_data, 'reinspectionDecision')
+                    ORDER BY e.created_at DESC, e.id DESC
+                    LIMIT 1
+                ) latest_decision ON TRUE
                 WHERE r.deleted_at IS NULL
                 """ + where + " ORDER BY r.submitted_at DESC LIMIT :size OFFSET :offset";
         params.addValue("size", size).addValue("offset", page * size);

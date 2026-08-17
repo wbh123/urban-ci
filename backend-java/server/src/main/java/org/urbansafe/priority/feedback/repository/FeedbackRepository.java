@@ -157,9 +157,26 @@ public class FeedbackRepository {
         return one("""
                 SELECT id AS "reportId", report_code AS "reportCode", status AS "status",
                        feedback_channel AS "feedbackChannel", report_type AS "reportType",
+                       urgency AS "urgency", description AS "description", location_text AS "locationText",
                        community_id AS "communityId", building_id AS "buildingId"
                 FROM core.resident_report
                 WHERE id=:id AND deleted_at IS NULL
+                """, Map.of("id", reportId));
+    }
+
+    /**
+     * 为整改闭环、复检任务创建和复验结论锁定反馈工单。
+     * 锁持续到外层事务结束，避免“人工免复检”和“创建/完成复检任务”并发交叉。
+     */
+    public Optional<Map<String, Object>> lockReport(UUID reportId) {
+        return one("""
+                SELECT id AS "reportId", report_code AS "reportCode", status AS "status",
+                       feedback_channel AS "feedbackChannel", report_type AS "reportType",
+                       urgency AS "urgency", description AS "description", location_text AS "locationText",
+                       community_id AS "communityId", building_id AS "buildingId"
+                FROM core.resident_report
+                WHERE id=:id AND deleted_at IS NULL
+                FOR UPDATE
                 """, Map.of("id", reportId));
     }
 

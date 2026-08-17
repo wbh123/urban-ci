@@ -47,6 +47,14 @@ export interface AiAsyncInferenceSubmission {
   assetId: string
 }
 
+export interface AiReviewSubmissionResult {
+  inferenceId: string
+  reviewStatus: AiReviewDecision
+  reviewedAt?: string
+  correctedData?: { reviewedRiskLevel?: AiReviewedRiskLevel }
+  assessmentRefreshRequired: boolean
+}
+
 export interface AiDetectionBox {
   x: number
   y: number
@@ -280,12 +288,12 @@ export function submitAiReview(
   reviewStatus: AiReviewStatus,
   comment?: string,
   correctedData?: { reviewedRiskLevel?: AiReviewedRiskLevel },
-): Promise<unknown> {
+): Promise<AiReviewSubmissionResult> {
   if (reviewStatus === 'UNREVIEWED') {
     return Promise.reject(new TypeError('UNREVIEWED 不是可提交的复核结论'))
   }
   const decision: AiReviewDecision = reviewStatus
-  return apiPost(`/api/v1/ai-inferences/${inferenceId}/review`, {
+  return apiPost<AiReviewSubmissionResult>(`/api/v1/ai-inferences/${inferenceId}/review`, {
     reviewStatus: decision,
     comment,
     correctedData,

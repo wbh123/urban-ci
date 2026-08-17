@@ -63,6 +63,73 @@ function createReport(payload: CreateFeedbackPayload, channel: FeedbackChannel):
   }
 }
 
+function seedReport(
+  reportId: string,
+  reportCode: string,
+  status: FeedbackStatus,
+  payload: CreateFeedbackPayload,
+  handlingSummary: string,
+): MockFeedbackReport {
+  const report = createReport(payload, 'INTERNAL')
+  return {
+    ...report,
+    reportId,
+    reportCode,
+    trackingSecret: `mock-${reportCode.toLowerCase()}`,
+    status,
+    submittedAt: '2026-08-17T06:00:00.000Z',
+    handlingSummary,
+    events: [
+      {
+        eventType: 'CREATED',
+        toStatus: 'SUBMITTED',
+        message: '反馈已提交，等待工作人员受理。',
+        createdAt: '2026-08-17T05:30:00.000Z',
+      },
+      {
+        eventType: 'STATUS_CHANGED',
+        fromStatus: 'ACCEPTED',
+        toStatus: status,
+        message: handlingSummary,
+        createdAt: '2026-08-17T06:00:00.000Z',
+      },
+    ],
+  }
+}
+
+reports.push(
+  seedReport(
+    '77777777-7777-7777-7777-777777777701',
+    'FB-MOCK-PROCESSING',
+    'PROCESSING',
+    {
+      communityId: '11111111-1111-1111-1111-111111111111',
+      buildingId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      reportType: 'OTHER',
+      description: '地下车库导向标识松动，已完成重新固定',
+      urgency: 'NORMAL',
+      contactConsent: false,
+      locationText: '1号楼地下车库入口',
+    },
+    '已重新固定导向标识并清理周边松动物。',
+  ),
+  seedReport(
+    '77777777-7777-7777-7777-777777777702',
+    'FB-MOCK-RESOLVED',
+    'RESOLVED',
+    {
+      communityId: '11111111-1111-1111-1111-111111111111',
+      buildingId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+      reportType: 'WALL_CRACK',
+      description: '外墙局部开裂，已完成修补并等待现场复验',
+      urgency: 'HIGH',
+      contactConsent: false,
+      locationText: '2号楼东侧外墙',
+    },
+    '已完成裂缝修补并留存整改记录，等待现场复验。',
+  ),
+)
+
 function imageMetadata(image: MockFeedbackImage): FeedbackImage {
   return {
     assetId: image.assetId,
@@ -135,6 +202,30 @@ function managementPayload(report: MockFeedbackReport) {
     communityName: report.communityName,
     buildingName: report.buildingName,
     imageCount: report.images.length,
+  }
+}
+
+function recommendationPayload(report: MockFeedbackReport) {
+  const requiredTypes = new Set(['WALL_CRACK', 'SURFACE_FALLING', 'ILLEGAL_MODIFICATION', 'FIRE_ACCESS'])
+  const reasons: string[] = []
+  if (report.urgency === 'HIGH' || report.urgency === 'URGENT') {
+    reasons.push(`紧急程度为 ${report.urgency}，建议通过现场复检确认整改效果`)
+  }
+  if (requiredTypes.has(report.reportType)) {
+    reasons.push(`问题类型 ${report.reportType} 涉及结构、坠落、违规改造或消防等现场核实事项`)
+  }
+  const recommendedDecision = reasons.length ? 'REQUIRED' : 'WAIVED'
+  if (!reasons.length) {
+    reasons.push('当前结构化信息未发现高紧急程度、重点问题类型或明显现场风险信号，可由人工结合整改证据判断是否免复检')
+  }
+  return {
+    reportId: report.reportId,
+    reportCode: report.reportCode,
+    recommendedDecision,
+    reasons,
+    source: 'STRUCTURED_RULES',
+    disclaimer: '系统复检建议仅用于辅助决策，不替代现场人员和管理人员判断；最终决策及人工覆盖理由将留痕。',
+    formalRiskChanged: false,
   }
 }
 
@@ -267,6 +358,14 @@ export const feedbackHandlers = [
     const report = reports.find((item) => item.reportId === String(params.reportId))
     if (!report) return errorResponse('FEEDBACK_REPORT_NOT_FOUND', '反馈工单不存在。', 404)
     return okResponse(report.images.map(imageMetadata))
+  }),
+
+  http.get('/api/v1/feedback/reports/:reportId/reinspection/recommendation', ({ request, params }) => {
+    const unauth = requireAuth(request)
+    if (unauth) return unauth
+    const report = reports.find((item) => item.reportId === String(params.reportId))
+    if (!report) return errorResponse('FEEDBACK_REPORT_NOT_FOUND', '反馈工单不存在。', 404)
+    return okResponse(recommendationPayload(report))
   }),
 
   http.post('/api/v1/feedback/reports/manual', async ({ request }) => {

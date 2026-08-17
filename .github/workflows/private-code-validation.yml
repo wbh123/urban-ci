@@ -1,0 +1,126 @@
+name: Private Code Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Exact urban-safe-priority commit SHA to validate
+        required: true
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - '.ci-validate-source'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: private-code-validation
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate private frontend and backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      DISPATCH_SOURCE_REF: ${{ inputs.source_ref }}
+    steps:
+      - name: Checkout validation control
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: control
+          fetch-depth: 1
+
+      - name: Resolve exact private source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_ref="${DISPATCH_SOURCE_REF:-}"
+          if [[ -z "$source_ref" ]]; then
+            source_ref="$(tr -d '[:space:]' < control/.ci-validate-source)"
+          fi
+          source_ref="${source_ref,,}"
+          if [[ ! "$source_ref" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "source_ref must be an exact 40-character commit SHA"
+            exit 1
+          fi
+          echo "SOURCE_REF=$source_ref" >> "$GITHUB_ENV"
+          echo "Validating private source: ${source_ref:0:12}"
+
+      - name: Checkout exact private source
+        uses: actions/checkout@v4
+        with:
+          repository: wbh123/urban-safe-priority
+          ref: main
+          token: ${{ secrets.URBAN_PRIVATE_REPO_TOKEN }}
+          path: private-source
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify exact private source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C private-source fetch --depth 1 origin "$SOURCE_REF"
+          git -C private-source checkout --detach FETCH_HEAD
+          actual="$(git -C private-source rev-parse HEAD)"
+          test "$actual" = "$SOURCE_REF"
+          echo "Validated exact private source commit: $actual"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: private-source/frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: private-source/frontend
+        run: npm ci
+
+      - name: Validate generated API contract
+        working-directory: private-source/frontend
+        run: |
+          npm run api:generate
+          npm run api:check
+
+      - name: Validate frontend TypeScript
+        working-directory: private-source/frontend
+        run: npm run type-check
+
+      - name: Run frontend tests
+        working-directory: private-source/frontend
+        run: npm run test
+
+      - name: Build frontend
+        working-directory: private-source/frontend
+        run: npm run build
+
+      - name: Lint frontend
+        working-directory: private-source/frontend
+        run: npm run lint
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: private-source/backend-java/pom.xml
+
+      - name: Run backend tests
+        working-directory: private-source/backend-java
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .mvn
+          cat > .mvn/settings.xml <<'SETTINGS_EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd" />
+          SETTINGS_EOF
+          mvn -B -ntp test

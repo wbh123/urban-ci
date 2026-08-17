@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import frontendEnvExample from '../../.env.example?raw'
+import envDeclarationSource from '../env.d.ts?raw'
 import viteConfigSource from '../../vite.config.ts?raw'
 
 describe('vite config', () => {
@@ -13,5 +14,8 @@ describe('vite config', () => {
     expect(frontendEnvExample).toContain('VITE_MAP_SERVICE_HOST=/_AMapService')
     expect(frontendEnvExample).not.toContain('VITE_MAP_SECURITY_MODE')
     expect(frontendEnvExample).not.toContain('VITE_AMAP_SECURITY_JS_CODE')
+    expect(envDeclarationSource).toContain('VITE_MAP_SERVICE_HOST?: string')
+    expect(envDeclarationSource).not.toContain('VITE_MAP_SECURITY_MODE')
+    expect(envDeclarationSource).not.toContain('VITE_AMAP_SECURITY_JS_CODE')
   })
 })

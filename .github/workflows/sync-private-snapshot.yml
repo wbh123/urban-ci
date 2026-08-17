@@ -177,7 +177,9 @@ jobs:
             fi
           done
 
-          patterns='-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9_-]{20,}'
+          # Require a non-token character before sk- so ordinary identifiers such as
+          # risk-ai-placeholder are not mistaken for OpenAI-style secret keys.
+          patterns='-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|(^|[^A-Za-z0-9_])sk-[A-Za-z0-9_-]{20,}'
           if grep -R -I -n -E -e "$patterns" \
               --exclude='package-lock.json' --exclude='*.lock' -- mirror; then
             echo "Potential secret material detected in public mirror."
@@ -379,8 +381,14 @@ jobs:
 
           git config user.name 'urban-ci-bot'
           git config user.email 'urban-ci-bot@users.noreply.github.com'
-          git add .ci-sync-result .ci-frontend-diagnostic .ci-backend-diagnostic 2>/dev/null || \
-            git add -u .ci-sync-result .ci-frontend-diagnostic .ci-backend-diagnostic
+          git add .ci-sync-result
+          for diagnostic in .ci-frontend-diagnostic .ci-backend-diagnostic; do
+            if [[ -f "$diagnostic" ]]; then
+              git add "$diagnostic"
+            else
+              git rm --cached --ignore-unmatch "$diagnostic" >/dev/null 2>&1 || true
+            fi
+          done
           if ! git diff --cached --quiet; then
             git commit -m "ci: record private snapshot sync $SYNC_STATUS"
             git push origin HEAD:main

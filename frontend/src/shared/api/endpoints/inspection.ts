@@ -13,12 +13,18 @@ export type Severity = InspectionRecord['severity']
 export interface ListInspectionTasksParams {
   buildingId?: string
   status?: InspectionTaskStatus
+  page?: number
+  size?: number
 }
 
 export function listInspectionTasks(
   params: ListInspectionTasksParams = {},
 ): Promise<InspectionTask[]> {
   return apiGet<InspectionTask[]>('/api/v1/inspection-tasks', { ...params })
+}
+
+export function getInspectionTask(taskId: string): Promise<InspectionTask> {
+  return apiGet<InspectionTask>(`/api/v1/inspection-tasks/${taskId}`)
 }
 
 export function createInspectionTask(

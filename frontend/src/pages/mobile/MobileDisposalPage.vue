@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   completeFeedbackReinspection,
@@ -21,13 +21,17 @@ import AppEmpty from '@/shared/components/AppEmpty.vue'
 import AppError from '@/shared/components/AppError.vue'
 import AppStatusTag from '@/shared/components/AppStatusTag.vue'
 
+const PAGE_SIZE = 20
 const loading = ref(false)
+const loadingMore = ref(false)
 const saving = ref(false)
 const uploadingEvidence = ref(false)
 const recommendationLoading = ref(false)
 const errorMessage = ref('')
 const reports = ref<FeedbackManagementRow[]>([])
 const statusFilter = ref<FeedbackStatus | 'ALL'>('ALL')
+const currentPage = ref(0)
+const hasMore = ref(true)
 const selected = ref<FeedbackManagementRow | null>(null)
 const actionVisible = ref(false)
 const targetStatus = ref<FeedbackStatus>('ACCEPTED')
@@ -53,9 +57,7 @@ const visibleStatuses: FeedbackStatus[] = [
 ]
 
 const filtered = computed(() =>
-  statusFilter.value === 'ALL'
-    ? reports.value
-    : reports.value.filter((item) => item.status === statusFilter.value),
+  reports.value.filter((item) => visibleStatuses.includes(item.status)),
 )
 
 const decisionNeedsReason = computed(() => {
@@ -98,17 +100,37 @@ function decisionLabel(decision?: FeedbackReinspectionDecision): string {
   return '尚未形成复检决策'
 }
 
-async function load(): Promise<void> {
-  loading.value = true
+async function load(reset = true): Promise<void> {
+  if (reset) {
+    currentPage.value = 0
+    reports.value = []
+    loading.value = true
+  } else {
+    loadingMore.value = true
+  }
   errorMessage.value = ''
   try {
-    const page = await listFeedbackReports({ page: 0, size: 100 })
-    reports.value = (page.content ?? []).filter((item) => visibleStatuses.includes(item.status))
+    const page = await listFeedbackReports({
+      ...(statusFilter.value === 'ALL' ? {} : { status: statusFilter.value }),
+      page: currentPage.value,
+      size: PAGE_SIZE,
+    })
+    const rows = page.content ?? []
+    reports.value = reset ? rows : [...reports.value, ...rows]
+    hasMore.value = currentPage.value + 1 < page.page.totalPages
   } catch (error) {
     errorMessage.value = toAppError(error).message
+    if (!reset && currentPage.value > 0) currentPage.value -= 1
   } finally {
     loading.value = false
+    loadingMore.value = false
   }
+}
+
+async function loadMore(): Promise<void> {
+  if (loading.value || loadingMore.value || !hasMore.value) return
+  currentPage.value += 1
+  await load(false)
 }
 
 async function loadRectificationEvidence(reportId: string): Promise<void> {
@@ -302,7 +324,8 @@ async function submitReinspectionResult(): Promise<void> {
   }
 }
 
-onMounted(load)
+watch(statusFilter, () => { void load(true) })
+onMounted(() => { void load(true) })
 </script>
 
 <template>
@@ -313,7 +336,7 @@ onMounted(load)
         <h1>问题处置</h1>
         <span>系统给出复检建议，工作人员结合整改证据做最终决定；需要复检的工单再进入现场复验。</span>
       </div>
-      <el-button @click="load">刷新</el-button>
+      <el-button @click="load(true)">刷新</el-button>
     </header>
 
     <el-alert
@@ -339,7 +362,7 @@ onMounted(load)
     />
 
     <AppLoading :visible="loading" inline text="加载处置工单中…" />
-    <AppError v-if="errorMessage" :message="errorMessage" @retry="load" />
+    <AppError v-if="errorMessage" :message="errorMessage" @retry="load(true)" />
 
     <div v-if="!loading && !errorMessage && filtered.length" class="work-list">
       <el-card v-for="item in filtered" :key="item.reportId" shadow="never" class="work-card">
@@ -396,7 +419,14 @@ onMounted(load)
         </div>
       </el-card>
     </div>
-    <AppEmpty v-else-if="!loading && !errorMessage" description="当前没有需要处理的问题工单" />
+    <el-button
+      v-if="!loading && !errorMessage && hasMore"
+      class="load-more"
+      :loading="loadingMore"
+      :disabled="loadingMore"
+      @click="loadMore"
+    >加载更多</el-button>
+    <AppEmpty v-else-if="!loading && !errorMessage && !filtered.length" description="当前没有需要处理的问题工单" />
 
     <el-drawer v-model="actionVisible" title="更新处置进度" direction="btt" size="88%">
       <template v-if="selected">
@@ -565,6 +595,7 @@ dd { margin: 4px 0 0; overflow-wrap: anywhere; color: #173f37; }
 .decision-state { background: #f8fafc; color: #344054; border: 1px solid #e4e7ec; }
 .reinspection-state span,.closed-state span,.decision-state span { font-size: 12px; line-height: 1.55; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.load-more { width: 100%; min-height: 46px; border-radius: 14px; }
 .action-form { margin-top: 16px; }
 .submit-action { width: 100%; }
 .evidence-block { display: grid; gap: 10px; width: 100%; }

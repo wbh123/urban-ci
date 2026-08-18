@@ -49,11 +49,14 @@ async function load(): Promise<void> {
   loading.value = true
   errorMessage.value = ''
   try {
-    const tasks = await api.listInspectionTasks()
-    task.value = tasks.find((item) => item.taskId === taskId.value) ?? null
-    records.value = await api.listInspectionRecords(taskId.value)
-    if (!task.value) errorMessage.value = '任务不存在或当前账号无权访问。'
+    const [taskResult, recordRows] = await Promise.all([
+      api.getInspectionTask(taskId.value),
+      api.listInspectionRecords(taskId.value),
+    ])
+    task.value = taskResult
+    records.value = recordRows
   } catch (error) {
+    task.value = null
     errorMessage.value = toAppError(error).message
   } finally {
     loading.value = false

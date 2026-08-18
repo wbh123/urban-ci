@@ -22,8 +22,10 @@ public class Phase2InspectionController {
     }
     @GetMapping("/inspection-tasks")
     public ResponseEntity<Map<String,Object>> tasks(@RequestParam(required=false) UUID buildingId,
-            @RequestParam(required=false) String status) {
-        return ResponseEntity.ok(Phase2ResponseFactory.success(service.listTasks(buildingId,status)));
+            @RequestParam(required=false) String status,
+            @RequestParam(required=false) Integer page,
+            @RequestParam(required=false) Integer size) {
+        return ResponseEntity.ok(Phase2ResponseFactory.success(service.listTasks(buildingId,status,page,size)));
     }
     @GetMapping("/inspection-tasks/{id}")
     public ResponseEntity<Map<String,Object>> task(@PathVariable UUID id) {

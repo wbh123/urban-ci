@@ -36,6 +36,10 @@ public class Phase2InspectionService {
     }
 
     public List<Map<String,Object>> listTasks(UUID buildingId, String status) {
+        return listTasks(buildingId, status, null, null);
+    }
+
+    public List<Map<String,Object>> listTasks(UUID buildingId, String status, Integer page, Integer size) {
         String normalized = value(status, null);
         if (normalized != null) {
             normalized = normalized.toUpperCase();
@@ -43,7 +47,22 @@ public class Phase2InspectionService {
                 throw new InvalidRequestException("INSPECTION_STATUS_INVALID", "巡检任务状态无效");
             }
         }
-        return repository.listTasks(buildingId, normalized);
+        List<Map<String,Object>> rows = repository.listTasks(buildingId, normalized);
+        if (page == null && size == null) return rows;
+
+        int normalizedPage = page == null ? 0 : page;
+        int normalizedSize = size == null ? 20 : size;
+        if (normalizedPage < 0) {
+            throw new InvalidRequestException("INSPECTION_PAGE_INVALID", "page 不能小于 0");
+        }
+        if (normalizedSize < 1 || normalizedSize > 100) {
+            throw new InvalidRequestException("INSPECTION_PAGE_SIZE_INVALID", "size 必须在 1 到 100 之间");
+        }
+        long start = (long) normalizedPage * normalizedSize;
+        if (start >= rows.size()) return List.of();
+        int fromIndex = (int) start;
+        int toIndex = Math.min(fromIndex + normalizedSize, rows.size());
+        return rows.subList(fromIndex, toIndex);
     }
 
     public Map<String,Object> getTask(UUID id) {

@@ -18,6 +18,7 @@ const props = withDefaults(
 const TASK_MAP: Record<string, { type: TagType; text: string }> = {
   PENDING: { type: 'info', text: '待开始' },
   IN_PROGRESS: { type: 'warning', text: '进行中' },
+  ONSITE_COMPLETED: { type: 'warning', text: '待后台确认' },
   COMPLETED: { type: 'success', text: '已完成' },
   CANCELLED: { type: 'info', text: '已取消' },
 }

@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.urbansafe.priority.inspection.service.Phase2InspectionService;
@@ -13,6 +14,9 @@ import org.urbansafe.priority.phase2.common.Phase2ResponseFactory;
 @ResponseBody
 @RequestMapping("/api/v1")
 public class Phase2InspectionController {
+    private static final String TASK_MANAGEMENT_ROLES =
+            "hasAnyRole('COMMUNITY_MANAGER','GOVERNMENT_MANAGER','ADMIN')";
+
     private final Phase2InspectionService service;
     public Phase2InspectionController(Phase2InspectionService service) { this.service = service; }
 
@@ -35,7 +39,12 @@ public class Phase2InspectionController {
     public ResponseEntity<Map<String,Object>> start(@PathVariable UUID id) {
         return ResponseEntity.ok(Phase2ResponseFactory.success(service.start(id)));
     }
+    @PostMapping("/inspection-tasks/{id}/onsite-complete")
+    public ResponseEntity<Map<String,Object>> onsiteComplete(@PathVariable UUID id) {
+        return ResponseEntity.ok(Phase2ResponseFactory.success(service.onsiteComplete(id)));
+    }
     @PostMapping("/inspection-tasks/{id}/complete")
+    @PreAuthorize(TASK_MANAGEMENT_ROLES)
     public ResponseEntity<Map<String,Object>> complete(@PathVariable UUID id) {
         return ResponseEntity.ok(Phase2ResponseFactory.success(service.complete(id)));
     }

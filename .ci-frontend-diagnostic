@@ -1,0 +1,215 @@
+source_ref=4576f52bb5c9ed5346a2e2582e9fe617d49f6da5
+run_id=32157109617
+--- frontend-npm-ci.log tail ---
+
+added 422 packages in 9s
+
+107 packages are looking for funding
+  run `npm fund` for details
+npm warn allow-scripts 2 packages have install scripts not yet covered by allowScripts:
+npm warn allow-scripts   @parcel/watcher@2.6.0 (install: node scripts/build-from-source.js)
+npm warn allow-scripts   msw@2.15.0 (postinstall: node -e "import('./config/scripts/postinstall.js').catch(() => void 0)")
+npm warn allow-scripts
+npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
+--- frontend-api.log tail ---
+
+> frontend@0.0.0 api:generate
+> node scripts/generate-api.mjs
+
+✨ openapi-typescript 7.13.0
+🚀 /home/runner/work/urban-ci/urban-ci/mirror/backend-java/model/src/main/resources/openapi-interface.yaml → /home/runner/work/urban-ci/urban-ci/mirror/frontend/src/shared/api/generated/schema.d.ts [260.2ms]
+[api:generate] 已生成类型: /home/runner/work/urban-ci/urban-ci/mirror/frontend/src/shared/api/generated/schema.d.ts
+[api:generate] 已刷新 R2 空间契约指纹: /home/runner/work/urban-ci/urban-ci/mirror/frontend/src/shared/api/generated/spatial-contract.gitblob
+[api:generate] 已刷新可视化建档契约指纹: /home/runner/work/urban-ci/urban-ci/mirror/frontend/src/shared/api/generated/archive-contract.gitblob
+[api:generate] 若独立契约有变化，请同时审阅 endpoints/spatial.ts 或 endpoints/archive.ts。
+
+> frontend@0.0.0 api:check
+> node scripts/check-api-contract.mjs
+
+[api:check] 主 OpenAPI 类型、R2 空间契约与可视化建档契约指纹均一致。
+--- frontend-typecheck.log tail ---
+
+> frontend@0.0.0 type-check
+> vue-tsc --noEmit
+
+--- frontend-test.log tail ---
+[31m+   const structured = task.structuredResult?.detections ?? [][39m
+[31m+   return structured.length ? structured : task.detections ?? [][39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function findingLabel(task: AiInferenceTask): string {[39m
+[31m+   const summary = buildAiInspectionSummary(detectionItems(task))[39m
+[31m+   if (!summary.findings.length) return task.status === 'SUCCEEDED' ? '未发现明确疑似病害' : '等待有效识别结果'[39m
+[31m+   const visible = summary.findings.slice(0, 2).map((item) => `${item.name} ×${item.count}`)[39m
+[31m+   return summary.findings.length > 2 ? `${visible.join('、')} 等` : visible.join('、')[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function confidenceValue(task: AiInferenceTask): number | null {[39m
+[31m+   if (task.structuredResult?.confidence != null) return task.structuredResult.confidence[39m
+[31m+   const values = detectionItems(task)[39m
+[31m+     .map((item) => item.confidence)[39m
+[31m+     .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))[39m
+[31m+   return values.length ? Math.max(...values) : null[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function confidenceLabel(task: AiInferenceTask): string {[39m
+[31m+   const value = confidenceValue(task)[39m
+[31m+   const percentage = formatAiConfidence(value)[39m
+[31m+   if (percentage) return percentage[39m
+[31m+   if (value != null) return '低可信 · 需人工复核'[39m
+[31m+   return task.status === 'SUCCEEDED' ? '待人工判断' : '暂无可信度'[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function confidenceTagType(task: AiInferenceTask): 'success' | 'warning' | 'info' {[39m
+[31m+   const value = confidenceValue(task)[39m
+[31m+   if (value != null && value >= 0.7) return 'success'[39m
+[31m+   if (value != null && value < 0.4) return 'warning'[39m
+[31m+   return 'info'[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ function evidenceLabel(task: AiInferenceTask): string {[39m
+[31m+   const imageCount = task.assetId ? 1 : 0[39m
+[31m+   return `${imageCount} 张图 · ${task.detectionCount ?? 0} 个标注`[39m
+[31m+ }[39m
+[31m+[39m
+[31m+ onMounted(load)[39m
+[31m+ </script>[39m
+[31m+[39m
+[31m+ <template>[39m
+[31m+   <section class="review-page">[39m
+[31m+     <AppPageHeader[39m
+[31m+       eyebrow="巡检治理"[39m
+[31m+       title="AI 人工复核中心"[39m
+[31m+       description="除已完成外的记录统一归入待复核；专业人员确认、修正或驳回后进入已完成，并可继续决定是否发起现场复检。"[39m
+[31m+       show-user-menu[39m
+[31m+     >[39m
+[31m+       <template #actions>[39m
+[31m+         <el-button @click="load">刷新</el-button>[39m
+[31m+       </template>[39m
+[31m+     </AppPageHeader>[39m
+[31m+[39m
+[31m+     <AiPageBrief[39m
+[31m+       v-if="!loading && !errorMessage"[39m
+[31m+       title="复核辅助看板"[39m
+[31m+       :metrics="reviewBriefMetrics"[39m
+[31m+       :summary="`当前复核筛选条件共有 ${total} 条记录；除已完成外的记录统一归入待复核。`"[39m
+[31m+       suggestion="优先处理待复核、低可信或包含明显视觉标注的记录；形成专业结论后，再回流现场复检或后续正式治理。"[39m
+[31m+     />[39m
+[31m+[39m
+[31m+     <section class="review-toolbar">[39m
+[31m+       <div class="review-toolbar__copy">[39m
+[31m+         <strong>复核状态</strong>[39m
+[31m+         <span>“待复核”包含所有尚未形成最终人工结论的记录；已确认、已修正、已驳回统一归入“已完成”。</span>[39m
+[31m+       </div>[39m
+[31m+       <el-segmented v-model="reviewFilter" :options="statusOptions" @change="handleStatusChange" />[39m
+[31m+     </section>[39m
+[31m+[39m
+[31m+     <AppLoading :visible="loading" inline text="加载复核队列中…" />[39m
+[31m+     <AppError v-if="errorMessage" :message="errorMessage" @retry="load" />[39m
+[31m+[39m
+[31m+     <el-card v-if="!loading && !errorMessage" class="surface-card queue-card" shadow="never">[39m
+[31m+       <template #header>[39m
+[31m+         <div class="queue-head">[39m
+[31m+           <div>[39m
+[31m+             <strong>专业复核工作队列</strong>[39m
+[31m+             <small>未形成最终结论 → 专业人员复核 → 必要时发起现场复检。</small>[39m
+[31m+           </div>[39m
+[31m+           <el-tag v-if="reviewFilter === 'PENDING'" type="warning" effect="plain" round>等待人工结论</el-tag>[39m
+[31m+           <el-tag v-else-if="reviewFilter === 'COMPLETED'" type="success" effect="plain" round>已形成结论</el-tag>[39m
+[31m+         </div>[39m
+[31m+       </template>[39m
+[31m+[39m
+[31m+       <div class="queue-table-zone">[39m
+[31m+         <el-table v-if="tasks.length" :data="tasks" stripe height="100%" @row-click="openTask">[39m
+[31m+           <el-table-column label="对象" min-width="175">[39m
+[31m+             <template #default="scope">[39m
+[31m+               <div class="object-cell"><strong>{{ objectLabel(scope.row) }}</strong><small>{{ objectHint(scope.row) }}</small></div>[39m
+[31m+             </template>[39m
+[31m+           </el-table-column>[39m
+[31m+           <el-table-column label="AI 发现" min-width="220" show-overflow-tooltip>[39m
+[31m+             <template #default="scope">{{ findingLabel(scope.row) }}</template>[39m
+[31m+           </el-table-column>[39m
+[31m+           <el-table-column label="可信程度" width="155">[39m
+[31m+             <template #default="scope"><el-tag :type="confidenceTagType(scope.row)" effect="plain" round>{{ confidenceLabel(scope.row) }}</el-tag></template>[39m
+[31m+           </el-table-column>[39m
+[31m+           <el-table-column label="证据数量" width="135">[39m
+[31m+             <template #default="scope">{{ evidenceLabel(scope.row) }}</template>[39m
+[31m+           </el-table-column>[39m
+[31m+           <el-table-column label="分析完成时间" min-width="165">[39m
+[31m+             <template #default="scope"><AppDateTime :value="scope.row.completedAt || scope.row.createdAt" /></template>[39m
+[31m+           </el-table-column>[39m
+[31m+           <el-table-column label="复核状态" width="126">[39m
+[31m+             <template #default="scope">[39m
+[31m+               <el-tag effect="plain" round>{{ reviewStatusLabel(scope.row.reviewStatus) }}</el-tag>[39m
+[31m+             </template>[39m
+[31m+           </el-table-column>[39m
+[31m+           <el-table-column label="分析状态" width="118">[39m
+[31m+             <template #default="scope"><AppStatusTag :status="scope.row.status" variant="task" /></template>[39m
+[31m+           </el-table-column>[39m
+[31m+           <el-table-column label="操作" width="88" fixed="right">[39m
+[31m+             <template #default="scope">[39m
+[31m+               <el-button size="small" @click.stop="openTask(scope.row)">{{ canReviewTask(scope.row) ? '复核' : '查看' }}</el-button>[39m
+[31m+             </template>[39m
+[31m+           </el-table-column>[39m
+[31m+         </el-table>[39m
+[31m+         <AppEmpty v-else :description="reviewFilter === 'PENDING' ? '当前没有待复核记录' : '当前筛选条件下暂无复核记录'" />[39m
+[31m+       </div>[39m
+[31m+[39m
+[31m+       <AppTablePager[39m
+[31m+         v-model:page="page"[39m
+[31m+         v-model:page-size="pageSize"[39m
+[31m+         :total="total"[39m
+[31m+         @change="load"[39m
+[31m+       />[39m
+[31m+     </el-card>[39m
+[31m+   </section>[39m
+[31m+ </template>[39m
+[31m+[39m
+[31m+ <style scoped lang="scss">[39m
+[31m+ .review-page { display: grid; gap: 14px; }[39m
+[31m+ .review-toolbar {[39m
+[31m+   display: flex;[39m
+[31m+   min-height: 58px;[39m
+[31m+   align-items: center;[39m
+[31m+   justify-content: space-between;[39m
+[31m+   gap: 16px;[39m
+[31m+   padding: 10px 14px;[39m
+[31m+   border: 1px solid var(--usp-color-border);[39m
+[31m+   border-radius: var(--usp-radius-xl);[39m
+[31m+   background: var(--usp-color-surface);[39m
+[31m+   box-shadow: var(--usp-shadow-sm);[39m
+[31m+ }[39m
+[31m+ .review-toolbar__copy { display: grid; gap: 2px; }[39m
+[31m+ .review-toolbar__copy strong { font-size: 13px; }[39m
+[31m+ .review-toolbar__copy span { color: var(--usp-color-text-secondary); font-size: 11px; }[39m
+[31m+ .surface-card { border-radius: var(--usp-radius-xl); box-shadow: var(--usp-shadow-sm); }[39m
+[31m+ .queue-card :deep(.el-card__body) { display: flex; min-height: 590px; flex-direction: column; padding: 0 16px 12px; }[39m
+[31m+ .queue-card :deep(.el-card__header) { padding: 13px 16px; }[39m
+[31m+ .queue-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }[39m
+[31m+ .queue-head > div { display: grid; gap: 3px; }[39m
+[31m+ .queue-head small { color: var(--usp-color-text-secondary); font-size: 11px; }[39m
+[31m+ .queue-table-zone { min-height: 0; flex: 1; padding-top: 8px; }[39m
+[31m+ .queue-table-zone :deep(.el-table) { --el-table-header-bg-color: var(--usp-color-surface-muted); border-radius: var(--usp-radius-lg); cursor: pointer; }[39m
+[31m+ .object-cell { display: grid; gap: 2px; }[39m
+[31m+ .object-cell strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }[39m
+[31m+ .object-cell small { color: var(--usp-color-text-secondary); }[39m
+[31m+[39m
+[31m+ @media (max-width: 820px) {[39m
+[31m+   .review-toolbar { align-items: stretch; flex-direction: column; }[39m
+[31m+   .review-toolbar :deep(.el-segmented) { width: 100%; }[39m
+[31m+   .review-toolbar :deep(.el-segmented__group) { width: 100%; }[39m
+[31m+   .review-toolbar :deep(.el-segmented__item) { flex: 1; }[39m
+[31m+ }[39m
+[31m+ </style>[39m
+[31m+[39m
+
+[36m [2m❯[22m src/shared/components/__tests__/GovernanceFlowHints.test.ts:[2m40:31[22m[39m
+    [90m 38|[39m
+    [90m 39|[39m   [34mit[39m([32m'复核队列通过队列本身说明下一操作，不额外堆叠流程卡片'[39m[33m,[39m () [33m=>[39m {
+    [90m 40|[39m     expect(reviewQueueSource).toContain('先看发生了什么，再看 AI 怎么判断，最后由专业人员形成结…
+    [90m   |[39m                               [31m^[39m
+    [90m 41|[39m     [34mexpect[39m(reviewQueueSource)[33m.[39m[34mtoContain[39m([32m'AI 发现'[39m)
+    [90m 42|[39m     [34mexpect[39m(reviewQueueSource)[33m.[39m[34mtoContain[39m([32m'证据数量'[39m)
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/12]⎯[22m[39m
+

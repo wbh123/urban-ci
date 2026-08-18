@@ -14,7 +14,7 @@ import org.urbansafe.priority.phase2.repository.Phase2Repository;
 
 @Service
 public class Phase2InspectionService {
-    private static final List<String> STATUSES = List.of("PENDING","IN_PROGRESS","COMPLETED","CANCELLED");
+    private static final List<String> STATUSES = List.of("PENDING","IN_PROGRESS","ONSITE_COMPLETED","COMPLETED","CANCELLED");
     private static final List<String> SEVERITIES = List.of("LOW","MEDIUM","HIGH");
     private final Phase2Repository repository;
 
@@ -78,12 +78,20 @@ public class Phase2InspectionService {
     }
 
     @Transactional
-    public Map<String,Object> complete(UUID id) {
+    public Map<String,Object> onsiteComplete(UUID id) {
         getTask(id);
         if (repository.countRecords(id) == 0) {
-            throw new ResourceConflictException("INSPECTION_RECORD_REQUIRED", "完成前至少填写一条巡检记录");
+            throw new ResourceConflictException("INSPECTION_RECORD_REQUIRED", "提交现场巡查前至少填写一条巡检记录");
         }
-        transition(repository.transitionTask(id,"IN_PROGRESS","COMPLETED"), "只有进行中任务可以完成");
+        transition(repository.transitionTask(id,"IN_PROGRESS","ONSITE_COMPLETED"),
+                "只有进行中任务可以提交现场巡查完毕");
+        return getTask(id);
+    }
+
+    @Transactional
+    public Map<String,Object> complete(UUID id) {
+        getTask(id);
+        transition(repository.transitionTask(id,"ONSITE_COMPLETED","COMPLETED"), "只有待后台确认任务可以完成");
         return getTask(id);
     }
 
@@ -92,7 +100,7 @@ public class Phase2InspectionService {
         Map<String,Object> task = getTask(id);
         String status = String.valueOf(task.get("status"));
         if (!List.of("PENDING","IN_PROGRESS").contains(status)) {
-            throw new ResourceConflictException("INSPECTION_STATE_CONFLICT", "已结束任务不能取消");
+            throw new ResourceConflictException("INSPECTION_STATE_CONFLICT", "已结束或已提交现场巡查的任务不能取消");
         }
         transition(repository.transitionTask(id,status,"CANCELLED"), "任务状态已发生变化");
         return getTask(id);

@@ -31,9 +31,16 @@ const previewUrl = ref('')
 const aiTriggered = ref(false)
 const galleryRef = ref<InspectionGalleryHandle | null>(null)
 
+const canEditOnsite = computed(() => task.value?.status === 'IN_PROGRESS')
+
 const nextStepText = computed(() => {
+  if (task.value?.status === 'ONSITE_COMPLETED') {
+    return '现场作业已提交，等待后台确认；历史现场图片和后台智能分析状态仍可查看。'
+  }
+  if (task.value?.status === 'COMPLETED') {
+    return '后台已确认任务完成；历史现场图片仍可查看，未分析或失败图片可继续手动发起人工智能分析。'
+  }
   if (aiTriggered.value) return '现场图片已进入后台智能分析；你可以继续巡检或离开页面，稍后回来会自动恢复分析状态。'
-  if (task.value?.status === 'COMPLETED') return '任务已完成；历史现场图片仍可查看，未分析或失败图片可继续手动发起人工智能分析。'
   if (records.value.length > 0 || task.value?.status === 'IN_PROGRESS' || photo.value) {
     return '继续补充现场记录和照片；图片上传后会立即进入历史图库，不需要等待人工智能分析完成。'
   }
@@ -63,13 +70,13 @@ async function load(): Promise<void> {
   }
 }
 
-async function transition(action: 'start' | 'complete' | 'cancel'): Promise<void> {
+async function transition(action: 'start' | 'onsite-complete'): Promise<void> {
   saving.value = true
   try {
     await api.transitionInspectionTask(taskId.value, action)
     appStore.notify(
-      action === 'start' ? '任务已开始。' : action === 'complete' ? '任务已完成。' : '任务已取消。',
-      action === 'cancel' ? 'warning' : 'success',
+      action === 'start' ? '任务已开始。' : '现场作业已提交，等待后台确认。',
+      'success',
     )
     await load()
   } catch (error) {
@@ -80,6 +87,10 @@ async function transition(action: 'start' | 'complete' | 'cancel'): Promise<void
 }
 
 async function saveRecord(): Promise<void> {
+  if (!canEditOnsite.value) {
+    appStore.notify('当前任务不在现场巡查阶段，不能继续新增记录。', 'warning')
+    return
+  }
   if (!summary.value.trim()) {
     appStore.notify('请填写现场情况。', 'warning')
     return
@@ -114,6 +125,10 @@ function selectPhoto(event: Event): void {
 }
 
 async function uploadPhoto(): Promise<void> {
+  if (!canEditOnsite.value) {
+    appStore.notify('当前任务已离开现场巡查阶段，不能继续上传现场照片。', 'warning')
+    return
+  }
   if (!photo.value) {
     appStore.notify('请先拍照或选择图片。', 'warning')
     return
@@ -128,8 +143,6 @@ async function uploadPhoto(): Promise<void> {
     })
     photo.value = null
     releasePreview()
-
-    // 图片资产已经持久化；先刷新服务器图库，人工智能状态随后独立恢复/轮询。
     await galleryRef.value?.refresh()
 
     const automatic = result.autoInference
@@ -170,20 +183,20 @@ onBeforeUnmount(releasePreview)
       </header>
       <div class="task-actions">
         <button type="button" :disabled="saving || task.status !== 'PENDING'" @click="transition('start')">到场开始</button>
-        <button type="button" :disabled="saving || task.status !== 'IN_PROGRESS'" @click="transition('complete')">提交完成</button>
+        <button type="button" :disabled="saving || task.status !== 'IN_PROGRESS'" @click="transition('onsite-complete')">现场巡查完毕</button>
       </div>
       <article class="form-card">
         <h2>填写现场记录</h2>
         <label>严重程度
-          <select v-model="severity"><option value="LOW">低</option><option value="MEDIUM">中</option><option value="HIGH">高</option></select>
+          <select v-model="severity" :disabled="!canEditOnsite"><option value="LOW">低</option><option value="MEDIUM">中</option><option value="HIGH">高</option></select>
         </label>
         <label>现场情况
-          <textarea v-model="summary" rows="4" placeholder="描述位置、现象和范围" />
+          <textarea v-model="summary" rows="4" placeholder="描述位置、现象和范围" :disabled="!canEditOnsite" />
         </label>
         <label>整改建议
-          <textarea v-model="suggestion" rows="3" placeholder="高风险问题建议填写" />
+          <textarea v-model="suggestion" rows="3" placeholder="高风险问题建议填写" :disabled="!canEditOnsite" />
         </label>
-        <button class="primary" type="button" :disabled="saving" @click="saveRecord">保存记录</button>
+        <button class="primary" type="button" :disabled="saving || !canEditOnsite" @click="saveRecord">保存记录</button>
       </article>
       <article class="form-card evidence-card">
         <div class="form-heading">
@@ -194,11 +207,11 @@ onBeforeUnmount(releasePreview)
           <span class="status-chip">图片证据</span>
         </div>
         <label class="photo-picker">
-          <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" @change="selectPhoto" />
+          <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" :disabled="!canEditOnsite" @change="selectPhoto" />
           <span>{{ photo ? '重新选择照片' : '拍照或选择照片' }}</span>
         </label>
         <img v-if="previewUrl" :src="previewUrl" class="preview" alt="待上传现场照片预览" />
-        <button class="primary" type="button" :disabled="saving || !photo" @click="uploadPhoto">上传现场照片</button>
+        <button class="primary" type="button" :disabled="saving || !photo || !canEditOnsite" @click="uploadPhoto">上传现场照片</button>
       </article>
 
       <article class="form-card history-card">
@@ -212,7 +225,7 @@ onBeforeUnmount(releasePreview)
         <InspectionImageGallery
           ref="galleryRef"
           :task-id="taskId"
-          editable
+          :editable="canEditOnsite"
           :show-result-action="false"
         />
       </article>

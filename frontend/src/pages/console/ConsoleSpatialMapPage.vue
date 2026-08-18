@@ -24,6 +24,10 @@ import {
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { useSpatialMapStore, type MapRiskLevel } from '@/stores/spatial-map'
+import {
+  filterSpatialMapCollectionsForCommunity,
+  type ScopedSpatialAmapPointFeature,
+} from './spatialMapCommunityScope'
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -112,10 +116,11 @@ const communityMapPoints = computed<SpatialAmapPointFeature[]>(() => communityPo
     label: item.communityName,
   })))
 
-const buildingMapPoints = computed<SpatialAmapPointFeature[]>(() => displayRiskBuildings.value
+const buildingMapPoints = computed<ScopedSpatialAmapPointFeature[]>(() => displayRiskBuildings.value
   .filter((item) => isCoordinate(item.longitude) && isCoordinate(item.latitude))
   .map((item) => ({
     id: item.buildingId,
+    communityId: item.communityId,
     longitude: Number(item.longitude),
     latitude: Number(item.latitude),
     kind: 'BUILDING',
@@ -188,11 +193,15 @@ async function chooseCommunity(communityId: string): Promise<void> {
 }
 
 function currentMapInput(): SpatialAmapSyncInput {
-  return {
+  const scoped = filterSpatialMapCollectionsForCommunity({
     communities: communityFeatures.value,
     buildings: visibleBuildings.value,
     communityPoints: communityMapPoints.value,
     buildingPoints: buildingMapPoints.value,
+  }, selectedCommunityId.value)
+
+  return {
+    ...scoped,
     selectedCommunityId: selectedCommunityId.value,
     selectedBuildingIds: selectedBuildingIds.value,
   }
@@ -345,7 +354,7 @@ function freshnessLabel(value?: string): string {
     <AppPageHeader
       eyebrow="空间治理"
       title="城市地图"
-      description="按小区、风险、优先级和数据状态筛选楼栋；点击楼栋先在地图聚焦并查看简略信息，再按需进入完整治理详情。"
+      description="按小区、风险、优先级和数据状态筛选楼栋；选择具体小区后，地图只保留该小区边界和楼栋标记。"
     >
       <template #actions>
         <el-button v-if="canOpenRiskOverview" type="primary" plain @click="openRiskOverview">查看风险总览</el-button>

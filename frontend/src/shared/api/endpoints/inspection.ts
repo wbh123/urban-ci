@@ -3,10 +3,13 @@ import { apiGet, apiPost } from '../client'
 
 export type InspectionTaskCreateRequest = Schema<'InspectionTaskCreateRequest'>
 export type InspectionRecordCreateRequest = Schema<'InspectionRecordCreateRequest'>
-export type InspectionTask = Schema<'InspectionTask'>
+type GeneratedInspectionTask = Schema<'InspectionTask'>
+export type InspectionTaskStatus = GeneratedInspectionTask['status'] | 'ONSITE_COMPLETED'
+export type InspectionTask = Omit<GeneratedInspectionTask, 'status'> & {
+  status: InspectionTaskStatus
+}
 export type InspectionRecord = Schema<'InspectionRecord'>
 
-export type InspectionTaskStatus = InspectionTask['status']
 export type InspectionType = InspectionTaskCreateRequest['inspectionType']
 export type Severity = InspectionRecord['severity']
 
@@ -35,7 +38,7 @@ export function createInspectionTask(
 
 export function transitionInspectionTask(
   taskId: string,
-  action: 'start' | 'complete' | 'cancel',
+  action: 'start' | 'onsite-complete' | 'complete' | 'cancel',
 ): Promise<InspectionTask> {
   return apiPost<InspectionTask>(`/api/v1/inspection-tasks/${taskId}/${action}`)
 }

@@ -47,6 +47,7 @@ const createCommunityId = ref('')
 const createBuildingId = ref('')
 const loading = ref(false)
 const saving = ref(false)
+const completingTaskId = ref('')
 const errorMessage = ref('')
 const selectorRevision = ref(0)
 const createSelectorRevision = ref(0)
@@ -240,6 +241,19 @@ async function createTask(): Promise<void> {
   }
 }
 
+async function confirmTaskCompletion(task: InspectionTaskDisplay): Promise<void> {
+  completingTaskId.value = task.taskId
+  try {
+    await api.transitionInspectionTask(task.taskId, 'complete')
+    appStore.notify(`任务已确认完成：${task.taskCode}`, 'success')
+    await loadTasks()
+  } catch (error) {
+    appStore.notify(toAppError(error).message, 'error')
+  } finally {
+    completingTaskId.value = ''
+  }
+}
+
 async function openDetail(task: InspectionTaskDisplay): Promise<void> {
   releaseDetailImageUrl()
   detailTask.value = task
@@ -314,7 +328,7 @@ function inspectionTypeLabel(value?: string | null): string {
     <AppPageHeader
       eyebrow="巡检治理"
       title="巡检管理"
-      description="统一组织现场巡检、图片上传与 AI 视觉识别；疑似病害和建议始终由人工结合现场证据复核。"
+      description="统一组织现场巡检、后台确认、图片上传与 AI 视觉识别；巡检员提交现场作业后，由后台确认任务最终完成。"
       show-user-menu
     >
       <template #actions>
@@ -343,6 +357,7 @@ function inspectionTypeLabel(value?: string | null): string {
         <el-select v-model="statusFilter" clearable placeholder="全部状态">
           <el-option label="待开始" value="PENDING" />
           <el-option label="进行中" value="IN_PROGRESS" />
+          <el-option label="待后台确认" value="ONSITE_COMPLETED" />
           <el-option label="已完成" value="COMPLETED" />
           <el-option label="已取消" value="CANCELLED" />
         </el-select>
@@ -383,11 +398,11 @@ function inspectionTypeLabel(value?: string | null): string {
     <section class="inspection-ai-chain" aria-label="巡检 AI 链路">
       <div><span>1</span><strong>现场巡检</strong><small>任务、巡检记录、原始图片</small></div>
       <b>→</b>
-      <div><span>2</span><strong>证据入库与追溯</strong><small>绑定小区、楼栋、任务与图片</small></div>
+      <div><span>2</span><strong>后台确认</strong><small>现场作业提交后由管理端确认完成</small></div>
       <b>→</b>
-      <div><span>3</span><strong>ACCURACY 视觉识别</strong><small>FastAPI 高精度病害候选与区域标注</small></div>
+      <div><span>3</span><strong>证据入库与追溯</strong><small>绑定小区、楼栋、任务与图片</small></div>
       <b>→</b>
-      <div><span>4</span><strong>智能编排与总结</strong><small>Dify / Spring AI 按配置生成辅助摘要</small></div>
+      <div><span>4</span><strong>ACCURACY 视觉识别</strong><small>FastAPI 高精度病害候选与区域标注</small></div>
       <b>→</b>
       <div><span>5</span><strong>人工复核</strong><small>确认、修正或驳回 AI 结果</small></div>
       <b>→</b>
@@ -403,7 +418,7 @@ function inspectionTypeLabel(value?: string | null): string {
           <div>
             <strong>巡检任务</strong>
             <small>当前条件共 {{ filteredTasks.length }} 条</small>
-            <small>下一步：创建并下发任务后，由现场人员在移动作业端执行巡检并上传图片；AI 视觉识别完成后，再进入详情查看标注与人工复核建议。</small>
+            <small>“待后台确认”表示现场巡查已经结束；后台确认后任务才正式完成。</small>
           </div>
         </div>
       </template>
@@ -420,9 +435,18 @@ function inspectionTypeLabel(value?: string | null): string {
         <el-table-column label="创建时间" width="165">
           <template #default="scope"><AppDateTime :value="scope.row.createdAt" /></template>
         </el-table-column>
-        <el-table-column label="操作" width="110" fixed="right">
+        <el-table-column label="操作" width="230" fixed="right">
           <template #default="scope">
-            <el-button link type="primary" @click="openDetail(scope.row)">查看详情</el-button>
+            <div class="task-actions">
+              <el-button link type="primary" @click="openDetail(scope.row)">查看详情</el-button>
+              <el-button
+                v-if="scope.row.status === 'ONSITE_COMPLETED'"
+                link
+                type="success"
+                :loading="completingTaskId === scope.row.taskId"
+                @click="confirmTaskCompletion(scope.row)"
+              >确认任务完成</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -558,6 +582,7 @@ function inspectionTypeLabel(value?: string | null): string {
 .inspection-ai-chain > div strong { font-size: 12px; }
 .inspection-ai-chain > div small { color: var(--usp-color-text-secondary); font-size: 10px; line-height: 1.45; }
 .inspection-ai-chain > b { align-self: center; color: var(--usp-color-text-tertiary); font-size: 15px; }
+.task-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .drawer-form { display: grid; gap: 18px; }
 .drawer-footer { display: flex; justify-content: flex-end; gap: 8px; }
 .detail-layout { display: grid; gap: 16px; padding-bottom: 12px; }

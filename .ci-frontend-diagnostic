@@ -1,8 +1,8 @@
-source_ref=d61e2f2fce8416f4de6d2ac11f04de439a702501
-run_id=32224933019
+source_ref=2cb9b7dcb48dfdb072462c491ba01326bddbc13c
+run_id=32225134675
 --- frontend-npm-ci.log tail ---
 
-added 422 packages in 7s
+added 422 packages in 9s
 
 107 packages are looking for funding
   run `npm fund` for details
@@ -17,7 +17,7 @@ npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to revi
 > node scripts/generate-api.mjs
 
 ✨ openapi-typescript 7.13.0
-🚀 /home/runner/work/urban-ci/urban-ci/mirror/backend-java/model/src/main/resources/openapi-interface.yaml → /home/runner/work/urban-ci/urban-ci/mirror/frontend/src/shared/api/generated/schema.d.ts [215.5ms]
+🚀 /home/runner/work/urban-ci/urban-ci/mirror/backend-java/model/src/main/resources/openapi-interface.yaml → /home/runner/work/urban-ci/urban-ci/mirror/frontend/src/shared/api/generated/schema.d.ts [235.6ms]
 [api:generate] 已生成类型: /home/runner/work/urban-ci/urban-ci/mirror/frontend/src/shared/api/generated/schema.d.ts
 [api:generate] 已刷新 R2 空间契约指纹: /home/runner/work/urban-ci/urban-ci/mirror/frontend/src/shared/api/generated/spatial-contract.gitblob
 [api:generate] 已刷新可视化建档契约指纹: /home/runner/work/urban-ci/urban-ci/mirror/frontend/src/shared/api/generated/archive-contract.gitblob
